@@ -8,10 +8,10 @@ function App() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mode = params.get('mode');
+    const type = params.get('type') || params.get('mode');
     
-    if (mode === 'survey' || mode === 'smile_award') {
-      setIsPublicMode(mode); // Store the mode type
+    if (type === 'survey' || type === 'smile_award' || type === 'lasik') {
+      setIsPublicMode(type); // Store the mode type
     }
 
     const savedUser = localStorage.getItem('auth_user');

@@ -578,26 +578,29 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [smileStats, setSmileStats] = useState({ all: [] });
     const [smileWinnersList, setSmileWinnersList] = useState([]);
     const [staffList, setStaffList] = useState([]);
-    const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
+    const [lasikData, setLasikData] = useState([]);
 
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
     const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
+    const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
 
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [opd, sono, leaderboard, winners, staff] = await Promise.all([
+            const [opd, sono, leaderboard, winners, staff, lasik] = await Promise.all([
                 fetch(`${scriptUrl}?sheet=OPD_Records&date=${selectedDate}`).then(r => r.json()),
                 fetch(`${scriptUrl}?sheet=SONO_Records&date=${selectedDate}`).then(r => r.json()),
                 fetch(`${smileScriptUrl}?action=get_leaderboard`).then(r => r.json()),
                 fetch(`${smileScriptUrl}?action=get_winners`).then(r => r.json()),
-                fetch(`${smileScriptUrl}?action=get_staff`).then(r => r.json())
+                fetch(`${smileScriptUrl}?action=get_staff`).then(r => r.json()),
+                fetch(lasikScriptUrl).then(r => r.json())
             ]);
             setOpdData(opd || []);
             setSonoData(sono || []);
             setSmileStats({ all: Array.isArray(leaderboard) ? leaderboard : [] });
             setSmileWinnersList(Array.isArray(winners) ? winners : []);
             setStaffList(Array.isArray(staff) ? staff : []);
+            setLasikData(Array.isArray(lasik) ? lasik : []);
         } catch (err) { console.error('Fetch error:', err); }
         setLoading(false);
     };
@@ -644,6 +647,12 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                     <NavItem icon={<CheckCircle2 size={18}/>} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} variant="orange" />
                                 </>
                             )}
+                        </div>
+
+                        <p className="px-5 text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em]">LASIK Questionnaire</p>
+                        <div className="space-y-2">
+                            <NavItem icon={<ClipboardList size={18}/>} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
+                            <NavItem icon={<TrendingUp size={18}/>} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
                             {user === 'SBH' && <NavItem icon={<Scan size={18}/>} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} variant="orange" />}
                         </div>
                     </div>
@@ -684,7 +693,44 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} smileWinnersList={smileWinnersList} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection />}
                         {(activeTab === 'OPD' || activeTab === 'RADIOLOGY') && <DataTable data={activeTab === 'RADIOLOGY' ? sonoData : opdData} type={activeTab} onEdit={setEditingRow} />}
-                        {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={true} />}
+                        {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
+                        {activeTab === 'LASIK_DATA' && (
+                            <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
+                                <div className="overflow-x-auto custom-scrollbar">
+                                    <table className="w-full text-left min-w-[1000px]">
+                                        <thead className="bg-slate-50/50">
+                                            <tr>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Details</th>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">18-40?</th>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Glasses/Lens?</th>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stable?</th>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Affecting Life?</th>
+                                                <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Timestamp</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100">
+                                            {lasikData.map((row, idx) => (
+                                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                                    <td className="px-8 py-5">
+                                                        <p className="font-bold text-slate-800 uppercase text-xs">{row.name}</p>
+                                                        <div className="flex items-center gap-3 mt-1">
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{row.phone_no}</span>
+                                                            <span className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">Age: {row.age}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-5"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${row['18_40_years_old_'] === 'YES' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{row['18_40_years_old_']}</span></td>
+                                                    <td className="px-8 py-5"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${row['wear_glasses_contact_lens_'] === 'YES' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{row['wear_glasses_contact_lens_']}</span></td>
+                                                    <td className="px-8 py-5"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${row['is_power_stable_'] === 'YES' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{row['is_power_stable_']}</span></td>
+                                                    <td className="px-8 py-5"><span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase ${row['affecting_day_to_day_activity_'] === 'YES' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>{row['affecting_day_to_day_activity_']}</span></td>
+                                                    <td className="px-8 py-5 text-[9px] font-bold text-slate-400 uppercase">{formatDateReadable(row.timestamp)}</td>
+                                                </tr>
+                                            ))}
+                                            {lasikData.length === 0 && <tr><td colSpan="6" className="px-8 py-20 text-center text-slate-300 text-[10px] font-black uppercase tracking-widest">No survey responses recorded yet</td></tr>}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
                     </AnimatePresence>
                 </main>
             </div>
