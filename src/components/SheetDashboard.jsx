@@ -579,6 +579,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [smileWinnersList, setSmileWinnersList] = useState([]);
     const [staffList, setStaffList] = useState([]);
     const [lasikData, setLasikData] = useState([]);
+    const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
 
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
     const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
