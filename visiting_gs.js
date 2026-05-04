@@ -6,7 +6,7 @@
 // --- CONFIGURATION ---
 const ACCOUNT_TEAM_MOBILE = "9644404741";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec";
-const FRONTEND_URL = "https://smile-award-sbh.vercel.app"; // Krapaya yahan apna frontend URL dalein
+const FRONTEND_URL = "https://lasik-feedback.vercel.app"; // Updated with user's Vercel link
 
 /**
  * Run this function ONCE to set up all necessary sheets.
