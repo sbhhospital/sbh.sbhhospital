@@ -5,7 +5,7 @@ import {
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, DollarSign
+    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
 import { QRCodeSVG } from 'qrcode.react';
@@ -667,10 +667,14 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             {user === 'SBH' && <NavItem icon={<Scan size={18}/>} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} variant="orange" />}
                         </div>
 
-                        <p className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em]">Accounting</p>
-                        <div className="space-y-2">
-                            <NavItem icon={<DollarSign size={18}/>} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
-                        </div>
+                        {(user === 'HR' || user === 'SBH' || user === 'ADMIN') && (
+                            <>
+                                <p className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em] mt-4">Accounting</p>
+                                <div className="space-y-2">
+                                    <NavItem icon={<IndianRupee size={18}/>} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
+                                </div>
+                            </>
+                        )}
                     </div>
                     <div className="p-8 border-t border-slate-50 bg-slate-50/50"><button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white text-rose-500 border border-rose-100 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-rose-500 hover:text-white shadow-sm active:scale-95"><LogOut size={16} /> Logout Securely</button></div>
                 </aside>
