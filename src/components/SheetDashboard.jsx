@@ -5,11 +5,13 @@ import {
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck
+    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, DollarSign
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
+import VisitingManager from './Visiting/VisitingManager';
+import AccountUpdate from './Visiting/AccountUpdate';
 
 // --- UTILS ---
 const formatTimeToAMPM = (timeStr) => {
@@ -566,7 +568,15 @@ const PrintQRSection = () => {
 // --- MAIN COMPONENT ---
 
 const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
-    const [activeTab, setActiveTab] = useState(() => (isPublic ? (publicType === 'smile_award' ? 'SMILE_AWARD' : 'LASIK_FORM') : 'DASHBOARD'));
+    const [activeTab, setActiveTab] = useState(() => {
+        if (isPublic) {
+            if (publicType === 'smile_award') return 'SMILE_AWARD';
+            if (publicType === 'lasik') return 'LASIK_FORM';
+            if (publicType === 'visiting_update') return 'VISITING_UPDATE';
+            return 'SMILE_AWARD';
+        }
+        return 'DASHBOARD';
+    });
     const [opdData, setOpdData] = useState([]);
     const [sonoData, setSonoData] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -582,7 +592,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
 
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
-    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
+    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
 
     const fetchData = async () => {
@@ -655,6 +665,11 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             <NavItem icon={<ClipboardList size={18}/>} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
                             <NavItem icon={<TrendingUp size={18}/>} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
                             {user === 'SBH' && <NavItem icon={<Scan size={18}/>} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} variant="orange" />}
+                        </div>
+
+                        <p className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em]">Accounting</p>
+                        <div className="space-y-2">
+                            <NavItem icon={<DollarSign size={18}/>} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                         </div>
                     </div>
                     <div className="p-8 border-t border-slate-50 bg-slate-50/50"><button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white text-rose-500 border border-rose-100 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-rose-500 hover:text-white shadow-sm active:scale-95"><LogOut size={16} /> Logout Securely</button></div>
@@ -732,6 +747,8 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </div>
                             </div>
                         )}
+                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={smileScriptUrl} loading={loading} />}
+                        {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={smileScriptUrl} />}
                     </AnimatePresence>
                 </main>
             </div>

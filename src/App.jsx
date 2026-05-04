@@ -10,7 +10,7 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type') || params.get('mode');
     
-    if (type === 'survey' || type === 'smile_award' || type === 'lasik') {
+    if (type === 'survey' || type === 'smile_award' || type === 'lasik' || type === 'visiting_update') {
       setIsPublicMode(type); // Store the mode type
     }
 
