@@ -103,6 +103,28 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
         }
     };
 
+    const handleAddDoctor = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            await fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'add_visiting_doctor', ...doctorFormData })
+            });
+            setTimeout(() => {
+                fetchData();
+                setDoctorFormData({ name: '', specialty: '', mobile: '', email: '' });
+                setSubmitting(false);
+                alert("Doctor added successfully!");
+            }, 1000);
+        } catch (e) {
+            alert("Error adding doctor");
+            setSubmitting(false);
+        }
+    };
+
     const stats = useMemo(() => {
         const pending = payments.filter(p => p.Status === 'Pending');
         const paid = payments.filter(p => p.Status === 'Paid');
