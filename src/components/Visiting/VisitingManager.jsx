@@ -107,16 +107,35 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
         const pending = payments.filter(p => p.Status === 'Pending');
         const paid = payments.filter(p => p.Status === 'Paid');
         const totalPendingAmount = pending.reduce((sum, p) => sum + parseFloat(p.Amount_To_Pay || 0), 0);
-        return { pendingCount: pending.length, paidCount: paid.length, totalPendingAmount };
+        
+        // Month matching for "This Month" stats
+        const now = new Date();
+        const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        
+        const paidThisMonth = paid.filter(p => p.Payment_Date && p.Payment_Date.startsWith(currentMonthStr));
+        const totalPaidThisMonth = paidThisMonth.reduce((sum, p) => sum + parseFloat(p.Paid_Amount || 0), 0);
+        
+        return { 
+            pendingCount: pending.length, 
+            paidCount: paidThisMonth.length, 
+            totalPendingAmount,
+            totalPaidThisMonth
+        };
     }, [payments]);
 
     const filteredHistory = useMemo(() => {
         return payments.filter(p => p.Status === 'Paid').filter(p => {
             const matchesDoctor = filterDoctor === 'All' || p.Doctor_Name === filterDoctor;
-            const matchesMonth = filterMonth === 'All' || (p.Payment_Date && p.Payment_Date.includes(filterMonth));
+            const matchesMonth = filterMonth === 'All' || (p.Payment_Date && p.Payment_Date.startsWith(filterMonth));
             return matchesDoctor && matchesMonth;
         });
     }, [payments, filterDoctor, filterMonth]);
+
+    const settlementsThisMonth = useMemo(() => {
+        const now = new Date();
+        const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        return payments.filter(p => p.Status === 'Paid' && p.Payment_Date && p.Payment_Date.startsWith(currentMonthStr));
+    }, [payments]);
 
     const monthOptions = useMemo(() => {
         const months = new Set();
@@ -145,125 +164,220 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     }
 
     return (
-        <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700 pb-20">
-            {/* Header & Sub-Tabs */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 px-1">
-                <div>
-                    <div className="flex items-center gap-4 mb-3">
-                        <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none">Visiting <span className="text-emerald-600">Doctors</span></h2>
-                        <button onClick={fetchData} className="p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-emerald-600 hover:rotate-180 transition-all duration-500 shadow-sm"><RefreshCw size={20} /></button>
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10 max-w-[1600px] mx-auto">
+            {/* Professional Header & Navigation */}
+            <div className="bg-white border-b border-slate-200 -mx-6 px-10 py-4 sticky top-0 z-[100] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
+                <div className="flex items-center gap-6">
+                    <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-200">
+                        <Stethoscope size={24} />
                     </div>
-                    <p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Payment automation & HR tracking system</p>
+                    <div>
+                        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">Visiting <span className="text-emerald-600">Doctors</span></h2>
+                        <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ledger Active
+                        </div>
+                    </div>
                 </div>
-                <div className="flex bg-slate-100 p-1.5 rounded-[2rem] border border-slate-200/50">
-                    <button onClick={() => setActiveSubTab('DASHBOARD')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'DASHBOARD' ? 'bg-white text-slate-900 shadow-lg shadow-slate-200' : 'text-slate-400 hover:text-slate-600'}`}>Dashboard</button>
-                    <button onClick={() => setActiveSubTab('HR_ENTRY')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'HR_ENTRY' ? 'bg-white text-slate-900 shadow-lg shadow-slate-200' : 'text-slate-400 hover:text-slate-600'}`}>New Payment</button>
-                    <button onClick={() => setActiveSubTab('REPORT')} className={`px-8 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${activeSubTab === 'REPORT' ? 'bg-white text-slate-900 shadow-lg shadow-slate-200' : 'text-slate-400 hover:text-slate-600'}`}>History</button>
+
+                <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
+                    {[
+                        { id: 'DASHBOARD', label: 'Dashboard', icon: BarChart3 },
+                        { id: 'HR_ENTRY', label: 'New Log', icon: Plus },
+                        { id: 'SETTLED', label: 'Settlements', icon: CheckCircle2 },
+                        { id: 'REPORT', label: 'Archive', icon: Briefcase },
+                        { id: 'MASTER', label: 'Master', icon: User }
+                    ].map(tab => (
+                        <button 
+                            key={tab.id}
+                            onClick={() => setActiveSubTab(tab.id)}
+                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' : 'text-slate-400 hover:bg-slate-50'}`}
+                        >
+                            <tab.icon size={14} />
+                            {tab.label}
+                        </button>
+                    ))}
+                    <div className="w-[1px] h-6 bg-slate-200 mx-2 hidden md:block"></div>
+                    <button onClick={fetchData} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={16} /></button>
                 </div>
             </div>
 
             {activeSubTab === 'DASHBOARD' && (
-                <div className="space-y-10">
-                    {/* Stat Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex items-center gap-7 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-orange-100">
-                            <div className="w-16 h-16 rounded-3xl bg-orange-50 flex items-center justify-center text-orange-600 group-hover:scale-110 transition-transform"><Clock size={30} /></div>
-                            <div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Pending Payments</p><p className="text-4xl font-black text-slate-800 tracking-tighter">{stats.pendingCount}</p></div>
+                <div className="space-y-6">
+                    {/* Compact Stat Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-orange-200 transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600"><Clock size={20} /></div>
+                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pending</p><p className="text-xl font-black text-slate-800 tracking-tight">{stats.pendingCount}</p></div>
                         </div>
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex items-center gap-7 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-emerald-100">
-                            <div className="w-16 h-16 rounded-3xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:scale-110 transition-transform"><IndianRupee size={30} /></div>
-                            <div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Pending Amount</p><p className="text-4xl font-black text-slate-800 tracking-tighter">₹{stats.totalPendingAmount.toLocaleString()}</p></div>
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-emerald-200 transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><IndianRupee size={20} /></div>
+                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Awaiting Clear</p><p className="text-xl font-black text-slate-800 tracking-tight">₹{stats.totalPendingAmount.toLocaleString()}</p></div>
                         </div>
-                        <div className="bg-white rounded-[2.5rem] p-8 border border-slate-100 shadow-sm flex items-center gap-7 group hover:-translate-y-2 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-100">
-                            <div className="w-16 h-16 rounded-3xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform"><CheckCircle2 size={30} /></div>
-                            <div><p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Total Paid (Month)</p><p className="text-4xl font-black text-slate-800 tracking-tighter">{stats.paidCount}</p></div>
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-blue-200 transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600"><CheckCircle2 size={20} /></div>
+                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Month)</p><p className="text-xl font-black text-slate-800 tracking-tight">{stats.paidCount}</p></div>
+                        </div>
+                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-indigo-200 transition-all">
+                            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><TrendingUp size={20} /></div>
+                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Settled (Month)</p><p className="text-xl font-black text-slate-800 tracking-tight">₹{stats.totalPaidThisMonth.toLocaleString()}</p></div>
                         </div>
                     </div>
 
-                    {/* Pending List */}
-                    <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100 border-b-4 border-b-orange-500">
-                        <div className="px-10 py-8 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4"><Activity className="text-orange-500" size={18} /> Active Reminders</h3>
-                            <span className="px-5 py-2 bg-white text-orange-600 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-orange-100">Daily Automation Active</span>
+                    {/* Active Pending Table */}
+                    <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                        <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                            <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-3"><Activity className="text-orange-500" size={14} /> Outstanding Payment Vouchers</h3>
+                            <div className="flex items-center gap-2">
+                                <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse"></span>
+                                <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">Awaiting Accounts</span>
+                            </div>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-white">
-                                    <tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b border-slate-50">
-                                        <th className="px-10 py-8">Doctor Details</th>
-                                        <th className="px-10 py-8 text-center">Expected Amount</th>
-                                        <th className="px-10 py-8 text-center">Visit Dates</th>
-                                        <th className="px-10 py-8 text-right">Status / Reminders</th>
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-slate-50">
+                                    <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                        <th className="px-8 py-4">Voucher ID</th>
+                                        <th className="px-8 py-4">Consultant Name</th>
+                                        <th className="px-8 py-4 text-center">Amount</th>
+                                        <th className="px-8 py-4 text-center">Visit Dates</th>
+                                        <th className="px-8 py-4 text-center">Count</th>
+                                        <th className="px-8 py-4 text-right">Status</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {payments.filter(p => p.Status === 'Pending').map((p, i) => (
-                                        <tr key={i} className="hover:bg-slate-50/80 transition-all group cursor-default">
-                                            <td className="px-10 py-9">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white group-hover:text-slate-800 transition-colors"><User size={20} /></div>
-                                                    <div>
-                                                        <p className="font-black text-slate-800 uppercase text-[12px] mb-1">{p.Doctor_Name}</p>
-                                                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span> {p.Payment_ID}</p>
-                                                    </div>
+                                        <tr key={i} className="hover:bg-slate-50/80 transition-all group">
+                                            <td className="px-8 py-4 text-[11px] font-black text-slate-400">{p.Payment_ID}</td>
+                                            <td className="px-8 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors"><User size={14} /></div>
+                                                    <p className="font-black text-slate-800 uppercase text-[11px]">{p.Doctor_Name}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-10 py-9 text-center">
-                                                <span className="inline-block px-6 py-3 bg-slate-900 text-white rounded-2xl text-[12px] font-black shadow-lg shadow-slate-200">₹{parseFloat(p.Amount_To_Pay).toLocaleString()}</span>
-                                                <p className="text-[9px] font-black text-slate-400 uppercase mt-2">{p.Visit_Count} Visits</p>
+                                            <td className="px-8 py-4 text-center">
+                                                <span className="font-black text-slate-900 text-[11px]">₹{parseFloat(p.Amount_To_Pay).toLocaleString()}</span>
                                             </td>
-                                            <td className="px-10 py-9 text-center">
-                                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest max-w-[220px] mx-auto line-clamp-2 leading-relaxed">{p.Visit_Dates}</div>
+                                            <td className="px-8 py-4 text-center">
+                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[150px] mx-auto">{p.Visit_Dates}</div>
                                             </td>
-                                            <td className="px-10 py-9 text-right">
-                                                <div className="space-y-2">
-                                                    <span className="px-5 py-2 bg-orange-50 text-orange-600 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse border border-orange-100">Awaiting Account Team</span>
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <Clock size={12} className="text-slate-300" />
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{p.Reminders_Sent} Pings Sent</p>
-                                                    </div>
-                                                </div>
+                                            <td className="px-8 py-4 text-center">
+                                                <span className="px-3 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-600">{p.Visit_Count}</span>
+                                            </td>
+                                            <td className="px-8 py-4 text-right">
+                                                <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-md text-[9px] font-black uppercase tracking-widest border border-orange-100">Pending</span>
                                             </td>
                                         </tr>
                                     ))}
                                     {payments.filter(p => p.Status === 'Pending').length === 0 && (
-                                        <tr><td colSpan="4" className="text-center py-24 text-[11px] font-black uppercase text-slate-300 tracking-[0.3em]">All clear! No pending payments found.</td></tr>
+                                        <tr><td colSpan="6" className="text-center py-20 text-[11px] font-bold uppercase text-slate-300 italic tracking-widest">No outstanding payments found.</td></tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
                     </div>
+                </div>
+            )}
 
-                    {/* Recent Settlements Feed */}
-                    <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100 border-b-4 border-b-emerald-500">
-                        <div className="px-10 py-8 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
-                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4"><CheckCircle2 className="text-emerald-500" size={18} /> Recently Settled</h3>
-                            <span className="px-5 py-2 bg-white text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-emerald-100">Direct Tracking</span>
-                        </div>
-                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {payments.filter(p => p.Status === 'Paid').slice(0, 8).map((p, i) => (
-                                <motion.div 
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    key={i} 
-                                    className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 hover:border-emerald-200 hover:bg-white transition-all group"
+            {activeSubTab === 'HR_ENTRY' && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Log New Payment */}
+                    <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm h-fit">
+                        <h3 className="text-sm font-black text-slate-800 uppercase mb-8 flex items-center gap-3"><IndianRupee className="text-emerald-500" size={18} /> Log Professional Visit</h3>
+                        <form onSubmit={handleLogPayment} className="space-y-6">
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Consultant Master Selection</label>
+                                <select 
+                                    required 
+                                    value={paymentFormData.doctorId} 
+                                    onChange={e => {
+                                        const doc = doctors.find(d => d.Doctor_ID === e.target.value);
+                                        setPaymentFormData({...paymentFormData, doctorId: e.target.value, doctorName: doc ? doc.Name : ''});
+                                    }}
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 text-[11px] font-black focus:bg-white focus:border-emerald-500/30 outline-none uppercase transition-all shadow-sm"
                                 >
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-emerald-500 shadow-sm"><CheckCircle2 size={18} /></div>
-                                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{p.Payment_Date}</p>
-                                    </div>
-                                    <p className="text-[11px] font-black text-slate-800 uppercase truncate mb-1">{p.Doctor_Name}</p>
-                                    <p className="text-[14px] font-black text-emerald-600">₹{parseFloat(p.Paid_Amount).toLocaleString()}</p>
-                                    <div className="mt-4 pt-4 border-t border-slate-200/50 flex items-center justify-between">
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID: {p.Payment_ID}</span>
-                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Paid</span>
-                                    </div>
-                                </motion.div>
-                            ))}
-                            {payments.filter(p => p.Status === 'Paid').length === 0 && (
-                                <div className="col-span-full py-10 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest">No settlements recorded yet</div>
-                            )}
+                                    <option value="">Choose Doctor</option>
+                                    {doctors.map(d => <option key={d.Doctor_ID} value={d.Doctor_ID}>{d.Name} — {d.Specialty}</option>)}
+                                </select>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Fee Per Visit (₹)</label>
+                                <div className="relative">
+                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 font-black text-[11px]">₹</div>
+                                    <input required type="number" value={paymentFormData.amountPerVisit} onChange={e => setPaymentFormData({...paymentFormData, amountPerVisit: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3.5 pl-8 text-[12px] font-black focus:bg-white focus:border-emerald-500/30 outline-none transition-all shadow-sm" placeholder="0" />
+                                </div>
+                            </div>
+
+                            <div className="space-y-4 pt-4 border-t border-slate-100">
+                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Scheduled Visit Dates</label>
+                                <div className="flex gap-3">
+                                    <input type="date" value={paymentFormData.currentDate} onChange={e => setPaymentFormData({...paymentFormData, currentDate: e.target.value})} className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-black focus:bg-white focus:border-emerald-500/30 outline-none uppercase transition-all shadow-sm" />
+                                    <button type="button" onClick={handleAddVisitDate} className="px-6 bg-emerald-600 text-white rounded-xl flex items-center justify-center hover:bg-emerald-700 transition-all shadow-md active:scale-95"><Plus size={16} /></button>
+                                </div>
+                                
+                                <div className="flex flex-wrap gap-2 mt-2 min-h-[40px]">
+                                    {paymentFormData.visitDates.map(date => (
+                                        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={date} className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black border border-slate-200 shadow-sm">
+                                            {date}
+                                            <button type="button" onClick={() => removeVisitDate(date)} className="text-rose-500 hover:scale-110 transition-transform"><X size={12} /></button>
+                                        </motion.div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="p-6 bg-slate-900 rounded-2xl text-center border-b-4 border-emerald-500">
+                                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Total Fee Calculation</p>
+                                <p className="text-3xl font-black text-white tracking-tighter">₹{(parseFloat(paymentFormData.amountPerVisit || 0) * paymentFormData.visitDates.length).toLocaleString()}</p>
+                                <p className="text-[9px] font-black text-emerald-500 uppercase tracking-widest mt-1">{paymentFormData.visitDates.length} Visits Logged</p>
+                            </div>
+
+                            <button disabled={submitting} type="submit" className="w-full py-4 bg-emerald-600 text-white rounded-xl font-black uppercase tracking-widest text-[11px] hover:bg-emerald-500 transition-all shadow-lg disabled:opacity-50 flex items-center justify-center gap-3">
+                                {submitting ? <Loader2 className="animate-spin" size={14} /> : <Save size={14} />}
+                                {submitting ? "Processing..." : "Generate Voucher & Send Reminders"}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {activeSubTab === 'SETTLED' && (
+                <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-3"><CheckCircle2 className="text-emerald-500" size={16} /> Current Month Settlements</h3>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1 italic">Vouchers cleared in the current billing cycle</p>
                         </div>
+                        <div className="px-5 py-2 bg-emerald-50 text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-100">
+                            Cycle: {new Date().toLocaleString('en-GB', { month: 'long', year: 'numeric' })}
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        {settlementsThisMonth.map((p, i) => (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                key={i} 
+                                className="p-5 rounded-2xl bg-white border border-slate-100 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-50 transition-all group"
+                            >
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all"><CheckCircle2 size={16} /></div>
+                                    <div className="text-right">
+                                        <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Paid Date</p>
+                                        <p className="text-[10px] font-black text-slate-800 transition-colors">{p.Payment_Date}</p>
+                                    </div>
+                                </div>
+                                <p className="text-[11px] font-black text-slate-900 uppercase truncate mb-0.5">{p.Doctor_Name}</p>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{p.Payment_ID}</p>
+                                <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                                    <p className="text-[16px] font-black text-emerald-600 tracking-tight">₹{parseFloat(p.Paid_Amount).toLocaleString()}</p>
+                                    <span className="text-[8px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-1 rounded">Settled</span>
+                                </div>
+                            </motion.div>
+                        ))}
+                        {settlementsThisMonth.length === 0 && (
+                            <div className="col-span-full py-20 text-center text-[11px] font-black uppercase text-slate-300 tracking-widest italic border-2 border-dashed border-slate-50 rounded-[2rem]">No settlements recorded in this cycle yet.</div>
+                        )}
                     </div>
                 </div>
             )}
@@ -398,28 +512,27 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
             )}
 
             {activeSubTab === 'REPORT' && (
-                <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100 border-b-4 border-b-emerald-600">
-                    <div className="px-10 py-10 border-b border-slate-50 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                        <div className="flex items-center gap-5">
-                            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm text-emerald-600 border border-emerald-50"><Briefcase size={22} /></div>
+                <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                    <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm text-emerald-600 border border-emerald-50"><Briefcase size={18} /></div>
                             <div>
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-[0.3em]">Payment Archives</h3>
-                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Verified and settled ledger</p>
+                                <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-widest">Financial Archive History</h3>
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5 italic">Permanent record of settled consultants</p>
                             </div>
                         </div>
                         
-                        {/* Advanced Filters */}
-                        <div className="flex flex-wrap items-center gap-4">
-                            <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
-                                <User size={16} className="text-slate-300" />
-                                <select value={filterDoctor} onChange={e => setFilterDoctor(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-slate-700 min-w-[150px]">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                                <User size={14} className="text-slate-300" />
+                                <select value={filterDoctor} onChange={e => setFilterDoctor(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-slate-700 min-w-[120px]">
                                     <option value="All">All Doctors</option>
                                     {doctors.map(d => <option key={d.Doctor_ID} value={d.Name}>{d.Name}</option>)}
                                 </select>
                             </div>
-                            <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-100 shadow-sm">
-                                <Calendar size={16} className="text-slate-300" />
-                                <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-slate-700 min-w-[120px]">
+                            <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm">
+                                <Calendar size={14} className="text-slate-300" />
+                                <select value={filterMonth} onChange={e => setFilterMonth(e.target.value)} className="bg-transparent text-[10px] font-black uppercase tracking-widest outline-none text-slate-700 min-w-[100px]">
                                     <option value="All">All Time</option>
                                     {monthOptions.map(m => <option key={m} value={m}>{m}</option>)}
                                 </select>
@@ -427,55 +540,94 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto custom-scrollbar" style={{ maxHeight: '650px' }}>
-                        <table className="w-full text-left min-w-[1100px]">
-                            <thead className="bg-white sticky top-0 z-10">
-                                <tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 border-b border-slate-100">
-                                    <th className="px-10 py-8">Voucher Ref</th>
-                                    <th className="px-10 py-8">Doctor Name</th>
-                                    <th className="px-10 py-8 text-center">Expected</th>
-                                    <th className="px-10 py-8 text-center">Dates (Count)</th>
-                                    <th className="px-10 py-8 text-center">Settled Amount</th>
-                                    <th className="px-10 py-8 text-center">Settle Date</th>
-                                    <th className="px-10 py-8 text-right">Account Notes</th>
+                    <div className="overflow-x-auto custom-scrollbar" style={{ maxHeight: '600px' }}>
+                        <table className="w-full text-left min-w-[1000px]">
+                            <thead className="bg-slate-50 sticky top-0 z-10 border-b border-slate-200">
+                                <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                    <th className="px-8 py-4">Ref ID</th>
+                                    <th className="px-8 py-4">Consultant</th>
+                                    <th className="px-8 py-4 text-center">Invoiced</th>
+                                    <th className="px-8 py-4 text-center">Settled</th>
+                                    <th className="px-8 py-4 text-center">Date</th>
+                                    <th className="px-8 py-4 text-right">Remarks</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {filteredHistory.map((p, i) => (
                                     <tr key={i} className="hover:bg-emerald-50/30 transition-all group">
-                                        <td className="px-10 py-9">
-                                            <div>
-                                                <p className="font-black text-slate-900 uppercase text-[11px] mb-1">{p.Payment_ID}</p>
-                                                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">In: {p.HR_Entry_Date.split(' ')[0]}</p>
-                                            </div>
+                                        <td className="px-8 py-3.5 text-[10px] font-black text-slate-400">{p.Payment_ID}</td>
+                                        <td className="px-8 py-3.5">
+                                            <p className="font-black text-slate-800 uppercase text-[11px]">{p.Doctor_Name}</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase">{p.Visit_Count} Visits</p>
                                         </td>
-                                        <td className="px-10 py-9">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-500 group-hover:text-white transition-all"><User size={18} /></div>
-                                                <p className="font-black text-slate-800 uppercase text-[12px]">{p.Doctor_Name}</p>
-                                            </div>
+                                        <td className="px-8 py-3.5 text-center text-[11px] font-black text-slate-500">₹{p.Amount_To_Pay}</td>
+                                        <td className="px-8 py-3.5 text-center">
+                                            <span className="inline-block px-3 py-1 bg-emerald-600 text-white rounded-lg text-[10px] font-black shadow-md">₹{p.Paid_Amount}</span>
                                         </td>
-                                        <td className="px-10 py-9 text-center text-[12px] font-black text-slate-500">₹{p.Amount_To_Pay}</td>
-                                        <td className="px-10 py-9 text-center">
-                                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest line-clamp-1 mb-1 max-w-[200px] mx-auto">{p.Visit_Dates}</div>
-                                            <p className="inline-block px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-[9px] font-black">{p.Visit_Count} Total Visits</p>
+                                        <td className="px-8 py-3.5 text-center">
+                                            <div className="text-[10px] font-black text-slate-700 uppercase tracking-widest">{p.Payment_Date}</div>
                                         </td>
-                                        <td className="px-10 py-9 text-center">
-                                            <span className="inline-block px-6 py-3 bg-emerald-600 text-white rounded-2xl text-[12px] font-black shadow-lg shadow-emerald-200">₹{p.Paid_Amount}</span>
-                                        </td>
-                                        <td className="px-10 py-9 text-center">
-                                            <div className="text-[11px] font-black text-slate-700 uppercase tracking-widest bg-white border border-slate-100 px-4 py-2 rounded-xl shadow-sm">{p.Payment_Date}</div>
-                                        </td>
-                                        <td className="px-10 py-9 text-right">
-                                            <p className="text-[11px] font-bold text-slate-500 italic leading-relaxed max-w-[250px] ml-auto overflow-hidden text-ellipsis">"{p.Account_Remarks || 'N/A'}"</p>
+                                        <td className="px-8 py-3.5 text-right">
+                                            <p className="text-[10px] font-medium text-slate-500 italic max-w-[200px] ml-auto">"{p.Account_Remarks || 'No Remarks'}"</p>
                                         </td>
                                     </tr>
                                 ))}
                                 {filteredHistory.length === 0 && (
-                                    <tr><td colSpan="7" className="text-center py-32 text-[12px] font-black uppercase text-slate-300 tracking-[0.3em] italic">No settled vouchers found for the selected criteria.</td></tr>
+                                    <tr><td colSpan="6" className="text-center py-20 text-[11px] font-bold uppercase text-slate-300 italic tracking-widest">No matching records found.</td></tr>
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            )}
+
+            {activeSubTab === 'MASTER' && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-1">
+                        <div className="bg-white rounded-[2rem] p-8 border border-slate-200 shadow-sm">
+                            <h3 className="text-sm font-black text-slate-800 uppercase mb-8 flex items-center gap-3"><Plus className="text-blue-600" size={18} /> New Consultant</h3>
+                            <form onSubmit={handleAddDoctor} className="space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                    <input required value={doctorFormData.name} onChange={e => setDoctorFormData({...doctorFormData, name: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="Dr. Name" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialty</label>
+                                    <input value={doctorFormData.specialty} onChange={e => setDoctorFormData({...doctorFormData, specialty: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="Department" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact No.</label>
+                                    <input required value={doctorFormData.mobile} onChange={e => setDoctorFormData({...doctorFormData, mobile: e.target.value})} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:bg-white focus:border-blue-500 transition-all" placeholder="Mobile" />
+                                </div>
+                                <button disabled={submitting} type="submit" className="w-full py-4 bg-blue-600 text-white rounded-xl font-black uppercase text-[11px] tracking-widest hover:bg-blue-700 transition-all shadow-lg active:scale-95">{submitting ? '...' : 'Register Consultant'}</button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div className="lg:col-span-2">
+                        <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
+                            <div className="px-8 py-5 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+                                <h3 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Consultant Master Directory</h3>
+                                <span className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-[9px] font-black uppercase">{doctors.length} Registered</span>
+                            </div>
+                            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+                                {doctors.map((d, i) => (
+                                    <div key={i} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:border-blue-200 transition-all group">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all"><User size={18} /></div>
+                                            <div>
+                                                <p className="font-black text-slate-800 uppercase text-[11px] mb-0.5">{d.Name}</p>
+                                                <p className="text-[9px] text-blue-600 font-bold uppercase tracking-widest">{d.Specialty}</p>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] font-black text-slate-900 mb-0.5">{d.Mobile}</p>
+                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Active</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
