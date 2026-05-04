@@ -187,20 +187,8 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10 max-w-[1600px] mx-auto">
-            {/* Professional Header & Navigation */}
-            <div className="bg-white border-b border-slate-200 -mx-6 px-10 py-4 sticky top-0 z-[100] flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-sm">
-                <div className="flex items-center gap-6">
-                    <div className="bg-emerald-600 p-2.5 rounded-xl text-white shadow-lg shadow-emerald-200">
-                        <Stethoscope size={24} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight flex items-center gap-2">Visiting <span className="text-emerald-600">Doctors</span></h2>
-                        <div className="flex items-center gap-2 text-[9px] font-black text-slate-400 uppercase tracking-widest mt-0.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Ledger Active
-                        </div>
-                    </div>
-                </div>
-
+            {/* Professional Navigation Sticky Bar */}
+            <div className="bg-white border-b border-slate-200 -mx-6 px-10 py-3 sticky top-0 z-[100] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
                     {[
                         { id: 'DASHBOARD', label: 'Dashboard', icon: BarChart3 },
@@ -212,36 +200,42 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                         <button 
                             key={tab.id}
                             onClick={() => setActiveSubTab(tab.id)}
-                            className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-xl shadow-slate-200' : 'text-slate-400 hover:bg-slate-50'}`}
+                            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                         >
-                            <tab.icon size={14} />
+                            <tab.icon size={12} />
                             {tab.label}
                         </button>
                     ))}
-                    <div className="w-[1px] h-6 bg-slate-200 mx-2 hidden md:block"></div>
-                    <button onClick={fetchData} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={16} /></button>
+                    <div className="w-[1px] h-5 bg-slate-200 mx-2 hidden md:block"></div>
+                    <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={14} /></button>
+                </div>
+                
+                <div className="hidden md:flex items-center gap-3">
+                    <div className="flex items-center gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Service: Ledger-v4.0
+                    </div>
                 </div>
             </div>
 
             {activeSubTab === 'DASHBOARD' && (
                 <div className="space-y-6">
-                    {/* Compact Stat Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-orange-200 transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600"><Clock size={20} /></div>
-                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pending</p><p className="text-xl font-black text-slate-800 tracking-tight">{stats.pendingCount}</p></div>
+                    {/* Compact Stat Matrix */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-orange-200 transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600"><Clock size={18} /></div>
+                            <div><p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pending</p><p className="text-lg font-black text-slate-800 tracking-tight">{stats.pendingCount}</p></div>
                         </div>
-                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-emerald-200 transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600"><IndianRupee size={20} /></div>
-                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Awaiting Clear</p><p className="text-xl font-black text-slate-800 tracking-tight">₹{stats.totalPendingAmount.toLocaleString()}</p></div>
+                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-emerald-200 transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><IndianRupee size={18} /></div>
+                            <div><p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Due Amt</p><p className="text-lg font-black text-slate-800 tracking-tight">₹{stats.totalPendingAmount.toLocaleString()}</p></div>
                         </div>
-                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-blue-200 transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600"><CheckCircle2 size={20} /></div>
-                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Month)</p><p className="text-xl font-black text-slate-800 tracking-tight">{stats.paidCount}</p></div>
+                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><CheckCircle2 size={18} /></div>
+                            <div><p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Count)</p><p className="text-lg font-black text-slate-800 tracking-tight">{stats.paidCount}</p></div>
                         </div>
-                        <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex items-center gap-5 group hover:border-indigo-200 transition-all">
-                            <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600"><TrendingUp size={20} /></div>
-                            <div><p className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Settled (Month)</p><p className="text-xl font-black text-slate-800 tracking-tight">₹{stats.totalPaidThisMonth.toLocaleString()}</p></div>
+                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-indigo-200 transition-all">
+                            <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><TrendingUp size={18} /></div>
+                            <div><p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Value)</p><p className="text-lg font-black text-slate-800 tracking-tight">₹{stats.totalPaidThisMonth.toLocaleString()}</p></div>
                         </div>
                     </div>
 
