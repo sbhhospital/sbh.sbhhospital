@@ -233,6 +233,38 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                             </table>
                         </div>
                     </div>
+
+                    {/* Recent Settlements Feed */}
+                    <div className="bg-white rounded-[3.5rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100 border-b-4 border-b-emerald-500">
+                        <div className="px-10 py-8 border-b border-slate-50 bg-slate-50/50 flex items-center justify-between">
+                            <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4"><CheckCircle2 className="text-emerald-500" size={18} /> Recently Settled</h3>
+                            <span className="px-5 py-2 bg-white text-emerald-600 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm border border-emerald-100">Direct Tracking</span>
+                        </div>
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {payments.filter(p => p.Status === 'Paid').slice(0, 8).map((p, i) => (
+                                <motion.div 
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    key={i} 
+                                    className="p-6 rounded-[2.5rem] bg-slate-50 border border-slate-100 hover:border-emerald-200 hover:bg-white transition-all group"
+                                >
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center text-emerald-500 shadow-sm"><CheckCircle2 size={18} /></div>
+                                        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest group-hover:text-emerald-500 transition-colors">{p.Payment_Date}</p>
+                                    </div>
+                                    <p className="text-[11px] font-black text-slate-800 uppercase truncate mb-1">{p.Doctor_Name}</p>
+                                    <p className="text-[14px] font-black text-emerald-600">₹{parseFloat(p.Paid_Amount).toLocaleString()}</p>
+                                    <div className="mt-4 pt-4 border-t border-slate-200/50 flex items-center justify-between">
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ID: {p.Payment_ID}</span>
+                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Paid</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                            {payments.filter(p => p.Status === 'Paid').length === 0 && (
+                                <div className="col-span-full py-10 text-center text-[10px] font-black uppercase text-slate-300 tracking-widest">No settlements recorded yet</div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
