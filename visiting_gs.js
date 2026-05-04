@@ -23,7 +23,7 @@ function setupVisitingSheets() {
     masterSheet.appendRow(['DOC001', 'Dr. Ashish Mahobia', 'Ophthalmology', '9644404741', '', 'Active']);
   }
 
-  // 2. Visiting Payments
+  // 2. Visiting Payments (Active/Pending)
   let paymentsSheet = ss.getSheetByName('Visiting_Payments');
   if (!paymentsSheet) {
     paymentsSheet = ss.insertSheet('Visiting_Payments');
@@ -34,14 +34,25 @@ function setupVisitingSheets() {
     paymentsSheet.getRange("A1:L1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
   }
 
+  // 2b. Visiting Archive (Settled)
+  let archiveSheet = ss.getSheetByName('Visiting_Archive');
+  if (!archiveSheet) {
+    archiveSheet = ss.insertSheet('Visiting_Archive');
+    archiveSheet.appendRow([
+      'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
+      'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
+    ]);
+    archiveSheet.getRange("A1:L1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
+  }
+
   // 3. Monthly Summary
   let summarySheet = ss.getSheetByName('Visiting_Monthly_Summary');
   if (!summarySheet) {
     summarySheet = ss.insertSheet('Visiting_Monthly_Summary');
   }
   summarySheet.clear();
-  // Query to aggregate by Month and Doctor
-  summarySheet.getRange("A1").setFormula('=QUERY(Visiting_Payments!A:L, "SELECT MONTH(G)+1, C, SUM(D), SUM(I), SUM(F) WHERE H = \'Paid\' GROUP BY MONTH(G)+1, C LABEL MONTH(G)+1 \'Month\', C \'Doctor Name\', SUM(D) \'Total Expected\', SUM(I) \'Total Paid\', SUM(F) \'Total Visits\'", 1)');
+  // Query to aggregate by Month and Doctor from Archive
+  summarySheet.getRange("A1").setFormula('=QUERY(Visiting_Archive!A:L, "SELECT MONTH(J)+1, C, SUM(D), SUM(I), SUM(F) WHERE H = \'Paid\' GROUP BY MONTH(J)+1, C LABEL MONTH(J)+1 \'Month\', C \'Doctor Name\', SUM(D) \'Total Expected\', SUM(I) \'Total Paid\', SUM(F) \'Total Visits\'", 1)');
   summarySheet.getRange("A1:E1").setBackground("#e65100").setFontColor("white").setFontWeight("bold");
 }
 
@@ -87,9 +98,17 @@ function getVisitingDoctors() {
 
 function getVisitingPayments() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Visiting_Payments');
-  const data = sheet.getDataRange().getValues();
-  return createJsonResponse(mapRows(data));
+  const activeSheet = ss.getSheetByName('Visiting_Payments');
+  const archiveSheet = ss.getSheetByName('Visiting_Archive');
+  
+  const activeData = activeSheet.getDataRange().getValues();
+  const archiveData = archiveSheet.getDataRange().getValues();
+  
+  const activeRows = mapRows(activeData);
+  const archiveRows = mapRows(archiveData);
+  
+  // Combine both for the frontend to have full history
+  return createJsonResponse([...activeRows, ...archiveRows]);
 }
 
 function getVisitingSummary() {
@@ -136,21 +155,27 @@ function logPayment(data) {
 function updatePayment(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Visiting_Payments');
+  const archiveSheet = ss.getSheetByName('Visiting_Archive');
   const rows = sheet.getDataRange().getValues();
   const now = new Date();
   const payDate = data.paymentDate || Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd");
 
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.paymentId) {
-      // Column H is Status (Index 7), Columns I, J, K are Paid_Amount, Date, Remarks
-      sheet.getRange(i + 1, 8, 1, 4).setValues([[
-        'Paid', 
-        data.paidAmount, 
-        payDate, 
-        data.remarks || 'Confirmed by Account'
-      ]]);
+      // 1. Prepare settled data row
+      const settledRow = [...rows[i]];
+      settledRow[7] = 'Paid'; // Status
+      settledRow[8] = data.paidAmount;
+      settledRow[9] = payDate;
+      settledRow[10] = data.remarks || 'Confirmed by Account';
       
-      // Notify HR about the confirmation
+      // 2. Add to Archive
+      archiveSheet.appendRow(settledRow);
+      
+      // 3. Remove from Active Payments
+      sheet.deleteRow(i + 1);
+      
+      // Notify HR
       notifyHR(rows[i][2], data.paidAmount, payDate, data.remarks);
       return createJsonResponse({ success: true });
     }
