@@ -27,23 +27,23 @@ function setupVisitingSheets() {
   let paymentsSheet = ss.getSheetByName('Visiting_Payments');
   if (!paymentsSheet) {
     paymentsSheet = ss.insertSheet('Visiting_Payments');
-    paymentsSheet.appendRow([
-      'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
-      'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
-    ]);
-    paymentsSheet.getRange("A1:L1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
   }
+  paymentsSheet.getRange("A1:L1").setValues([[
+    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
+    'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
+  ]]);
+  paymentsSheet.getRange("A1:L1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
 
   // 2b. Visiting Archive (Settled)
   let archiveSheet = ss.getSheetByName('Visiting_Archive');
   if (!archiveSheet) {
     archiveSheet = ss.insertSheet('Visiting_Archive');
-    archiveSheet.appendRow([
-      'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
-      'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
-    ]);
-    archiveSheet.getRange("A1:L1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
   }
+  archiveSheet.getRange("A1:L1").setValues([[
+    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
+    'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
+  ]]);
+  archiveSheet.getRange("A1:L1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
 
   // 3. Monthly Summary
   let summarySheet = ss.getSheetByName('Visiting_Monthly_Summary');
@@ -51,7 +51,7 @@ function setupVisitingSheets() {
     summarySheet = ss.insertSheet('Visiting_Monthly_Summary');
   }
   summarySheet.clear();
-  // Query to aggregate by Month and Doctor from Archive
+  // Query from Archive: Month(J), Amt(D), Paid(I), Count(F)
   summarySheet.getRange("A1").setFormula('=QUERY(Visiting_Archive!A:L, "SELECT MONTH(J)+1, C, SUM(D), SUM(I), SUM(F) WHERE H = \'Paid\' GROUP BY MONTH(J)+1, C LABEL MONTH(J)+1 \'Month\', C \'Doctor Name\', SUM(D) \'Total Expected\', SUM(I) \'Total Paid\', SUM(F) \'Total Visits\'", 1)');
   summarySheet.getRange("A1:E1").setBackground("#e65100").setFontColor("white").setFontWeight("bold");
 }
@@ -104,15 +104,19 @@ function getVisitingPayments() {
   let activeRows = [];
   let archiveRows = [];
 
-  if (activeSheet) {
-    const activeData = activeSheet.getDataRange().getValues();
-    activeRows = mapRows(activeData);
-  }
+  try {
+    if (activeSheet && activeSheet.getLastRow() > 0) {
+      const activeData = activeSheet.getDataRange().getValues();
+      activeRows = mapRows(activeData);
+    }
+  } catch (e) { console.error("Active Sheet Error: " + e); }
 
-  if (archiveSheet) {
-    const archiveData = archiveSheet.getDataRange().getValues();
-    archiveRows = mapRows(archiveData);
-  }
+  try {
+    if (archiveSheet && archiveSheet.getLastRow() > 0) {
+      const archiveData = archiveSheet.getDataRange().getValues();
+      archiveRows = mapRows(archiveData);
+    }
+  } catch (e) { console.error("Archive Sheet Error: " + e); }
   
   // Combine both for the frontend to have full history
   return createJsonResponse([...activeRows, ...archiveRows]);
@@ -145,8 +149,8 @@ function logPayment(data) {
     data.doctorId, 
     data.doctorName, 
     data.amount,
-    data.visitDates, // List of dates
-    data.visitCount, // Number of visits
+    data.visitDates, 
+    data.visitCount,
     hrEntryDate,
     'Pending',
     '',
@@ -169,12 +173,12 @@ function updatePayment(data) {
 
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.paymentId) {
-      // 1. Prepare settled data row
+      // 1. Prepare settled data row (12 columns)
       const settledRow = [...rows[i]];
-      settledRow[7] = 'Paid'; // Status
-      settledRow[8] = data.paidAmount;
-      settledRow[9] = payDate;
-      settledRow[10] = data.remarks || 'Confirmed by Account';
+      settledRow[7] = 'Paid'; // Status (Index 7, Column H)
+      settledRow[8] = data.paidAmount; // Paid_Amount (Index 8, Column I)
+      settledRow[9] = payDate; // Payment_Date (Index 9, Column J)
+      settledRow[10] = data.remarks || 'Confirmed by Account'; // Remarks (Index 10, Column K)
       
       // 2. Add to Archive
       archiveSheet.appendRow(settledRow);
@@ -257,9 +261,43 @@ function sendWhatsApp(mobile, message) {
 
 // --- HELPERS ---
 
+/**
+ * Call this function from the Apps Script editor to clean up existing "Paid" 
+ * records from the main sheet and move them to the Archive.
+ */
+function migratePaidRecords() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const activeSheet = ss.getSheetByName('Visiting_Payments');
+  const archiveSheet = ss.getSheetByName('Visiting_Archive');
+  
+  if (!activeSheet || !archiveSheet) return "Sheets not found";
+  
+  const data = activeSheet.getDataRange().getValues();
+  let movedCount = 0;
+  
+  // Iterate backwards to safely delete rows
+  for (let i = data.length - 1; i >= 1; i--) {
+    const status = data[i][7]; // Status column H
+    if (status === 'Paid') {
+      archiveSheet.appendRow(data[i]);
+      activeSheet.deleteRow(i + 1);
+      movedCount++;
+    }
+  }
+  return "Successfully migrated " + movedCount + " records to Archive.";
+}
+
 function mapRows(data) {
   if (data.length <= 1) return [];
-  const headers = data[0];
+  const rawHeaders = data[0];
+  
+  // Normalize headers (handle singular/plural and spacing)
+  const headers = rawHeaders.map(h => {
+    let normalized = h.toString().trim();
+    if (normalized === 'Visit_Date') return 'Visit_Dates';
+    return normalized;
+  });
+
   return data.slice(1).map(row => {
     let obj = {};
     headers.forEach((h, i) => {
@@ -267,6 +305,12 @@ function mapRows(data) {
       if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
       obj[h] = val;
     });
+    
+    // Fallback: If Visit_Count is missing, calculate it from dates
+    if (obj.Visit_Dates && (!obj.Visit_Count || obj.Visit_Count === '')) {
+      obj.Visit_Count = obj.Visit_Dates.toString().split(',').length;
+    }
+    
     return obj;
   });
 }

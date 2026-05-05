@@ -129,16 +129,15 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     };
 
     const stats = useMemo(() => {
-        const pending = payments.filter(p => p.Status === 'Pending');
-        const paid = payments.filter(p => p.Status === 'Paid');
-        const totalPendingAmount = pending.reduce((sum, p) => sum + parseFloat(p.Amount_To_Pay || 0), 0);
+        const pending = payments.filter(p => p.Status === 'Pending' || p.Status === 'Due');
+        const paid = payments.filter(p => p.Status === 'Paid' || p.Status === 'Settled');
+        const totalPendingAmount = pending.reduce((sum, p) => sum + (parseFloat(p.Amount_To_Pay) || 0), 0);
         
-        // Month matching for "This Month" stats
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
         
-        const paidThisMonth = paid.filter(p => p.Payment_Date && p.Payment_Date.startsWith(currentMonthStr));
-        const totalPaidThisMonth = paidThisMonth.reduce((sum, p) => sum + parseFloat(p.Paid_Amount || 0), 0);
+        const paidThisMonth = paid.filter(p => !p.Payment_Date || p.Payment_Date.startsWith(currentMonthStr));
+        const totalPaidThisMonth = paidThisMonth.reduce((sum, p) => sum + (parseFloat(p.Paid_Amount || p.Amount_To_Pay) || 0), 0);
         
         return { 
             pendingCount: pending.length, 
@@ -149,7 +148,7 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     }, [payments]);
 
     const filteredHistory = useMemo(() => {
-        return payments.filter(p => p.Status === 'Paid').filter(p => {
+        return payments.filter(p => p.Status === 'Paid' || p.Status === 'Settled').filter(p => {
             const matchesDoctor = filterDoctor === 'All' || p.Doctor_Name === filterDoctor;
             const matchesMonth = filterMonth === 'All' || (p.Payment_Date && p.Payment_Date.startsWith(filterMonth));
             return matchesDoctor && matchesMonth;
@@ -159,7 +158,12 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     const settlementsThisMonth = useMemo(() => {
         const now = new Date();
         const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        return payments.filter(p => p.Status === 'Paid' && p.Payment_Date && p.Payment_Date.startsWith(currentMonthStr));
+        return payments.filter(p => {
+            const isPaid = p.Status === 'Paid' || p.Status === 'Settled';
+            if (!isPaid) return false;
+            if (p.Payment_Date) return p.Payment_Date.startsWith(currentMonthStr);
+            return true; // Show it if no date yet but status is Paid
+        });
     }, [payments]);
 
     const monthOptions = useMemo(() => {
@@ -277,10 +281,10 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                                                 <span className="font-black text-slate-900 text-[11px]">₹{parseFloat(p.Amount_To_Pay).toLocaleString()}</span>
                                             </td>
                                             <td className="px-8 py-4 text-center">
-                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[150px] mx-auto">{p.Visit_Dates}</div>
+                                                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest truncate max-w-[150px] mx-auto">{p.Visit_Dates || p.Visit_Date || '—'}</div>
                                             </td>
                                             <td className="px-8 py-4 text-center">
-                                                <span className="px-3 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-600">{p.Visit_Count}</span>
+                                                <span className="px-3 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-600">{p.Visit_Count || (p.Visit_Dates ? p.Visit_Dates.toString().split(',').length : '0')}</span>
                                             </td>
                                             <td className="px-8 py-4 text-right">
                                                 <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-md text-[9px] font-black uppercase tracking-widest border border-orange-100">Pending</span>
