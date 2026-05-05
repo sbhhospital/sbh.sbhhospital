@@ -5,7 +5,7 @@ import {
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck
+    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
 import { QRCodeSVG } from 'qrcode.react';
@@ -77,15 +77,41 @@ const NavItem = ({ icon, label, active, onClick, dot, variant = 'primary' }) => 
     </button>
 );
 
-const SectionLoader = ({ message = "Syncing with cloud..." }) => (
-    <div className="flex flex-col items-center justify-center p-20 space-y-4">
-        <div className="relative">
-            <Loader2 className="animate-spin text-emerald-500" size={40} strokeWidth={1.5} />
-            <div className="absolute inset-0 blur-xl bg-emerald-500/20 animate-pulse" />
+const SectionLoader = ({ message = "Syncing with cloud...", messages = [] }) => {
+    const [msgIdx, setMsgIdx] = useState(0);
+    
+    useEffect(() => {
+        if (messages.length > 0) {
+            const t = setInterval(() => setMsgIdx(p => (p + 1) % messages.length), 2000);
+            return () => clearInterval(t);
+        }
+    }, [messages]);
+
+    return (
+        <div className="flex flex-col items-center justify-center p-20 space-y-8 animate-in fade-in zoom-in duration-700">
+            <div className="relative">
+                <div className="w-20 h-20 border-4 border-emerald-100 rounded-full animate-spin border-t-emerald-600 shadow-xl shadow-emerald-500/10"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <Sparkles className="text-emerald-500 animate-pulse" size={24} />
+                </div>
+            </div>
+            <div className="text-center space-y-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-800 animate-pulse">SBH INTEL ENGINE</p>
+                <AnimatePresence mode="wait">
+                    <motion.p 
+                        key={msgIdx}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        className="text-[10px] font-bold text-slate-400 uppercase tracking-widest min-h-[1.5em]"
+                    >
+                        {messages.length > 0 ? messages[msgIdx] : message}
+                    </motion.p>
+                </AnimatePresence>
+            </div>
         </div>
-        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">{message}</p>
-    </div>
-);
+    );
+};
 
 const Footer = () => {
     return (
@@ -280,7 +306,7 @@ const SmileAwardStats = ({ stats, winners, selectedMonth, onMonthChange, loading
         return Array.from(set).filter(Boolean).sort();
     }, [stats.all]);
 
-    if (loading) return <SectionLoader message="Syncing leaderboard..." />;
+    if (loading) return <SectionLoader messages={["Calculating leaderboard...", "Syncing nominations...", "Fetching excellence stars...", "Updating champion standings..."]} />;
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-5 duration-700 pb-20">
@@ -449,21 +475,55 @@ const HRApprovalPanel = ({ stats, winners, onApprove, loading }) => {
 const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersList }) => {
     const [submitting, setSubmitting] = useState(false);
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ staffId: '', name: '', department: '', role: '', email: '', mobile: '', dob: '', doj: '', dol: '' });
+    const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
+
+    const [syncing, setSyncing] = useState(false);
+    const [extUrl, setExtUrl] = useState('');
+
+    const handleSync = async () => {
+        if (!extUrl) {
+            alert("Please paste the Google Sheet URL first!");
+            return;
+        }
+        setSyncing(true);
+        try {
+            await fetch(smileScriptUrl, {
+                method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'sync_staff', externalUrl: extUrl })
+            });
+            alert("Sync command sent! Importing data from: " + extUrl);
+            setTimeout(fetchStaff, 3000);
+        } catch(e) {
+            alert("Sync failed: " + e.message);
+        } finally {
+            setSyncing(false);
+        }
+    };
 
     const handleEdit = (s) => {
+        const toFormDate = (val) => {
+            if (!val) return '';
+            const sVal = String(val);
+            if (sVal.length === 10 && sVal.charAt(2) === '-') {
+                const parts = sVal.split('-');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return sVal.substring(0, 10);
+        };
+
         setFormData({
-            staffId: s.Staff_ID, name: s.Name, department: s.Department, role: s.Role, email: s.Email, mobile: s.Mobile, 
-            dob: s.DOB ? s.DOB.substring(0, 10) : '', 
-            doj: s.DOJ ? s.DOJ.substring(0, 10) : '', 
-            dol: s.DOL ? s.DOL.substring(0, 10) : ''
+            staffId: s.Staff_ID, name: s.Name, mobile: s.Mobile, email: s.Email,
+            birthday: toFormDate(s.Birthday), 
+            anniversary: toFormDate(s.Anniversary),
+            department: s.Department, role: s.Role,
+            dol: toFormDate(s.DOL)
         });
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
     const handleAddNew = () => {
-        setFormData({ staffId: '', name: '', department: '', role: '', email: '', mobile: '', dob: '', doj: '', dol: '' });
+        setFormData({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
         setShowForm(!showForm);
     };
 
@@ -494,7 +554,7 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
             
             setShowForm(false);
             fetchStaff();
-            setFormData({ staffId: '', name: '', department: '', role: '', email: '', mobile: '', dob: '', doj: '', dol: '' });
+            setFormData({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
             alert(isEditing ? "Successfully updated!" : "Successfully registered!");
         } catch(e) {
             alert("Error saving employee.");
@@ -507,7 +567,7 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
         try {
             await fetch(smileScriptUrl, {
                 method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'send_manual_reminder', type, mobile: s.Mobile, name: s.Name, years: type === 'anniversary' && s.DOJ ? new Date().getFullYear() - parseInt(s.DOJ.substring(0,4)) : 0 })
+                body: JSON.stringify({ action: 'send_manual_reminder', type, mobile: s.Mobile, name: s.Name, years: type === 'anniversary' && s.Anniversary ? new Date().getFullYear() - parseInt(s.Anniversary.substring(0,4)) : 0 })
             });
             alert("Reminder triggered!");
         } catch(e) {
@@ -522,9 +582,34 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
                     <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Staff <span className="text-emerald-600">Roster</span></h2>
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Manage employee records and automated reminders</p>
                 </div>
-                <button onClick={handleAddNew} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3">
-                    {showForm ? <><X size={16} /> Close Form</> : <><Plus size={16} /> Add Employee</>}
-                </button>
+                <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                    <div className="relative group w-full md:w-72">
+                        <input 
+                            type="text" 
+                            placeholder="Paste Spreadsheet URL..." 
+                            value={extUrl}
+                            onChange={(e) => setExtUrl(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-4 px-5 text-[10px] font-bold text-slate-700 outline-none focus:border-emerald-500/50 shadow-sm transition-all"
+                        />
+                    </div>
+                    <button 
+                        onClick={handleSync}
+                        disabled={syncing}
+                        className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 disabled:opacity-50 whitespace-nowrap"
+                    >
+                        {syncing ? <Loader2 size={16} className="animate-spin" /> : <TrendingUp size={16} />}
+                        {syncing ? 'Syncing...' : 'Fetch & Update'}
+                    </button>
+                    <button 
+                        onClick={fetchStaff}
+                        className="px-8 py-4 bg-white border-2 border-slate-100 text-slate-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
+                    >
+                        <RotateCcw size={16} /> Refresh List
+                    </button>
+                    <button onClick={handleAddNew} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-3 whitespace-nowrap">
+                        {showForm ? <><X size={16} /> Close Form</> : <><Plus size={16} /> Add Employee</>}
+                    </button>
+                </div>
             </div>
 
             <AnimatePresence>
@@ -534,14 +619,16 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
                             <h3 className="text-xl font-black text-slate-800 uppercase mb-8 flex items-center gap-3"><Users className="text-emerald-500" /> {formData.staffId ? `Update ${formData.name}` : 'New Employee Profile'}</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-8">
                                 <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Full Name *</label><input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="e.g. Rahul Sharma" /></div>
-                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Department *</label><input required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="e.g. OPD" /></div>
-                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Role/Position</label><input value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="e.g. Senior Consultant" /></div>
                                 <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Mobile Number (WhatsApp) *</label><input required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="10-digit number" /></div>
                                 <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Email Address</label><input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="Optional" /></div>
                             </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pt-8 border-t border-slate-100">
+                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Department</label><input value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="e.g. OPD" /></div>
+                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Role/Position</label><input value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none" placeholder="e.g. Senior Consultant" /></div>
+                            </div>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10 pt-8 border-t border-slate-100">
-                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><CalendarCheck size={14} className="text-orange-500"/> Date of Birth</label><input type="date" value={formData.dob} onChange={e => setFormData({...formData, dob: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none uppercase" /></div>
-                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><Award size={14} className="text-emerald-500"/> Date of Joining</label><input type="date" value={formData.doj} onChange={e => setFormData({...formData, doj: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none uppercase" /></div>
+                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><CalendarCheck size={14} className="text-orange-500"/> Birthday</label><input type="date" value={formData.birthday} onChange={e => setFormData({...formData, birthday: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none uppercase" placeholder="dd-mm-yyyy" /></div>
+                                <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2"><Award size={14} className="text-emerald-500"/> Work Anniversary</label><input type="date" value={formData.anniversary} onChange={e => setFormData({...formData, anniversary: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-slate-800 font-bold focus:bg-white focus:border-emerald-500/30 outline-none uppercase" placeholder="dd-mm-yyyy" /></div>
                                 <div className="space-y-3"><label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2 text-rose-500"><LogOut size={14} /> Date of Leaving</label><input type="date" value={formData.dol} onChange={e => setFormData({...formData, dol: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl p-5 text-rose-600 font-bold focus:bg-white focus:border-rose-500/30 outline-none uppercase" /></div>
                             </div>
                             <div className="flex justify-end">
@@ -560,17 +647,40 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
                         <thead><tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-slate-50/80 border-b border-slate-100"><th className="px-10 py-6">ID & Name</th><th className="px-10 py-6">Role & Dept</th><th className="px-10 py-6">Contact</th><th className="px-10 py-6">Important Dates</th></tr></thead>
                         <tbody className="divide-y divide-slate-50">
                             {staffList.map((s, i) => {
-                                const winCount = (smileWinnersList || []).filter(w => (w.employee_name || "").toLowerCase() === (s.Name || "").toLowerCase()).length;
-                                const todayStr = new Date().toISOString().substring(5, 10);
-                                const isBirthday = s.DOB && s.DOB.substring(s.DOB.length - 5) === todayStr;
-                                const isWorkAnniv = s.DOJ && s.DOJ.substring(s.DOJ.length - 5) === todayStr;
-                                const hasLeft = s.DOL && s.DOL.length > 0;
-                                const cleanDob = s.DOB ? s.DOB.substring(0, 10) : 'N/A';
-                                const cleanDoj = s.DOJ ? s.DOJ.substring(0, 10) : 'N/A';
-                                const cleanDol = s.DOL ? s.DOL.substring(0, 10) : '';
+                                 const winCount = (smileWinnersList || []).filter(w => (w.employee_name || "").toLowerCase() === (s.Name || "").toLowerCase()).length;
+                                
+                                const now = new Date();
+                                const d = String(now.getDate()).padStart(2, '0');
+                                const m = String(now.getMonth() + 1).padStart(2, '0');
+                                const todayStr = `${d}-${m}`; // dd-mm format
+                                
+                                const getSafeStr = (val) => val ? String(val) : '';
+                                const bdayStr = getSafeStr(s.Birthday);
+                                const annivStr = getSafeStr(s.Anniversary);
+                                const dolStr = getSafeStr(s.DOL);
+
+                                const isBirthday = bdayStr && bdayStr.startsWith(todayStr);
+                                const isWorkAnniv = annivStr && annivStr.startsWith(todayStr);
+                                const hasLeft = dolStr && dolStr.length > 0;
+
+                                // Upcoming Birthday Logic (within 4 days)
+                                let isUpcomingBday = false;
+                                if (bdayStr && bdayStr.length >= 5) {
+                                    try {
+                                        const [bd, bm] = bdayStr.split('-').map(Number);
+                                        const targetDate = new Date(now.getFullYear(), bm - 1, bd);
+                                        const diffTime = targetDate - now;
+                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                        if (diffDays > 0 && diffDays <= 4) isUpcomingBday = true;
+                                    } catch(e) {}
+                                }
+                                
+                                const cleanBirthday = bdayStr ? bdayStr.substring(0, 10) : 'N/A';
+                                const cleanAnniversary = annivStr ? annivStr.substring(0, 10) : 'N/A';
+                                const cleanDol = dolStr ? dolStr.substring(0, 10) : '';
 
                                 return (
-                                <tr key={i} className={`hover:bg-slate-50/50 transition-all ${hasLeft ? 'opacity-50 grayscale' : ''}`}>
+                                <tr key={i} className={`hover:bg-slate-50/50 transition-all ${hasLeft ? 'opacity-50 grayscale' : ''} ${isUpcomingBday ? 'bg-amber-50/50 border-l-4 border-l-amber-400' : ''}`}>
                                     <td className="px-10 py-6">
                                         <div className="flex items-start justify-between">
                                             <div>
@@ -591,12 +701,12 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, smileWinnersLis
                                                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-slate-100 text-slate-500 text-[8px] font-black uppercase tracking-widest rounded"><LogOut size={10}/> Left: {cleanDol}</div>
                                             ) : (
                                                 <>
-                                                    {s.DOB && <div className={`flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-widest ${isBirthday ? 'text-rose-500 animate-pulse' : 'text-orange-500'}`}>
-                                                        <span><CalendarCheck size={12} className="inline mr-1" /> {isBirthday ? 'TODAY IS BIRTHDAY! 🎉' : `DOB: ${cleanDob}`}</span>
+                                                    {s.Birthday && <div className={`flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-widest ${isBirthday ? 'text-rose-500 animate-pulse' : 'text-orange-500'}`}>
+                                                        <span><CalendarCheck size={12} className="inline mr-1" /> {isBirthday ? 'TODAY IS BIRTHDAY! 🎉' : `BIRTHDAY: ${cleanBirthday}`}</span>
                                                         {isBirthday && <button onClick={() => handleManualReminder(s, 'birthday')} className="px-2 py-1 bg-rose-50 hover:bg-rose-500 text-rose-500 hover:text-white rounded text-[8px] transition-colors shadow-sm">Send WhatsApp</button>}
                                                     </div>}
-                                                    {s.DOJ && <div className={`flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-widest ${isWorkAnniv ? 'text-indigo-500 animate-pulse' : 'text-emerald-500'}`}>
-                                                        <span><Award size={12} className="inline mr-1" /> {isWorkAnniv ? 'WORK ANNIVERSARY! 🎊' : `JOIN: ${cleanDoj}`}</span>
+                                                    {s.Anniversary && <div className={`flex items-center justify-between gap-2 text-[9px] font-bold uppercase tracking-widest ${isWorkAnniv ? 'text-indigo-500 animate-pulse' : 'text-emerald-500'}`}>
+                                                        <span><Award size={12} className="inline mr-1" /> {isWorkAnniv ? 'WORK ANNIVERSARY! 🎊' : `ANNIVERSARY: ${cleanAnniversary}`}</span>
                                                         {isWorkAnniv && <button onClick={() => handleManualReminder(s, 'anniversary')} className="px-2 py-1 bg-indigo-50 hover:bg-indigo-500 text-indigo-500 hover:text-white rounded text-[8px] transition-colors shadow-sm">Send WhatsApp</button>}
                                                     </div>}
                                                 </>
@@ -704,7 +814,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
 
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
-    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
+    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
     const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
     const sbhFamilyScriptUrl = 'https://script.google.com/macros/s/AKfycbxlKMT0rLe4QpbLl8x_Pm8blS8yCvWsvKMTz1_tozd94bju0Z8eEJ4lDz_1pnAmav_O/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
@@ -774,25 +884,31 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {/* HIDDEN: Management Section */}
 
                         <div className="space-y-4">
-                            {user !== 'ACCOUNT' && (
+                            <CollapsibleCategory 
+                                icon={<Award />} 
+                                label="Smile Award" 
+                                isOpen={openCategories.smile} 
+                                onToggle={() => toggleCategory('smile')}
+                            >
+                                <NavItem icon={<Trophy />} label="Nomination & Stats" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
+                                {(user === 'SBH' || user === 'SBH HRD') && (
+                                    <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
+                                )}
+                            </CollapsibleCategory>
+
+                            {(user === 'SBH' || user === 'SBH HRD') && (
                                 <CollapsibleCategory 
-                                    icon={<Award />} 
-                                    label="Smile Awards" 
-                                    isOpen={openCategories.smile} 
-                                    onToggle={() => toggleCategory('smile')}
+                                    icon={<Users />} 
+                                    label="Employees" 
+                                    isOpen={openCategories.employees || false} 
+                                    onToggle={() => toggleCategory('employees')}
                                 >
-                                    <NavItem icon={<Award />} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
-                                    <NavItem icon={<Trophy />} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} />
-                                    {(user === 'SBH' || user === 'SBH HRD') && (
-                                        <>
-                                            <NavItem icon={<Users />} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
-                                            <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
-                                        </>
-                                    )}
+                                    <NavItem icon={<Users />} label="Staff Roster" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
+                                    <NavItem icon={<Scan />} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
                                 </CollapsibleCategory>
                             )}
 
-                            {user === 'SBH' && (
+                            {(user === 'SBH' || user === 'SBH HRD') && (
                                 <CollapsibleCategory 
                                     icon={<ClipboardList />} 
                                     label="Lasik Section" 
@@ -801,14 +917,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 >
                                     <NavItem icon={<ClipboardList />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
                                     <NavItem icon={<TrendingUp />} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
-                                    <NavItem icon={<Scan />} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
                                 </CollapsibleCategory>
                             )}
 
                             {(user === 'SBH HRD' || user === 'SBH' || user === 'ADMIN' || user === 'ACCOUNT') && (
                                 <CollapsibleCategory 
                                     icon={<IndianRupee />} 
-                                    label="Accounting Desk" 
+                                    label="Account Desk" 
                                     isOpen={openCategories.accounting} 
                                     onToggle={() => toggleCategory('accounting')}
                                 >
@@ -830,7 +945,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                 <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                     <div className="flex items-center gap-5">
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-xl shadow-lg shadow-orange-500/30 active:scale-90 transition-all"><Menu size={24} /></button>
-                        <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{activeTab.replace(/_/g, ' ')}</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
+                        <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{
+                            activeTab === 'SMILE_AWARD' ? 'Nomination & Leaderboard' : 
+                            activeTab === 'EMPLOYEE_ROSTER' ? 'Employee Roster' :
+                            activeTab === 'SBH_FAMILY_DASHBOARD' ? 'SBH Family Payroll' :
+                            activeTab === 'VISITING_DASHBOARD' ? 'Visiting Doctors Payout' :
+                            activeTab.replace(/_/g, ' ')
+                        }</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
                     </div>
                         <div className="flex items-center gap-6">
                             {!isPublic && (
@@ -856,14 +977,26 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </div>
                             </div>
                         )}
-                        {activeTab === 'SMILE_AWARD' && <SmileAwardForm key="smile-award" onSubmissionSuccess={() => setTimeout(fetchData, 2000)} />}
+                        {activeTab === 'SMILE_AWARD' && (
+                            <div className="space-y-12">
+                                <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />
+                                <div className="pt-20 border-t border-slate-100 relative">
+                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-8 py-2 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">Nominate Your Champion Below</div>
+                                    <SmileAwardForm key="smile-award" onSubmissionSuccess={() => setTimeout(fetchData, 2000)} />
+                                </div>
+                            </div>
+                        )}
                         {activeTab === 'SMILE_STATS' && <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
                         {activeTab === 'HR_PANEL' && <HRApprovalPanel stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} />}
-                        {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} smileWinnersList={smileWinnersList} />}
+                        {activeTab === 'EMPLOYEE_ROSTER' && (
+                            loading ? <SectionLoader messages={["Fetching employee directory...", "Syncing with master records...", "Updating staff important dates...", "Preparing staff roster..."]} /> : 
+                            <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} smileWinnersList={smileWinnersList} />
+                        )}
                         {activeTab === 'PRINT_QR' && <PrintQRSection />}
                         {(activeTab === 'OPD' || activeTab === 'RADIOLOGY') && <DataTable data={activeTab === 'RADIOLOGY' ? sonoData : opdData} type={activeTab} onEdit={setEditingRow} />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
                         {activeTab === 'LASIK_DATA' && (
+                            loading ? <SectionLoader messages={["Loading patient responses...", "Analyzing lasik surveys...", "Updating feedback data..."]} /> :
                             <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
                                 <div className="overflow-x-auto custom-scrollbar">
                                     <table className="w-full text-left min-w-[1000px]">
@@ -900,9 +1033,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </div>
                             </div>
                         )}
-                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />}
+                        {activeTab === 'VISITING_DASHBOARD' && (loading ? <SectionLoader messages={["Syncing visiting doctor records...", "Calculating payouts...", "Updating clinical ledger..."]} /> : <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />)}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
-                        {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />}
+                        {activeTab === 'SBH_FAMILY_DASHBOARD' && (loading ? <SectionLoader messages={["Syncing SBH Family records...", "Preparing payroll data...", "Verifying cloud ledger..."]} /> : <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />)}
                     </AnimatePresence>
                 </main>
             </div>

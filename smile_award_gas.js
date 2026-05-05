@@ -1,25 +1,27 @@
 /**
  * SBH Hospital - Smile Award System (Production v2.0)
  * Target Spreadsheet ID: 1ihkS8fjoKBxAQ5MxHutXrOoyrQAURlhhkoSkkbNcUXs
+ * External Staff Master ID: 1L5fE1wnGnkdGwg-6WcMku9AP6mg1bSy4lJgOwgv4Mlk
  */
+
+const EXTERNAL_SS_ID = "1L5fE1wnGnkdGwg-6WcMku9AP6mg1bSy4lJgOwgv4Mlk";
+const WHATSAPP_GROUP_ID = "120363406464175673@g.us"; 
 
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
-  // 1. Staff Master (Expanded for Employee List)
+  // 1. Staff Master (STRICT ALIGNMENT)
   let staffSheet = ss.getSheetByName('Staff_Master');
   if (!staffSheet) {
     staffSheet = ss.insertSheet('Staff_Master');
-    staffSheet.appendRow(['Staff_ID', 'Name', 'Department', 'Role', 'Email', 'Mobile', 'DOB', 'DOJ', 'DOL']);
+    staffSheet.appendRow(['Staff_ID', 'Name', 'Mobile', 'Email', 'Birthday', 'Anniversary', 'Department', 'Role', 'DOL']);
     staffSheet.getRange("A1:I1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
-    // Initial Example
-    staffSheet.appendRow(['ST001', 'Rahul Sharma', 'OPD', 'Doctor', 'rahul@gmail.com', '9876543210', '1990-05-15', '2023-01-10', '']);
-    // Check if we need to upgrade old sheet headers
-    const currentHeaders = staffSheet.getRange("A1:I1").getValues()[0];
-    if (currentHeaders[0] === 'Staff_ID' && currentHeaders[8] !== 'DOL') {
-        staffSheet.getRange("A1:I1").setValues([['Staff_ID', 'Name', 'Department', 'Role', 'Email', 'Mobile', 'DOB', 'DOJ', 'DOL']]);
-    }
+  } else {
+    // FORCE HEADERS
+    staffSheet.getRange("A1:I1").setValues([['Staff_ID', 'Name', 'Mobile', 'Email', 'Birthday', 'Anniversary', 'Department', 'Role', 'DOL']]);
   }
+  
+  fixExistingDates();
 
   let finalSheet = ss.getSheetByName('Final_Winner');
   if (!finalSheet) {
@@ -51,6 +53,59 @@ function setupSheets() {
   // FORCE PLAIN TEXT for Month Columns to prevent ISO Timestamp conversion
   entriesSheet.getRange("B:B").setNumberFormat("@");
   summarySheet.getRange("A:A").setNumberFormat("@");
+  
+  // Force Date Columns to Plain Text
+  if (staffSheet) {
+    staffSheet.getRange("E:F").setNumberFormat("@");
+    staffSheet.getRange("I:I").setNumberFormat("@");
+  }
+}
+
+function fixExistingDates() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Staff_Master');
+  if (!sheet) return;
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return;
+  
+  for (let i = 1; i < data.length; i++) {
+    // E (Birthday), F (Anniversary), I (DOL) are indices 4, 5, 8
+    const cols = [4, 5, 8];
+    cols.forEach(col => {
+      let val = data[i][col];
+      if (!val) return;
+      
+      let finalVal = "";
+      if (val instanceof Date) {
+        finalVal = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
+      } else {
+        const sVal = val.toString().trim();
+        // Handle YYYY-MM-DD
+        if (sVal.length === 10 && sVal.charAt(4) === '-') {
+           finalVal = reformatDateString(sVal);
+        } else if (sVal.length === 10 && sVal.charAt(2) === '-' && sVal.charAt(5) === '-') {
+           // Already DD-MM-YYYY, keep it
+           finalVal = sVal;
+        } else {
+           // Try to parse anything else
+           try {
+             const d = new Date(sVal);
+             if (!isNaN(d.getTime())) {
+               finalVal = Utilities.formatDate(d, "GMT+5:30", "dd-MM-yyyy");
+             } else {
+               finalVal = sVal; // Fallback
+             }
+           } catch(e) {
+             finalVal = sVal;
+           }
+        }
+      }
+      
+      if (finalVal && finalVal !== val.toString()) {
+        sheet.getRange(i + 1, col + 1).setValue(finalVal);
+      }
+    });
+  }
 }
 
 function doGet(e) {
@@ -75,6 +130,7 @@ function doPost(e) {
     if (action === 'approve_winner') return approveWinner(data);
     if (action === 'add_staff') return addStaff(data);
     if (action === 'edit_staff') return editStaff(data);
+    if (action === 'sync_staff') return syncStaff(data.externalUrl);
     if (action === 'send_manual_reminder') return sendManualReminder(data);
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
@@ -96,7 +152,7 @@ function getStaffList() {
     headers.forEach((h, i) => {
         let val = row[i];
         if (val instanceof Date) {
-             val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
+             val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
         }
         obj[h] = val;
     });
@@ -105,25 +161,155 @@ function getStaffList() {
   return createJsonResponse(staff);
 }
 
+function reformatDateString(val) {
+  if (!val || typeof val !== 'string') return val;
+  // If format is YYYY-MM-DD
+  if (val.length === 10 && val.charAt(4) === '-') {
+    const parts = val.split('-');
+    // Ensure parts[2] is day, parts[1] is month, parts[0] is year
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return val;
+}
+
+function syncStaff(externalUrl) {
+  let targetId = EXTERNAL_SS_ID;
+  if (externalUrl) {
+    const match = externalUrl.match(/[-\w]{25,}/);
+    if (match) targetId = match[0];
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const localSheet = ss.getSheetByName('Staff_Master');
+  
+  let extSS;
+  try {
+    extSS = SpreadsheetApp.openById(targetId);
+  } catch(e) {
+    return createJsonResponse({ success: false, message: "Invalid Spreadsheet ID or URL: " + e.message });
+  }
+
+  let extSheet = extSS.getSheetByName('Staff_Master');
+  if (!extSheet) extSheet = extSS.getSheets()[0];
+  
+  const extData = extSheet.getDataRange().getValues();
+  if (extData.length <= 1) return createJsonResponse({ success: false, message: "No data found in external sheet" });
+  
+  const localData = localSheet.getDataRange().getValues();
+  const localHeaders = localData[0];
+  // A:ID, B:Name, C:Mobile, D:Email, E:Birthday, F:Anniversary
+  const localNameIdx = 1;
+  const localMobileIdx = 2;
+  const localEmailIdx = 3;
+  const localBdayIdx = 4;
+  const localAnnivIdx = 5;
+  
+  const extHeaders = extData[0].map(h => h.toString().toLowerCase().trim());
+  
+  // Dynamic Column Mapping with strict Fallbacks
+  const findIdx = (keywords, fallback) => {
+    const idx = extHeaders.findIndex(h => keywords.some(k => h.includes(k)));
+    return idx !== -1 ? idx : fallback;
+  };
+
+  const extNameIdx = findIdx(['name', 'staff name', 'employee name'], 1);
+  const extMobileIdx = findIdx(['mobile', 'phone', 'contact', 'whatsapp'], 2);
+  const extEmailIdx = findIdx(['email', 'mail'], 3);
+  const extBdayIdx = findIdx(['birthday', 'dob', 'birth'], 4);
+  const extAnnivIdx = findIdx(['anniversary', 'doj', 'joining', 'work'], 5);
+  
+  let addedCount = 0;
+  let updatedCount = 0;
+  let skippedCount = 0;
+
+  for (let i = 1; i < extData.length; i++) {
+    const row = extData[i];
+    const name = row[extNameIdx] ? row[extNameIdx].toString().trim() : '';
+    const mobile = row[extMobileIdx] ? row[extMobileIdx].toString().trim() : '';
+    const email = row[extEmailIdx] ? row[extEmailIdx].toString().trim() : '';
+    let birthday = row[extBdayIdx];
+    let anniversary = row[extAnnivIdx];
+    
+    if (!name && !mobile) continue;
+
+    const formatDate = (val) => {
+      if (val instanceof Date) return Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
+      const sVal = val ? val.toString().trim() : '';
+      return reformatDateString(sVal);
+    };
+
+    birthday = formatDate(birthday);
+    anniversary = formatDate(anniversary);
+
+    // Multi-field Deduplication Check
+    let existsExactly = false;
+    let existingRowIdx = -1;
+
+    for (let j = 1; j < localData.length; j++) {
+      const lName = localData[j][localNameIdx] ? localData[j][localNameIdx].toString().trim() : '';
+      const lMobile = localData[j][localMobileIdx] ? localData[j][localMobileIdx].toString().trim() : '';
+      const lBday = formatDate(localData[j][localBdayIdx]);
+      const lAnniv = formatDate(localData[j][localAnnivIdx]);
+
+      // If everything matches, skip
+      if (lName.toLowerCase() === name.toLowerCase() && 
+          lMobile === mobile && 
+          lBday === birthday && 
+          lAnniv === anniversary) {
+        existsExactly = true;
+        break;
+      }
+      
+      // If just Name and Mobile match, we might want to update it
+      if (lName.toLowerCase() === name.toLowerCase() && lMobile === mobile) {
+        existingRowIdx = j + 1;
+      }
+    }
+
+    if (existsExactly) {
+      skippedCount++;
+      continue;
+    }
+
+    if (existingRowIdx > 0) {
+      // Update existing if different
+      localSheet.getRange(existingRowIdx, 2, 1, 8).setValues([[
+        name, mobile, email, birthday, anniversary, 'General', 'Staff', ''
+      ]]);
+      updatedCount++;
+    } else {
+      // Add as new
+      const nextId = "ST" + (localSheet.getLastRow() + 100);
+      localSheet.appendRow([
+        nextId, name, mobile, email, birthday, anniversary, 'General', 'Staff', ''
+      ]);
+      addedCount++;
+    }
+  }
+
+  return createJsonResponse({ success: true, added: addedCount, updated: updatedCount, skipped: skippedCount });
+}
+
 function saveVote(res) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const entriesSheet = ss.getSheetByName('Smile_Entries');
   const staffSheet = ss.getSheetByName('Staff_Master');
   
   const now = new Date();
-  const timestamp = Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const timestamp = Utilities.formatDate(now, "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
   const month = Utilities.formatDate(now, "GMT+5:30", "MMMM yyyy");
   
   // Self-Learning: Add Nominee to Master if new
   if (res.isNewNominee && res.employeeName) {
     const nextId = "ST" + (staffSheet.getLastRow() + 100);
-    staffSheet.appendRow([nextId, res.employeeName, res.department || 'General', 'Staff', '', '', '', '', '']);
+    // A:ID, B:Name, C:Mobile, D:Email, E:Birthday, F:Anniversary, G:Dept, H:Role, I:DOL
+    staffSheet.appendRow([nextId, res.employeeName, '', '', '', '', res.department || 'General', 'Staff', '']);
   }
 
   // Self-Learning: Add Voter to Master if new
   if (res.isNewVoter && res.voterName) {
     const nextId = "ST" + (staffSheet.getLastRow() + 101);
-    staffSheet.appendRow([nextId, res.voterName, 'General', 'Staff', '', '', '', '', '']);
+    staffSheet.appendRow([nextId, res.voterName, '', '', '', '', 'General', 'Staff', '']);
   }
 
   entriesSheet.appendRow([
@@ -164,15 +350,15 @@ function approveWinner(res) {
   const sheet = ss.getSheetByName('Final_Winner');
   const staffSheet = ss.getSheetByName('Staff_Master');
   const now = new Date();
-  const approvedAt = Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const approvedAt = Utilities.formatDate(now, "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
   
   // Try to find mobile number from Staff_Master
   let mobileToMessage = res.mobile || 'N/A';
   if (mobileToMessage === 'N/A' || !mobileToMessage) {
       const staffData = staffSheet.getDataRange().getValues();
       for(let i=1; i<staffData.length; i++) {
-          if(staffData[i][1].toLowerCase() === res.name.toLowerCase() && staffData[i][5]) {
-              mobileToMessage = staffData[i][5]; // Mobile is index 5
+          if(staffData[i][1].toLowerCase() === res.name.toLowerCase() && staffData[i][2]) {
+              mobileToMessage = staffData[i][2]; // Mobile is index 2 now
               break;
           }
       }
@@ -203,13 +389,13 @@ function addStaff(data) {
   staffSheet.appendRow([
     nextId,
     data.name,
-    data.department,
-    data.role || 'Staff',
-    data.email || '',
     data.mobile || '',
-    data.dob || '',
-    data.doj || '',
-    data.dol || ''
+    data.email || '',
+    reformatDateString(data.birthday) || '',
+    reformatDateString(data.anniversary) || '',
+    data.department || 'General',
+    data.role || 'Staff',
+    reformatDateString(data.dol) || ''
   ]);
   return createJsonResponse({ success: true });
 }
@@ -222,7 +408,14 @@ function editStaff(data) {
   for (let i = 1; i < staffData.length; i++) {
     if (staffData[i][0] === data.staffId) {
        staffSheet.getRange(i + 1, 2, 1, 8).setValues([[
-         data.name, data.department, data.role || 'Staff', data.email || '', data.mobile || '', data.dob || '', data.doj || '', data.dol || ''
+         data.name, 
+         data.mobile || '', 
+         data.email || '', 
+         reformatDateString(data.birthday) || '', 
+         reformatDateString(data.anniversary) || '', 
+         data.department || 'General', 
+         data.role || 'Staff', 
+         reformatDateString(data.dol) || ''
        ]]);
        return createJsonResponse({ success: true, message: "Staff updated" });
     }
@@ -280,20 +473,34 @@ function sendRecognition(data) {
   sendWhatsApp(mobile, message);
 }
 
-function sendWhatsApp(mobile, message) {
+function sendWhatsApp(recipient, message) {
   const username = "SBH HOSPITAL";
   const password = "123456789";
   const baseUrl = "https://app.messageautosender.com/message/new";
-  const finalUrl = baseUrl + 
+  
+  // Clean recipient (remove @g.us if it's just a number, but keep for groups)
+  const isGroup = recipient.includes('-') || recipient.includes('@g.us') || recipient.length > 15;
+  
+  let finalUrl = baseUrl + 
     "?username=" + encodeURIComponent(username) +
     "&password=" + encodeURIComponent(password) +
-    "&receiverMobileNo=" + encodeURIComponent(mobile) +
     "&message=" + encodeURIComponent(message);
 
+  if (isGroup) {
+    // Many APIs use 'groupId' or 'chatId' for groups
+    // Since we are unsure, we will try adding both parameters to be safe
+    finalUrl += "&receiverMobileNo=" + encodeURIComponent(recipient);
+    finalUrl += "&groupId=" + encodeURIComponent(recipient);
+    finalUrl += "&isGroup=true";
+  } else {
+    finalUrl += "&receiverMobileNo=" + encodeURIComponent(recipient);
+  }
+
   try {
-    UrlFetchApp.fetch(finalUrl);
+    const response = UrlFetchApp.fetch(finalUrl);
+    console.log(`WhatsApp sent to ${recipient}. Response: ${response.getContentText()}`);
   } catch (e) {
-    console.error("Failed to send WhatsApp message: " + e.toString());
+    console.error(`Failed to send WhatsApp to ${recipient}: ` + e.toString());
   }
 }
 
@@ -307,53 +514,83 @@ function dailyCheckEvents() {
   if(data.length <= 1) return;
 
   const today = new Date();
-  const todayStr = Utilities.formatDate(today, "GMT+5:30", "MM-dd");
+  const todayStr = Utilities.formatDate(today, "GMT+5:30", "dd-MM");
   const todayYear = parseInt(Utilities.formatDate(today, "GMT+5:30", "yyyy"));
 
   for(let i=1; i<data.length; i++) {
     const name = data[i][1];
-    const mobile = data[i][5];
-    let dob = data[i][6];
-    let doj = data[i][7];
-    const dol = data[i][8];
+    const mobile = data[i][2]; // Index 2
+    let dob = data[i][4]; // Index 4 (Birthday)
+    let doj = data[i][5]; // Index 5 (Anniversary)
+    const dol = data[i][8]; // Index 8
     
     // SKIP IF LEFT
     if(dol) continue;
 
     if(!mobile || mobile.toString().trim() === '') continue;
 
-    if (dob instanceof Date) dob = Utilities.formatDate(dob, "GMT+5:30", "yyyy-MM-dd");
-    if (doj instanceof Date) doj = Utilities.formatDate(doj, "GMT+5:30", "yyyy-MM-dd");
+    if (dob instanceof Date) dob = Utilities.formatDate(dob, "GMT+5:30", "dd-MM-yyyy");
+    if (doj instanceof Date) doj = Utilities.formatDate(doj, "GMT+5:30", "dd-MM-yyyy");
 
-    // Check Birthday
-    if(typeof dob === 'string' && dob.length >= 5) {
-      const dobStr = dob.substring(dob.length - 5); 
-      if(dobStr === todayStr) {
-         const msg = `🎂 Happy Birthday *${name}*! 🎉\n\nWishing you a fantastic day filled with joy and success from all of us! Have a great year ahead!\n\n- *SBH Group Of Hospitals*`;
-         sendWhatsApp(mobile, msg);
-      }
-    }
+    const dobS = dob ? dob.toString() : '';
+    const dojS = doj ? doj.toString() : '';
 
-    // Check Anniversary
-    if(typeof doj === 'string' && doj.length >= 5) {
-      const dojStr = doj.substring(doj.length - 5);
-      if(dojStr === todayStr) {
-         let years = 0;
-         try {
-             const joinYear = parseInt(doj.substring(0, 4));
-             years = todayYear - joinYear;
-         } catch(e) {}
-         
-         if(years > 0) {
-             const msg = `🌟 Happy Work Anniversary *${name}*! 🎊\n\nCongratulations on completing ${years} wonderful year(s) with us! We truly appreciate your hard work and dedication.\n\n- *SBH Group Of Hospitals*`;
-             sendWhatsApp(mobile, msg);
-         }
-      }
-    }
+    // Check Birthday (dd-MM-yyyy)
+    if(dobS.startsWith(todayStr)) {
+       const msg = `Dear *${name}*,\n\n*May you never feel lonely.*\n\nMay wonderful people and loved ones always are there in your life to support you and make you happy. \n\nWishing you a very *Happy Birthday!* 🎂🎈\n\n- *SBH Group Of Hospitals*`;
+       sendWhatsApp(mobile, msg);
+       
+        // Send to SBH Parivar Group
+        if (WHATSAPP_GROUP_ID) {
+          const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nMay wonderful people and loved ones always are there in your life to support you and make you happy. \n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈\n\n- *SBH Group Of Hospitals*`;
+          sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg);
+        }
+     }
+
+     // Check Anniversary (dd-MM-yyyy)
+     if(dojS.startsWith(todayStr)) {
+        let years = 0;
+        try {
+            const parts = dojS.split('-');
+            if (parts.length === 3) {
+              const joinYear = parseInt(parts[2]);
+              if (!isNaN(joinYear) && joinYear > 1900) {
+                years = todayYear - joinYear;
+              }
+            }
+        } catch(e) {}
+        
+        if(years > 0) {
+            const msg = `Hello *${name}*,\n\n*Happy Work Anniversary!* 🎊✨\n\nCongratulations on completing *${years} Year(s)* of excellence with SBH Group! 🏆\n\nWe are incredibly grateful for your dedication and the positive impact you've made. We are so glad you chose to join us and that you choose to stay with us. ❤️\n\n- *SBH Group Of Hospitals*`;
+            sendWhatsApp(mobile, msg);
+
+            // Send to SBH Parivar Group
+            if (WHATSAPP_GROUP_ID) {
+              const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊\n\nWe are so proud to have you in our family. Thank you for your continued dedication and excellence. ✨❤️\n\n- *SBH Group Of Hospitals*`;
+              sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg);
+            }
+        }
+     }
   }
 }
 
 function createJsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * TEST FUNCTION: Run this from Apps Script Editor to test Group Messaging
+ */
+function testGroupMessage() {
+  const testMsg = "🚀 *SBH System Test*\n\nThis is a test message to verify that the Group ID is working correctly.\n\n- *SBH IT Team*";
+  console.log("Starting Group Message Test...");
+  console.log("Target Group ID: " + WHATSAPP_GROUP_ID);
+  
+  if (!WHATSAPP_GROUP_ID || WHATSAPP_GROUP_ID.includes("PASTE")) {
+    console.error("Error: WHATSAPP_GROUP_ID is not set!");
+    return;
+  }
+  
+  sendWhatsApp(WHATSAPP_GROUP_ID, testMsg);
 }

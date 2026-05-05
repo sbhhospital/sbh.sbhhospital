@@ -82,7 +82,7 @@ function logPayment(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Visiting_Payments');
   const nextId = "PAY" + (sheet.getLastRow() + 1000);
-  const hrEntryDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const hrEntryDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
   
   // Ensure no undefined values cause shifting
   const row = [
@@ -113,7 +113,7 @@ function settlePayout(data) {
   const dataRange = sheet.getDataRange();
   const rows = dataRange.getValues();
   const headers = rows[0].map(h => h.toString().trim());
-  const payDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const payDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
 
   const idIdx = headers.indexOf('Payment_ID');
   const statusIdx = headers.indexOf('Status');
@@ -182,7 +182,7 @@ function mapRows(data) {
     let obj = {};
     rawHeaders.forEach((h, i) => {
       let val = row[i];
-      if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
+      if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
       obj[h] = val;
     });
 

@@ -5,7 +5,7 @@
 
 function doGet(e) {
     const sheetName = e.parameter.sheet || 'OPD_Records';
-    const filterDate = e.parameter.date || Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd");
+    const filterDate = e.parameter.date || Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy");
 
     return ContentService.createTextOutput(JSON.stringify(getData(sheetName, filterDate)))
         .setMimeType(ContentService.MimeType.JSON);
@@ -20,7 +20,7 @@ function doPost(e) {
         if (action === 'register') {
             const sheet = ss.getSheetByName(res.sheet);
             const id = "ID-" + Math.random().toString(36).substr(2, 9).toUpperCase();
-            const date = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd");
+            const date = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy");
             sheet.appendRow([id, date, ...res.data]);
             return ContentService.createTextOutput(JSON.stringify({ success: true, id: id }))
                 .setMimeType(ContentService.MimeType.JSON);
@@ -81,7 +81,7 @@ function archiveDayData(sheetName, date) {
     const archiveSheet = ss.getSheetByName('Archive');
     const data = sourceSheet.getDataRange().getValues();
     const headers = data[0];
-    const archiveDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm");
+    const archiveDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm");
 
     // Find rows to move
     const rowsToMove = [];
@@ -89,7 +89,7 @@ function archiveDayData(sheetName, date) {
 
     for (let i = 1; i < data.length; i++) {
         let rowDate = data[i][1];
-        if (rowDate instanceof Date) rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "yyyy-MM-dd");
+        if (rowDate instanceof Date) rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "dd-MM-yyyy");
 
         if (rowDate === date) {
             // Map source columns to archive columns
@@ -117,7 +117,7 @@ function saveTarget(date, doctor, targetCount) {
     // Update if exists
     for (let i = 1; i < data.length; i++) {
         let rowDate = data[i][0];
-        if (rowDate instanceof Date) rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "yyyy-MM-dd");
+        if (rowDate instanceof Date) rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "dd-MM-yyyy");
         if (rowDate === date && data[i][1] === doctor) {
             sheet.getRange(i + 1, 3).setValue(targetCount);
             return { success: true, updated: true };
@@ -145,7 +145,7 @@ function getData(sheetName, filterDate) {
         let rowDate = dateIdx !== -1 ? row[dateIdx] : null;
 
         if (rowDate instanceof Date) {
-            rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "yyyy-MM-dd");
+            rowDate = Utilities.formatDate(rowDate, "GMT+5:30", "dd-MM-yyyy");
         }
 
         // For targets, the date might be formatted differently or we might want to skip filtering if needed
@@ -154,7 +154,7 @@ function getData(sheetName, filterDate) {
             let obj = {};
             headers.forEach((h, j) => {
                 let val = row[j];
-                if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
+                if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
                 obj[h] = val;
             });
             result.push(obj);
@@ -167,7 +167,7 @@ function saveData(sheetName, rowData) {
     setupSheets();
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
     const id = new Date().getTime();
-    const date = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd");
+    const date = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy");
 
     sheet.appendRow([id, date, ...rowData]);
     return { success: true, id: id };
@@ -197,7 +197,7 @@ function dailyArchive() {
 
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const dateStr = Utilities.formatDate(yesterday, "GMT+5:30", "yyyy-MM-dd");
+    const dateStr = Utilities.formatDate(yesterday, "GMT+5:30", "dd-MM-yyyy");
 
     const moveData = (source, dept) => {
         const data = source.getDataRange().getValues();

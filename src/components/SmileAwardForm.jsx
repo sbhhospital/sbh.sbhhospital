@@ -6,7 +6,7 @@ import {
     Sparkles, HandHeart, Trophy
 } from 'lucide-react';
 
-const SMILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
+const SMILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
 
 const SmileAwardForm = ({ onSubmissionSuccess }) => {
     const [formData, setFormData] = useState({

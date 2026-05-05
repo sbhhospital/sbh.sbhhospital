@@ -127,7 +127,7 @@ function submitSalary(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Salary_Ledger');
   const nextId = "SAL" + (sheet.getLastRow() + 1000);
-  const hrSubmitDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const hrSubmitDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
   
   sheet.appendRow([
     nextId, 
@@ -154,7 +154,7 @@ function settleSalary(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Salary_Ledger');
   const dataRange = sheet.getDataRange().getValues();
-  const confirmDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const confirmDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
 
   for (let i = 1; i < dataRange.length; i++) {
     if (dataRange[i][0] == data.salaryId) {
@@ -203,7 +203,7 @@ function mapRows(data) {
     let obj = {};
     headers.forEach((h, i) => {
       let val = row[i];
-      if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
+      if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
       obj[h] = val;
     });
     return obj;
