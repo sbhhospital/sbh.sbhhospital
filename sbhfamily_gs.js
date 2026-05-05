@@ -15,20 +15,20 @@ function setupStaffSheets() {
   let masterSheet = ss.getSheetByName('Staff_Master');
   if (!masterSheet) {
     masterSheet = ss.insertSheet('Staff_Master');
-    masterSheet.appendRow(['Staff_ID', 'Name', 'Designation', 'Department', 'Mobile', 'Account_Number', 'IFSC_Code', 'Base_Salary', 'Status']);
-    masterSheet.getRange("A1:I1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
+    masterSheet.appendRow(['Staff_ID', 'Name', 'Designation', 'Department', 'Unit', 'Mobile', 'Account_Number', 'IFSC_Code', 'Base_Salary', 'Joining_Date', 'Resignation_Date', 'CL_Total', 'EL_Total', 'Status']);
+    masterSheet.getRange("A1:N1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
   }
 
   // 2. Salary Ledger
   let ledgerSheet = ss.getSheetByName('Salary_Ledger');
   if (!ledgerSheet) {
     ledgerSheet = ss.insertSheet('Salary_Ledger');
-    ledgerSheet.getRange("A1:O1").setValues([[
-      'Salary_ID', 'Staff_ID', 'Staff_Name', 'Month', 'Year', 'Days_Worked', 
+    ledgerSheet.getRange("A1:P1").setValues([[
+      'Salary_ID', 'Staff_ID', 'Staff_Name', 'Unit', 'Month', 'Year', 'Days_Worked', 
       'Gross_Salary', 'Incentives', 'Deductions', 'Net_Salary', 'Status', 
       'HR_Submit_Date', 'Account_Confirm_Date', 'Account_Remarks', 'Notification_Sent'
     ]]);
-    ledgerSheet.getRange("A1:O1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
+    ledgerSheet.getRange("A1:P1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
   }
 }
 
