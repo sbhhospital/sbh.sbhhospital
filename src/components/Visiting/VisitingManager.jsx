@@ -43,6 +43,9 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
 
     useEffect(() => {
         fetchData();
+        // Auto-refresh every 60 seconds to sync with Account Team's settlements
+        const interval = setInterval(fetchData, 60000);
+        return () => clearInterval(interval);
     }, []);
 
     const handleAddVisitDate = () => {
@@ -398,134 +401,7 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                 </div>
             )}
 
-            {activeSubTab === 'HR_ENTRY' && (
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                    {/* Log New Payment */}
-                    <div className="bg-white rounded-[3.5rem] p-10 md:p-14 border border-slate-100 shadow-2xl shadow-slate-100 h-fit border-t-4 border-t-emerald-500">
-                        <h3 className="text-2xl font-black text-slate-800 uppercase mb-10 flex items-center gap-4"><IndianRupee className="text-emerald-500" size={28} /> Log Visits & Payment</h3>
-                        <form onSubmit={handleLogPayment} className="space-y-10">
-                            <div className="space-y-4">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-3">1. Select Visiting Doctor</label>
-                                <select 
-                                    required 
-                                    value={paymentFormData.doctorId} 
-                                    onChange={e => {
-                                        const doc = doctors.find(d => d.Doctor_ID === e.target.value);
-                                        setPaymentFormData({...paymentFormData, doctorId: e.target.value, doctorName: doc ? doc.Name : ''});
-                                    }}
-                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-3xl p-6 text-slate-800 font-black focus:bg-white focus:border-emerald-500/30 outline-none uppercase transition-all shadow-sm"
-                                >
-                                    <option value="">Choose Doctor From Master</option>
-                                    {doctors.map(d => <option key={d.Doctor_ID} value={d.Doctor_ID}>{d.Name} — {d.Specialty}</option>)}
-                                </select>
-                            </div>
-                            
-                            <div className="space-y-4">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-3">2. Amount Per Visit (₹)</label>
-                                <div className="relative">
-                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300 font-black text-lg">₹</div>
-                                    <input required type="number" value={paymentFormData.amountPerVisit} onChange={e => setPaymentFormData({...paymentFormData, amountPerVisit: e.target.value})} className="w-full bg-slate-50 border-2 border-slate-50 rounded-3xl p-6 pl-12 text-slate-800 font-black focus:bg-white focus:border-emerald-500/30 outline-none text-xl transition-all shadow-sm" placeholder="0" />
-                                </div>
-                            </div>
 
-                            <div className="space-y-5 pt-8 border-t border-slate-100">
-                                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] ml-3">3. Add Visit Dates</label>
-                                <div className="flex gap-4">
-                                    <input type="date" value={paymentFormData.currentDate} onChange={e => setPaymentFormData({...paymentFormData, currentDate: e.target.value})} className="flex-1 bg-slate-50 border-2 border-slate-50 rounded-3xl p-5 text-slate-800 font-black focus:bg-white focus:border-emerald-500/30 outline-none uppercase transition-all shadow-sm" />
-                                    <button type="button" onClick={handleAddVisitDate} className="w-16 bg-emerald-600 text-white rounded-3xl flex items-center justify-center hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-500/20 active:scale-95"><Plus size={24} /></button>
-                                </div>
-                                
-                                <div className="flex flex-wrap gap-2.5 mt-4 min-h-[50px] p-2">
-                                    {paymentFormData.visitDates.map(date => (
-                                        <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} key={date} className="flex items-center gap-3 px-5 py-2.5 bg-white text-slate-600 rounded-2xl text-[11px] font-black border border-slate-200 shadow-sm">
-                                            {date}
-                                            <button type="button" onClick={() => removeVisitDate(date)} className="text-rose-500 hover:scale-125 transition-transform"><X size={16} /></button>
-                                        </motion.div>
-                                    ))}
-                                    {paymentFormData.visitDates.length === 0 && <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest italic opacity-50 pl-2">No dates selected</p>}
-                                </div>
-                            </div>
-
-                            <div className="p-8 bg-slate-900 rounded-[3rem] text-center border-b-8 border-emerald-500 shadow-2xl shadow-slate-200">
-                                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Final Payment Voucher</p>
-                                <p className="text-5xl font-black text-white tracking-tighter">₹{(parseFloat(paymentFormData.amountPerVisit || 0) * paymentFormData.visitDates.length).toLocaleString()}</p>
-                                <div className="inline-flex items-center gap-3 px-5 py-2 bg-emerald-500/10 rounded-full mt-4">
-                                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                                    <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.2em]">{paymentFormData.visitDates.length} Official Visits</p>
-                                </div>
-                            </div>
-
-                            <button disabled={submitting} type="submit" className="w-full py-6 bg-emerald-600 text-white rounded-3xl font-black uppercase tracking-[0.2em] text-sm hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-600/30 disabled:opacity-50 active:scale-95 flex items-center justify-center gap-4">
-                                {submitting ? <Loader2 className="animate-spin" size={20} /> : <><RefreshCw size={18} /> Log & Ping Account Team</>}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Manage Doctor Master */}
-                    <div className="space-y-10">
-                        <div className="bg-white rounded-[3.5rem] p-10 border border-slate-100 shadow-sm h-full">
-                            <div className="flex items-center justify-between mb-10">
-                                <div>
-                                    <h3 className="text-2xl font-black text-slate-800 uppercase flex items-center gap-4"><Stethoscope className="text-blue-500" size={28} /> Doctors Master</h3>
-                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Manage permanent visiting staff</p>
-                                </div>
-                                <button onClick={() => setShowDoctorForm(!showDoctorForm)} className={`p-4 rounded-3xl transition-all shadow-lg active:scale-90 ${showDoctorForm ? 'bg-rose-500 text-white shadow-rose-200' : 'bg-blue-600 text-white shadow-blue-200'}`}>{showDoctorForm ? <X size={24} /> : <Plus size={24} />}</button>
-                            </div>
-
-                            <AnimatePresence>
-                                {showDoctorForm && (
-                                    <motion.form 
-                                        initial={{ height: 0, opacity: 0, y: -20 }} 
-                                        animate={{ height: 'auto', opacity: 1, y: 0 }} 
-                                        exit={{ height: 0, opacity: 0, y: -20 }} 
-                                        onSubmit={handleAddDoctor}
-                                        className="space-y-6 mb-12 overflow-hidden bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 shadow-inner"
-                                    >
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Doctor Name</label>
-                                                <input required value={doctorFormData.name} onChange={e => setDoctorFormData({...doctorFormData, name: e.target.value})} className="w-full bg-white rounded-2xl p-4 text-[12px] font-black outline-none border border-slate-200 focus:border-blue-500 transition-all" placeholder="Full Name" />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Specialty</label>
-                                                <input value={doctorFormData.specialty} onChange={e => setDoctorFormData({...doctorFormData, specialty: e.target.value})} className="w-full bg-white rounded-2xl p-4 text-[12px] font-black outline-none border border-slate-200 focus:border-blue-500 transition-all" placeholder="e.g. Cardiology" />
-                                            </div>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            <div className="space-y-2">
-                                                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-2">Contact Number</label>
-                                                <input required value={doctorFormData.mobile} onChange={e => setDoctorFormData({...doctorFormData, mobile: e.target.value})} className="w-full bg-white rounded-2xl p-4 text-[12px] font-black outline-none border border-slate-200 focus:border-blue-500 transition-all" placeholder="Mobile" />
-                                            </div>
-                                            <div className="pt-6">
-                                                <button disabled={submitting} type="submit" className="w-full h-full bg-blue-600 text-white rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-xl shadow-blue-200 hover:bg-blue-700 transition-all active:scale-95">Save Profile</button>
-                                            </div>
-                                        </div>
-                                    </motion.form>
-                                )}
-                            </AnimatePresence>
-
-                            <div className="space-y-5 max-h-[500px] overflow-y-auto custom-scrollbar pr-3">
-                                {doctors.map((d, i) => (
-                                    <motion.div layout key={i} className="flex items-center justify-between p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group">
-                                        <div className="flex items-center gap-5">
-                                            <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 group-hover:bg-blue-50 group-hover:text-blue-500 transition-all border border-slate-50"><User size={24} /></div>
-                                            <div>
-                                                <p className="font-black text-slate-800 uppercase text-[12px] mb-1">{d.Name}</p>
-                                                <p className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{d.Specialty}</p>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[11px] font-black text-slate-900 mb-1">{d.Mobile}</p>
-                                            <span className="px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[8px] font-black uppercase tracking-widest border border-emerald-100">Verified</span>
-                                        </div>
-                                    </motion.div>
-                                ))}
-                                {doctors.length === 0 && <div className="text-center py-10 text-slate-300 text-[10px] font-black uppercase tracking-widest">No doctors registered yet</div>}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {activeSubTab === 'REPORT' && (
                 <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
