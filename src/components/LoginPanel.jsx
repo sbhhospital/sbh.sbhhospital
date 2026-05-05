@@ -10,7 +10,8 @@ const LoginPanel = ({ onLogin }) => {
 
   const users = [
     { name: 'SBH', password: 'Naman@22@12' },
-    { name: 'SBH HRD', password: 'Hr@Sbh' }
+    { name: 'SBH HRD', password: 'Hr@Sbh' },
+    { name: 'ACCOUNT', password: 'Acc@Sbh' }
   ];
 
   const handleLogin = async (e) => {
@@ -74,6 +75,7 @@ const LoginPanel = ({ onLogin }) => {
               >
                 <option value="SBH">Administrator (SBH)</option>
                 <option value="SBH HRD">SBH HRD</option>
+                <option value="ACCOUNT">Accounts Department</option>
               </select>
               <ChevronDown className="absolute right-6 top-5.5 w-5 h-5 text-slate-300 pointer-events-none group-hover:text-indigo-500 transition-colors" />
             </div>

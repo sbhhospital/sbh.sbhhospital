@@ -12,6 +12,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VisitingManager from './Visiting/VisitingManager';
 import AccountUpdate from './Visiting/AccountUpdate';
+import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
 
 // --- UTILS ---
 const formatTimeToAMPM = (timeStr) => {
@@ -704,6 +705,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
     const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
     const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
+    const sbhFamilyScriptUrl = 'https://script.google.com/macros/s/AKfycbyE-PUT-YOUR-DEPLOYED-URL-HERE/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
 
     const fetchData = async () => {
@@ -807,6 +809,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                     isOpen={openCategories.accounting} 
                                     onToggle={() => toggleCategory('accounting')}
                                 >
+                                    <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
                                     <NavItem icon={<IndianRupee />} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                                 </CollapsibleCategory>
                             )}
@@ -896,6 +899,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         )}
                         {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
+                        {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />}
                     </AnimatePresence>
                 </main>
             </div>
