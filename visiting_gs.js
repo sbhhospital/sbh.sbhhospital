@@ -1,321 +1,261 @@
 /**
- * SBH Hospital - Visiting Doctors Payment Automation (v3.0 - FINAL)
- * Features: Multiple Dates, Auto-Calculation, Daily WhatsApp Reminders.
+ * SBH Hospital - Visiting Doctors Payment Automation (v3.4 - DATA RECOVERY)
+ * Features: Auto-Mapping, Shift Correction, detailed WhatsApp.
  */
 
-// --- CONFIGURATION ---
 const ACCOUNT_TEAM_MOBILE = "9644404741";
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec";
-const FRONTEND_URL = "https://lasik-feedback.vercel.app"; // Updated with user's Vercel link
+const HR_TEAM_MOBILE = "9644404741";
 
-/**
- * Run this function ONCE to set up all necessary sheets.
- */
 function setupVisitingSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // 1. Visiting Doctors Master
-  let masterSheet = ss.getSheetByName('Visiting_Master');
-  if (!masterSheet) {
-    masterSheet = ss.insertSheet('Visiting_Master');
-    masterSheet.appendRow(['Doctor_ID', 'Name', 'Specialty', 'Mobile', 'Email', 'Status']);
-    masterSheet.getRange("A1:F1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
-    masterSheet.appendRow(['DOC001', 'Dr. Ashish Mahobia', 'Ophthalmology', '9644404741', '', 'Active']);
-  }
-
-  // 2. Visiting Payments (Active/Pending)
   let paymentsSheet = ss.getSheetByName('Visiting_Payments');
-  if (!paymentsSheet) {
-    paymentsSheet = ss.insertSheet('Visiting_Payments');
-  }
-  paymentsSheet.getRange("A1:L1").setValues([[
-    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
-    'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
-  ]]);
-  paymentsSheet.getRange("A1:L1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
+  if (!paymentsSheet) paymentsSheet = ss.insertSheet('Visiting_Payments');
+  
+  // Force Reset Headers for consistency
+  const headers = [
+    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Gross_Amount', 'Deductions', 'Amount_To_Pay', 'Visit_Dates', 
+    'Visit_Count', 'HR_Entry_Date', 'Status', 'Payment_Date', 'Account_Remarks', 'Paid_Amount', 'Reminders_Sent'
+  ];
+  paymentsSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  paymentsSheet.getRange(1, 1, 1, headers.length).setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
 
-  // 2b. Visiting Archive (Settled)
   let archiveSheet = ss.getSheetByName('Visiting_Archive');
-  if (!archiveSheet) {
-    archiveSheet = ss.insertSheet('Visiting_Archive');
-  }
-  archiveSheet.getRange("A1:L1").setValues([[
-    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Amount_To_Pay', 'Visit_Dates', 
-    'Visit_Count', 'HR_Entry_Date', 'Status', 'Paid_Amount', 'Payment_Date', 'Account_Remarks', 'Reminders_Sent'
-  ]]);
-  archiveSheet.getRange("A1:L1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
-
-  // 3. Monthly Summary
-  let summarySheet = ss.getSheetByName('Visiting_Monthly_Summary');
-  if (!summarySheet) {
-    summarySheet = ss.insertSheet('Visiting_Monthly_Summary');
-  }
-  summarySheet.clear();
-  // Query from Archive: Month(J), Amt(D), Paid(I), Count(F)
-  summarySheet.getRange("A1").setFormula('=QUERY(Visiting_Archive!A:L, "SELECT MONTH(J)+1, C, SUM(D), SUM(I), SUM(F) WHERE H = \'Paid\' GROUP BY MONTH(J)+1, C LABEL MONTH(J)+1 \'Month\', C \'Doctor Name\', SUM(D) \'Total Expected\', SUM(I) \'Total Paid\', SUM(F) \'Total Visits\'", 1)');
-  summarySheet.getRange("A1:E1").setBackground("#e65100").setFontColor("white").setFontWeight("bold");
+  if (!archiveSheet) archiveSheet = ss.insertSheet('Visiting_Archive');
+  archiveSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  archiveSheet.getRange(1, 1, 1, headers.length).setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
+  
+  return "Sheets Reset Successfully!";
 }
 
-/**
- * Handle API GET requests.
- */
 function doGet(e) {
   const action = e.parameter.action;
   try {
     if (action === 'get_visiting_doctors') return getVisitingDoctors();
     if (action === 'get_visiting_payments') return getVisitingPayments();
-    if (action === 'get_visiting_summary') return getVisitingSummary();
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
-  return createJsonResponse({ success: false, message: "Invalid visiting action" });
 }
 
-/**
- * Handle API POST requests.
- */
 function doPost(e) {
   const data = JSON.parse(e.postData.contents);
   const action = data.action;
   try {
     if (action === 'add_visiting_doctor') return addVisitingDoctor(data);
     if (action === 'log_payment') return logPayment(data);
-    if (action === 'update_payment') return updatePayment(data);
+    if (action === 'settle_payout') return settlePayout(data);
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
-  return createJsonResponse({ success: false, message: "Unknown visiting POST action" });
 }
 
-// --- CORE LOGIC ---
-
 function getVisitingDoctors() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Visiting_Master');
-  const data = sheet.getDataRange().getValues();
-  return createJsonResponse(mapRows(data));
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Visiting_Master');
+  return createJsonResponse(mapRows(sheet.getDataRange().getValues()));
 }
 
 function getVisitingPayments() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const activeSheet = ss.getSheetByName('Visiting_Payments');
+  
+  const headersNeeded = [
+    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Gross_Amount', 'Deductions', 'Amount_To_Pay', 'Visit_Dates', 
+    'Visit_Count', 'HR_Entry_Date', 'Status', 'Payment_Date', 'Account_Remarks', 'Paid_Amount', 'Reminders_Sent'
+  ];
+
+  if (activeSheet) {
+    const currentHeaders = activeSheet.getRange(1, 1, 1, activeSheet.getLastColumn()).getValues()[0];
+    if (currentHeaders.indexOf('Paid_Amount') === -1 || currentHeaders.indexOf('Amount_To_Pay') === -1) {
+      activeSheet.getRange(1, 1, 1, headersNeeded.length).setValues([headersNeeded]);
+      activeSheet.getRange(1, 1, 1, headersNeeded.length).setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
+    }
+  }
+
   const archiveSheet = ss.getSheetByName('Visiting_Archive');
-  
-  let activeRows = [];
-  let archiveRows = [];
-
-  try {
-    if (activeSheet && activeSheet.getLastRow() > 0) {
-      const activeData = activeSheet.getDataRange().getValues();
-      activeRows = mapRows(activeData);
-    }
-  } catch (e) { console.error("Active Sheet Error: " + e); }
-
-  try {
-    if (archiveSheet && archiveSheet.getLastRow() > 0) {
-      const archiveData = archiveSheet.getDataRange().getValues();
-      archiveRows = mapRows(archiveData);
-    }
-  } catch (e) { console.error("Archive Sheet Error: " + e); }
-  
-  // Combine both for the frontend to have full history
-  return createJsonResponse([...activeRows, ...archiveRows]);
-}
-
-function getVisitingSummary() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Visiting_Monthly_Summary');
-  const data = sheet.getDataRange().getDisplayValues();
-  return createJsonResponse(mapRows(data));
-}
-
-function addVisitingDoctor(data) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Visiting_Master');
-  const nextId = "DOC" + (sheet.getLastRow() + 100);
-  sheet.appendRow([nextId, data.name, data.specialty || 'General', data.mobile || '', data.email || '', 'Active']);
-  return createJsonResponse({ success: true, doctorId: nextId });
+  let combined = [];
+  if (activeSheet && activeSheet.getLastRow() > 1) combined = combined.concat(mapRows(activeSheet.getDataRange().getValues()));
+  if (archiveSheet && archiveSheet.getLastRow() > 1) combined = combined.concat(mapRows(archiveSheet.getDataRange().getValues()));
+  return createJsonResponse(combined);
 }
 
 function logPayment(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Visiting_Payments');
   const nextId = "PAY" + (sheet.getLastRow() + 1000);
-  const now = new Date();
-  const hrEntryDate = Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const hrEntryDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
   
-  sheet.appendRow([
+  // Ensure no undefined values cause shifting
+  const row = [
     nextId, 
-    data.doctorId, 
-    data.doctorName, 
-    data.amount,
-    data.visitDates, 
-    data.visitCount,
-    hrEntryDate,
-    'Pending',
-    '',
-    '',
-    '',
-    0
-  ]);
-
-  sendPaymentReminderToAccount(nextId, data.doctorName, data.amount, data.visitDates, data.visitCount);
-  return createJsonResponse({ success: true, paymentId: nextId });
+    data.doctorId || '', 
+    data.doctorName || '', 
+    data.grossAmount || 0, 
+    data.deductions || 0, 
+    data.netAmount || 0, 
+    data.visitDates || '', 
+    data.visitCount || 0, 
+    hrEntryDate, 
+    'Pending', 
+    '', 
+    '', 
+    0, // Paid_Amount
+    0  // Reminders_Sent
+  ];
+  
+  sheet.appendRow(row);
+  return createJsonResponse({ success: true });
 }
 
-function updatePayment(data) {
+function settlePayout(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Visiting_Payments');
   const archiveSheet = ss.getSheetByName('Visiting_Archive');
-  const rows = sheet.getDataRange().getValues();
-  const now = new Date();
-  const payDate = data.paymentDate || Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd");
+  const dataRange = sheet.getDataRange();
+  const rows = dataRange.getValues();
+  const headers = rows[0].map(h => h.toString().trim());
+  const payDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+
+  const idIdx = headers.indexOf('Payment_ID');
+  const statusIdx = headers.indexOf('Status');
+  const payDateIdx = headers.indexOf('Payment_Date');
+  const remarkIdx = headers.indexOf('Account_Remarks');
+  const paidAmountIdx = headers.indexOf('Paid_Amount');
 
   for (let i = 1; i < rows.length; i++) {
-    if (rows[i][0] === data.paymentId) {
-      // 1. Prepare settled data row (12 columns)
+    if (rows[i][idIdx].toString() === data.paymentId.toString()) {
       const settledRow = [...rows[i]];
-      settledRow[7] = 'Paid'; // Status (Index 7, Column H)
-      settledRow[8] = data.paidAmount; // Paid_Amount (Index 8, Column I)
-      settledRow[9] = payDate; // Payment_Date (Index 9, Column J)
-      settledRow[10] = data.remarks || 'Confirmed by Account'; // Remarks (Index 10, Column K)
+      if (statusIdx !== -1) settledRow[statusIdx] = 'Paid';
+      if (payDateIdx !== -1) settledRow[payDateIdx] = data.paymentDate || payDate;
+      if (remarkIdx !== -1) settledRow[remarkIdx] = data.remarks || 'Settled';
+      if (paidAmountIdx !== -1) settledRow[paidAmountIdx] = data.paidAmount || rows[i][headers.indexOf('Amount_To_Pay')] || rows[i][headers.indexOf('Net_Amount')] || 0;
       
-      // 2. Add to Archive
       archiveSheet.appendRow(settledRow);
-      
-      // 3. Remove from Active Payments
       sheet.deleteRow(i + 1);
       
-      // Notify HR
-      notifyHR(rows[i][2], data.paidAmount, payDate, data.remarks);
+      // WhatsApp Notification
+      const finalAmount = data.paidAmount || data.netAmount || 0;
+      
+      // Breakdown visits if possible
+      const dates = String(data.visitDates || '').split(',').map(d => d.trim()).filter(d => d);
+      const perVisitAmt = dates.length > 0 ? Math.round(data.grossAmount / dates.length) : data.grossAmount;
+      
+      let breakdownText = "";
+      dates.forEach(d => {
+        breakdownText += `• ${d}: *₹${perVisitAmt}*\n`;
+      });
+
+      const msgToDoctor = `*OFFICIAL FEE SETTLEMENT ADVISORY* 🏥\n\n` +
+      `Dear *${data.doctorName}*,\n\n` +
+      `We are pleased to inform you that your fee for *${data.visitCount} visits* has been processed.\n\n` +
+      `*Visit Breakdown:*\n` +
+      breakdownText + `\n` +
+      `*Transaction Summary:*\n` +
+      `• Gross Total: *₹${data.grossAmount}*\n` +
+      `• Deductions: *₹${data.deductions}*\n` +
+      `• Net Settled Amount: *₹${finalAmount}*\n\n` +
+      `The amount will be credited to your registered bank account shortly.\n\n` +
+      `📝 *Accounts Remark:* ${data.remarks || 'Official fee processed. Amount will be credited to your account shortly.'}\n\n` +
+      `Regards,\n*SBH Hospitals Accounts Team*`;
+
+      sendWhatsApp(data.doctorMobile, msgToDoctor);
       return createJsonResponse({ success: true });
     }
   }
-  return createJsonResponse({ success: false, message: "Payment ID not found" });
-}
-
-// --- AUTOMATION & REMINDERS ---
-
-/**
- * Run this function daily via Time-driven trigger.
- */
-function dailyVisitingReminder() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('Visiting_Payments');
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return;
-
-  for (let i = 1; i < data.length; i++) {
-    const status = data[i][7]; // Status is column H
-    if (status === 'Pending') {
-      sendPaymentReminderToAccount(data[i][0], data[i][2], data[i][3], data[i][4], data[i][5]);
-      
-      // Increment reminder count in column L (Index 11)
-      const currentCount = parseInt(data[i][11] || 0);
-      sheet.getRange(i + 1, 12).setValue(currentCount + 1);
-    }
-  }
-}
-
-function sendPaymentReminderToAccount(payId, name, amount, dates, count) {
-  const updateUrl = FRONTEND_URL + "?type=visiting_update&paymentId=" + payId;
-  const message = `🔔 *PAYMENT REMINDER (Visiting Doctor)*\n\n` +
-                  `Dr. Name: *${name}*\n` +
-                  `Total Amount: *₹${amount}*\n` +
-                  `Visit Dates: *${dates}*\n` +
-                  `Total Visits: *${count}*\n\n` +
-                  `Please confirm if payment is done:\n` +
-                  `🔗 ${updateUrl}\n\n` +
-                  `_This is an automated reminder._`;
-                  
-  sendWhatsApp(ACCOUNT_TEAM_MOBILE, message);
-}
-
-function notifyHR(name, amount, date, remarks) {
-  const message = `✅ *PAYMENT CONFIRMED*\n\n` +
-                  `Visiting Doctor: *${name}*\n` +
-                  `Amount Paid: *₹${amount}*\n` +
-                  `Payment Date: *${date}*\n` +
-                  `Account Remarks: ${remarks}\n\n` +
-                  `- *SBH Automated System*`;
-  
-  sendWhatsApp(ACCOUNT_TEAM_MOBILE, message); 
+  return createJsonResponse({ success: false });
 }
 
 function sendWhatsApp(mobile, message) {
-  const username = "SBH HOSPITAL";
-  const password = "123456789";
-  const baseUrl = "https://app.messageautosender.com/message/new";
-  const finalUrl = baseUrl + 
-    "?username=" + encodeURIComponent(username) +
-    "&password=" + encodeURIComponent(password) +
-    "&receiverMobileNo=" + encodeURIComponent(mobile) +
-    "&message=" + encodeURIComponent(message);
-
-  try {
-    UrlFetchApp.fetch(finalUrl);
-  } catch (e) {
-    console.error("WhatsApp Error: " + e.toString());
-  }
-}
-
-// --- HELPERS ---
-
-/**
- * Call this function from the Apps Script editor to clean up existing "Paid" 
- * records from the main sheet and move them to the Archive.
- */
-function migratePaidRecords() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const activeSheet = ss.getSheetByName('Visiting_Payments');
-  const archiveSheet = ss.getSheetByName('Visiting_Archive');
-  
-  if (!activeSheet || !archiveSheet) return "Sheets not found";
-  
-  const data = activeSheet.getDataRange().getValues();
-  let movedCount = 0;
-  
-  // Iterate backwards to safely delete rows
-  for (let i = data.length - 1; i >= 1; i--) {
-    const status = data[i][7]; // Status column H
-    if (status === 'Paid') {
-      archiveSheet.appendRow(data[i]);
-      activeSheet.deleteRow(i + 1);
-      movedCount++;
-    }
-  }
-  return "Successfully migrated " + movedCount + " records to Archive.";
+  if (!mobile) return;
+  const url = "https://app.messageautosender.com/message/new" + 
+              "?username=" + encodeURIComponent("SBH HOSPITAL") + 
+              "&password=" + encodeURIComponent("123456789") + 
+              "&receiverMobileNo=" + encodeURIComponent(mobile) + 
+              "&message=" + encodeURIComponent(message);
+  try { UrlFetchApp.fetch(url); } catch (e) {}
 }
 
 function mapRows(data) {
   if (data.length <= 1) return [];
-  const rawHeaders = data[0];
+  const rawHeaders = data[0].map(h => h.toString().trim());
   
-  // Normalize headers (handle singular/plural and spacing)
-  const headers = rawHeaders.map(h => {
-    let normalized = h.toString().trim();
-    if (normalized === 'Visit_Date') return 'Visit_Dates';
-    return normalized;
-  });
-
   return data.slice(1).map(row => {
     let obj = {};
-    headers.forEach((h, i) => {
+    rawHeaders.forEach((h, i) => {
       let val = row[i];
       if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd");
       obj[h] = val;
     });
-    
-    // Fallback: If Visit_Count is missing, calculate it from dates
-    if (obj.Visit_Dates && (!obj.Visit_Count || obj.Visit_Count === '')) {
-      obj.Visit_Count = obj.Visit_Dates.toString().split(',').length;
+
+    // --- AUTO-CORRECTION FOR SHIFTED DATA ---
+    // If Status is empty but Visit_Count has "Pending", we shifted!
+    if (!obj.Status && String(obj.Visit_Count).trim() === 'Pending') {
+      obj.Status = 'Pending';
+      obj.HR_Entry_Date = obj.Visit_Dates;
+      obj.Amount_To_Pay = obj.Gross_Amount;
+      obj.Deductions = 0;
+      obj.Gross_Amount = obj.Amount_To_Pay;
     }
-    
+
     return obj;
   });
 }
 
+
+/**
+ * Function to be called via Time-driven Trigger (Daily)
+ * Scans for PENDING payments older than 5 days and alerts Account Team.
+ */
+function checkPendingReminders() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("Visiting_Payments");
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const rows = data.slice(1);
+  
+  const statusIdx = headers.indexOf("Status");
+  const dateIdx = headers.indexOf("HR_Entry_Date");
+  const nameIdx = headers.indexOf("Doctor_Name");
+  const idIdx = headers.indexOf("Payment_ID");
+  const amountIdx = headers.indexOf("Amount_To_Pay");
+
+  const now = new Date();
+  const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+  let agingPayments = [];
+
+  rows.forEach(row => {
+    const status = String(row[statusIdx] || '').toUpperCase();
+    if (status === "PENDING" || status === "DUE") {
+      const entryDate = new Date(row[dateIdx]);
+      if (!isNaN(entryDate.getTime())) {
+        const age = now - entryDate;
+        if (age >= fiveDaysInMs) {
+          agingPayments.push({
+            id: row[idIdx],
+            name: row[nameIdx],
+            amount: row[amountIdx],
+            days: Math.floor(age / (24 * 60 * 60 * 1000))
+          });
+        }
+      }
+    }
+  });
+
+  if (agingPayments.length > 0) {
+    let alertMsg = `*⚠️ URGENT: AGING PAYOUT ALERT* ⚠️\n\n` +
+      `The following Visiting Doctor payouts have been *PENDING for more than 5 days*:\n\n`;
+    
+    agingPayments.forEach(p => {
+      alertMsg += `• *${p.name}* (${p.id})\n   Amt: ₹${p.amount} | Pending since: ${p.days} days\n\n`;
+    });
+    
+    alertMsg += `Please process these settlements immediately.\n*SBH Payroll System*`;
+    
+    // Send to Account Team / Admin
+    sendWhatsApp("919516624444", alertMsg); // Admin
+    sendWhatsApp("917000842261", alertMsg); // Accounts
+  }
+}
+
 function createJsonResponse(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput(JSON.stringify(obj)).setMimeType(ContentService.MimeType.JSON);
 }

@@ -679,7 +679,8 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             if (publicType === 'visiting_update') return 'VISITING_UPDATE';
             return 'SMILE_AWARD';
         }
-        return 'DASHBOARD';
+        if (user === 'ACCOUNT') return 'SBH_FAMILY_DASHBOARD';
+        return 'SMILE_AWARD';
     });
     const [opdData, setOpdData] = useState([]);
     const [sonoData, setSonoData] = useState([]);
@@ -690,9 +691,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [formType, setFormType] = useState('OPD');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [openCategories, setOpenCategories] = useState({
-        smile: true,
+        smile: user !== 'ACCOUNT',
         lasik: false,
-        accounting: false
+        accounting: user === 'ACCOUNT'
     });
 
     const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
@@ -773,21 +774,23 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {/* HIDDEN: Management Section */}
 
                         <div className="space-y-4">
-                            <CollapsibleCategory 
-                                icon={<Award />} 
-                                label="Smile Awards" 
-                                isOpen={openCategories.smile} 
-                                onToggle={() => toggleCategory('smile')}
-                            >
-                                <NavItem icon={<Award />} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
-                                <NavItem icon={<Trophy />} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} />
-                                {(user === 'SBH' || user === 'SBH HRD') && (
-                                    <>
-                                        <NavItem icon={<Users />} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
-                                        <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
-                                    </>
-                                )}
-                            </CollapsibleCategory>
+                            {user !== 'ACCOUNT' && (
+                                <CollapsibleCategory 
+                                    icon={<Award />} 
+                                    label="Smile Awards" 
+                                    isOpen={openCategories.smile} 
+                                    onToggle={() => toggleCategory('smile')}
+                                >
+                                    <NavItem icon={<Award />} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
+                                    <NavItem icon={<Trophy />} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} />
+                                    {(user === 'SBH' || user === 'SBH HRD') && (
+                                        <>
+                                            <NavItem icon={<Users />} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
+                                            <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
+                                        </>
+                                    )}
+                                </CollapsibleCategory>
+                            )}
 
                             {user === 'SBH' && (
                                 <CollapsibleCategory 
@@ -802,10 +805,10 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </CollapsibleCategory>
                             )}
 
-                            {(user === 'SBH HRD' || user === 'SBH' || user === 'ADMIN') && (
+                            {(user === 'SBH HRD' || user === 'SBH' || user === 'ADMIN' || user === 'ACCOUNT') && (
                                 <CollapsibleCategory 
                                     icon={<IndianRupee />} 
-                                    label="Accounting" 
+                                    label="Accounting Desk" 
                                     isOpen={openCategories.accounting} 
                                     onToggle={() => toggleCategory('accounting')}
                                 >

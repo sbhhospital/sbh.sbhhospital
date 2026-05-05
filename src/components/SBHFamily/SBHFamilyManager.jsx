@@ -3,41 +3,79 @@ import {
     Users, Plus, Calendar, IndianRupee, Clock, CheckCircle2, 
     AlertCircle, Search, Filter, Loader2, Save, X, Phone, 
     Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw, ChevronRight,
-    Building2, Wallet, FileText, Send, PieChart, LayoutGrid, CalendarDays, History, Umbrella
+    Building2, Wallet, FileText, Send, PieChart, LayoutGrid, CalendarDays, History, Umbrella, ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const SBHFamilyManager = ({ scriptUrl, user }) => {
-    const [activeSubTab, setActiveSubTab] = useState('DASHBOARD'); 
+    const [activeSubTab, setActiveSubTab] = useState(user === 'ACCOUNT' ? 'ACCOUNT_PANEL' : 'DASHBOARD'); 
     const [staff, setStaff] = useState([]);
     const [ledger, setLedger] = useState([]);
-    const [units, setUnits] = useState(["SBH Women", "SBH Eye", "SBH Fafadih", "SBH pharmacy", "SBH Lab", "SBH Cosmetic"]);
+    const [units, setUnits] = useState(["SBH", "SBH Women", "SBH Eye", "SBH Fafadih", "SBH pharmacy", "SBH Lab", "SBH Cosmetic"]);
     const [departments, setDepartments] = useState(["Nursing", "Front Desk", "Account", "HR", "Housekeeping", "Pharmacy", "Laboratory", "OT", "General"]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUnit, setSelectedUnit] = useState('ALL');
     const [selectedDepartment, setSelectedDepartment] = useState('ALL');
+    const [selectedStatus, setSelectedStatus] = useState('ALL');
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [selectedStaff, setSelectedStaff] = useState(null);
+    const [confirmModal, setConfirmModal] = useState(null); // { salaryId, staffData, remarks }
+    const [fetchError, setFetchError] = useState(null);
+    const [ledgerPage, setLedgerPage] = useState(1);
+    const [masterPage, setMasterPage] = useState(1);
+    const [msgIdx, setMsgIdx] = useState(0);
+    const ITEMS_PER_PAGE = 8;
 
     const fetchData = async () => {
         setLoading(true);
+        setFetchError(null);
         try {
-            const [staffData, ledgerData, configData] = await Promise.all([
-                fetch(`${scriptUrl}?action=get_staff_master`).then(r => r.json()),
-                fetch(`${scriptUrl}?action=get_salary_ledger`).then(r => r.json()),
-                fetch(`${scriptUrl}?action=get_config`).then(r => r.json())
-            ]);
-            setStaff(Array.isArray(staffData) ? staffData : []);
-            setLedger(Array.isArray(ledgerData) ? ledgerData : []);
-            if (configData && configData.units) setUnits(configData.units);
-            if (configData && configData.depts) setDepartments(configData.depts);
+            const configRes = await fetch(`${scriptUrl}?action=get_config`).then(r => r.json());
+            if (configRes && configRes.units) setUnits(configRes.units);
+            if (configRes && configRes.depts) setDepartments(configRes.depts);
+
+            const staffRes = await fetch(`${scriptUrl}?action=get_staff_master`).then(r => r.json());
+            const ledgerRes = await fetch(`${scriptUrl}?action=get_salary_ledger`).then(r => r.json());
+            
+            console.log("Fetched Ledger:", ledgerRes);
+            setStaff(Array.isArray(staffRes) ? staffRes : []);
+            setLedger(Array.isArray(ledgerRes) ? ledgerRes : []);
         } catch (err) {
             console.error('Fetch error:', err);
+            setFetchError("Failed to connect to Google Sheets. Please ensure the Script URL is correct and deployed as 'Public'.");
         }
         setLoading(false);
+    };
+
+    const onSettle = async (salaryId, remarks, staffData, paymentDate) => {
+        setSubmitting(true);
+        try {
+            await fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ 
+                    action: 'settle_salary', 
+                    salaryId, 
+                    remarks,
+                    paymentDate,
+                    staffName: staffData.Staff_Name || staffData.Name,
+                    staffMobile: staffData.Mobile,
+                    netSalary: staffData.Net_Salary,
+                    month: staffData.Month,
+                    year: staffData.Year,
+                    daysWorked: staffData.Days_Worked,
+                    deductions: staffData.Deductions
+                })
+            });
+            alert("Settlement confirmed & notification sent via WhatsApp");
+            setTimeout(() => {
+                fetchData();
+            }, 1500);
+        } catch (err) { alert("Settlement failed"); }
+        setSubmitting(false);
     };
 
     useEffect(() => {
@@ -49,29 +87,36 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
 
     const filteredLedger = useMemo(() => {
         return ledger.filter(item => {
-            const matchesMonth = item.Month === selectedMonth && item.Year === selectedYear;
-            const matchesUnit = selectedUnit === 'ALL' || item.Unit === selectedUnit;
-            // Join with staff master to get department for historical records if not in ledger
+            const matchesMonth = String(item.Month || '').trim().toLowerCase() === selectedMonth.toLowerCase();
+            const matchesYear = String(item.Year || '').trim() === selectedYear;
+            const matchesUnit = selectedUnit === 'ALL' || String(item.Unit || '').trim().toLowerCase() === selectedUnit.toLowerCase();
+            const matchesStatus = selectedStatus === 'ALL' || String(item.Status || '').trim().toLowerCase() === selectedStatus.toLowerCase();
+            
             const staffInfo = staff.find(s => s.Staff_ID === item.Staff_ID);
-            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && staffInfo.Department === selectedDepartment);
+            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && String(staffInfo.Department || '').trim().toLowerCase() === selectedDepartment.toLowerCase());
             
             const matchesSearch = !searchQuery || 
-                item.Staff_Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                item.Staff_ID.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesMonth && matchesUnit && matchesDept && matchesSearch;
+                String(item.Staff_Name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                String(item.Staff_ID || '').toLowerCase().includes(searchQuery.toLowerCase());
+            return matchesMonth && matchesYear && matchesUnit && matchesDept && matchesStatus && matchesSearch;
         });
-    }, [ledger, staff, selectedMonth, selectedYear, selectedUnit, selectedDepartment, searchQuery]);
+    }, [ledger, staff, selectedMonth, selectedYear, selectedUnit, selectedDepartment, selectedStatus, searchQuery]);
+
+    const paginatedLedger = useMemo(() => {
+        const start = (ledgerPage - 1) * ITEMS_PER_PAGE;
+        return filteredLedger.slice(start, start + ITEMS_PER_PAGE);
+    }, [filteredLedger, ledgerPage]);
 
     const stats = useMemo(() => {
         // Filter by Year, Unit, and Dept for broad stats
         const yearData = ledger.filter(item => {
-            const matchesYear = item.Year === selectedYear;
-            const matchesUnit = selectedUnit === 'ALL' || item.Unit === selectedUnit;
+            const matchesYear = String(item.Year || '').trim() === selectedYear;
+            const matchesUnit = selectedUnit === 'ALL' || String(item.Unit || '').trim().toLowerCase() === selectedUnit.toLowerCase();
             const staffInfo = staff.find(s => s.Staff_ID === item.Staff_ID);
-            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && staffInfo.Department === selectedDepartment);
+            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && String(staffInfo.Department || '').trim().toLowerCase() === selectedDepartment.toLowerCase());
             return matchesYear && matchesUnit && matchesDept;
         });
-        const currentMonthData = yearData.filter(item => item.Month === selectedMonth);
+        const currentMonthData = yearData.filter(item => String(item.Month || '').trim().toLowerCase() === selectedMonth.toLowerCase());
         
         return {
             totalYearly: yearData.reduce((sum, item) => sum + (parseFloat(item.Net_Salary) || 0), 0),
@@ -79,19 +124,62 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
             pendingMonthly: currentMonthData.filter(i => i.Status === 'Pending').reduce((sum, item) => sum + (parseFloat(item.Net_Salary) || 0), 0),
             staffCount: [...new Set(currentMonthData.map(i => i.Staff_ID))].length
         };
-    }, [ledger, selectedMonth, selectedYear, selectedUnit]);
+    }, [ledger, staff, selectedMonth, selectedYear, selectedUnit, selectedDepartment]);
+
+    const loadingMessages = [
+        "Syncing SBH Family payout records... 🏦",
+        "Calculating monthly salary disbursements... 📊",
+        "Securing HR and Accounting ledger... 🔐",
+        "Preparing official salary advisories... 📄",
+        "Aligning unit-wise financial data... 🏥",
+        "Verifying cloud payroll records... ☁️"
+    ];
+
+    useEffect(() => {
+        if (loading) {
+            const t = setInterval(() => setMsgIdx(p => (p + 1) % loadingMessages.length), 1800);
+            return () => clearInterval(t);
+        }
+    }, [loading]);
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-32 space-y-8 animate-pulse">
+            <div className="flex flex-col items-center justify-center p-32 space-y-8 animate-in fade-in zoom-in duration-500">
                 <div className="relative">
-                    <div className="w-20 h-20 border-4 border-emerald-100 rounded-full animate-spin border-t-emerald-600"></div>
-                    <Building2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600" size={30} />
+                    <div className="w-24 h-24 border-4 border-emerald-100 rounded-full animate-spin border-t-emerald-600"></div>
+                    <Building2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600" size={36} />
                 </div>
                 <div className="text-center">
                     <p className="text-sm font-black uppercase tracking-[0.4em] text-slate-800 mb-2">SBH Family Cloud</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Loading Unit Data...</p>
+                    <AnimatePresence mode="wait">
+                        <motion.p 
+                            key={msgIdx}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
+                        >
+                            {loadingMessages[msgIdx]}
+                        </motion.p>
+                    </AnimatePresence>
                 </div>
+            </div>
+        );
+    }
+
+    if (fetchError) {
+        return (
+            <div className="flex flex-col items-center justify-center p-32 space-y-6 text-center">
+                <div className="w-20 h-20 bg-rose-50 text-rose-600 rounded-[2rem] flex items-center justify-center">
+                    <AlertCircle size={40} />
+                </div>
+                <div className="space-y-2 max-w-md">
+                    <p className="text-sm font-black uppercase tracking-widest text-slate-800">Connection Error</p>
+                    <p className="text-[11px] font-bold text-slate-400 leading-relaxed">{fetchError}</p>
+                </div>
+                <button onClick={fetchData} className="px-8 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all flex items-center gap-2 mx-auto">
+                    <RefreshCw size={14} /> Retry Connection
+                </button>
             </div>
         );
     }
@@ -176,17 +264,30 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
                                 <h2 className="text-xs font-black uppercase tracking-widest text-slate-800">Global Ledger: {selectedMonth} {selectedYear}</h2>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Scope: {selectedUnit}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Scope: {selectedUnit} • Status: {selectedStatus}</p>
                             </div>
-                            <div className="relative group w-full md:w-80">
-                                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <input 
-                                    type="text" 
-                                    placeholder="Search by Name or Staff ID..." 
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-10 pr-4 text-[10px] font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 transition-all"
-                                />
+                            <div className="flex flex-wrap items-center gap-4">
+                                <div className="flex bg-slate-100 p-1 rounded-xl">
+                                    {['ALL', 'Pending', 'Settled'].map(s => (
+                                        <button 
+                                            key={s} 
+                                            onClick={() => setSelectedStatus(s)}
+                                            className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${selectedStatus === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="relative group w-full md:w-64">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Search Staff..." 
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-10 pr-4 text-[10px] font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="overflow-x-auto no-scrollbar">
@@ -200,7 +301,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {filteredLedger.map((row, idx) => (
+                                    {paginatedLedger.map((row, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
                                             <td className="px-8 py-6">
                                                 <button 
@@ -240,19 +341,26 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                             </td>
                                         </tr>
                                     ))}
-                                    {filteredLedger.length === 0 && (
+                                    {paginatedLedger.length === 0 && (
                                         <tr>
                                             <td colSpan="4" className="px-8 py-24 text-center">
                                                 <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
                                                     <PieChart className="text-slate-200" size={32} />
                                                 </div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No payroll data found for this period</p>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No records found</p>
                                             </td>
                                         </tr>
                                     )}
                                 </tbody>
                             </table>
                         </div>
+                        {filteredLedger.length > ITEMS_PER_PAGE && (
+                            <div className="px-8 py-4 border-t border-slate-50 flex items-center justify-center gap-6">
+                                <button onClick={() => setLedgerPage(p => Math.max(1, p-1))} disabled={ledgerPage === 1} className="p-2 hover:bg-slate-50 rounded-lg disabled:opacity-30"><ChevronLeft size={16} /></button>
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Page {ledgerPage}</span>
+                                <button onClick={() => setLedgerPage(p => p+1)} disabled={ledgerPage * ITEMS_PER_PAGE >= filteredLedger.length} className="p-2 hover:bg-slate-50 rounded-lg disabled:opacity-30"><ChevronRight size={16} /></button>
+                            </div>
+                        )}
                     </div>
                 </div>
             )}
@@ -260,7 +368,11 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
             {activeSubTab === 'UNIT_VIEW' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {units.map(unit => {
-                        const unitData = ledger.filter(l => l.Unit === unit && l.Month === selectedMonth && l.Year === selectedYear);
+                        const unitData = ledger.filter(l => 
+                            String(l.Unit || '').trim().toLowerCase() === unit.toLowerCase() && 
+                            String(l.Month || '').trim().toLowerCase() === selectedMonth.toLowerCase() && 
+                            String(l.Year || '').trim() === selectedYear
+                        );
                         const total = unitData.reduce((sum, i) => sum + (parseFloat(i.Net_Salary) || 0), 0);
                         const pending = unitData.filter(i => i.Status === 'Pending').length;
                         
@@ -308,9 +420,11 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                 mode: 'no-cors',
                                 body: JSON.stringify({ action: 'submit_salary', ...data, month: selectedMonth, year: selectedYear, unit: data.unit })
                             });
-                            alert("Salary submitted successfully");
-                            fetchData();
-                            setActiveSubTab('DASHBOARD');
+                            alert("Salary submitted successfully to Account Team");
+                            setTimeout(() => {
+                                fetchData();
+                                setActiveSubTab('DASHBOARD');
+                            }, 1500);
                         } catch (err) { alert("Submission failed"); }
                         setSubmitting(false);
                     }}
@@ -320,31 +434,26 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
 
             {activeSubTab === 'ACCOUNT_PANEL' && (
                 <AccountSettlementPanel 
-                    pending={ledger.filter(item => item.Status === 'Pending' && (selectedUnit === 'ALL' || item.Unit === selectedUnit) && item.Month === selectedMonth && item.Year === selectedYear)} 
+                    pending={ledger.filter(item => 
+                        item.Status === 'Pending' && 
+                        (selectedUnit === 'ALL' || String(item.Unit || '').trim().toLowerCase() === selectedUnit.toLowerCase()) && 
+                        String(item.Month || '').trim().toLowerCase() === selectedMonth.toLowerCase() && 
+                        String(item.Year || '').trim() === selectedYear
+                    )} 
+                    settled={ledger.filter(item => 
+                        item.Status === 'Settled' && 
+                        (selectedUnit === 'ALL' || String(item.Unit || '').trim().toLowerCase() === selectedUnit.toLowerCase()) && 
+                        String(item.Month || '').trim().toLowerCase() === selectedMonth.toLowerCase() && 
+                        String(item.Year || '').trim() === selectedYear
+                    )}
                     staff={staff}
-                    onSettle={async (salaryId, remarks, staffData) => {
-                        setSubmitting(true);
-                        try {
-                            await fetch(scriptUrl, {
-                                method: 'POST',
-                                mode: 'no-cors',
-                                body: JSON.stringify({ 
-                                    action: 'settle_salary', 
-                                    salaryId, 
-                                    remarks,
-                                    staffName: staffData.Name,
-                                    staffMobile: staffData.Mobile,
-                                    netSalary: staffData.Net_Salary,
-                                    month: staffData.Month,
-                                    year: staffData.Year,
-                                    daysWorked: staffData.Days_Worked,
-                                    deductions: staffData.Deductions
-                                })
-                            });
-                            alert("Settlement confirmed & notification sent");
-                            fetchData();
-                        } catch (err) { alert("Settlement failed"); }
-                        setSubmitting(false);
+                    onSettle={(salaryId, remarks, staffData) => {
+                        setConfirmModal({ 
+                            salaryId, 
+                            remarks: 'Salary processed. Amount will be credited to your account shortly.', 
+                            staffData,
+                            paymentDate: new Date().toISOString().split('T')[0]
+                        });
                     }}
                     submitting={submitting}
                 />
@@ -355,6 +464,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                     staff={staff} 
                     units={units}
                     departments={departments}
+                    searchQuery={searchQuery}
                     onAdd={async (data) => {
                         setSubmitting(true);
                         try {
@@ -370,6 +480,84 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                     submitting={submitting}
                 />
             )}
+
+            {/* Confirmation Modal for Account Team */}
+            <AnimatePresence>
+                {confirmModal && (
+                    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[300] flex items-center justify-center p-6">
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0 }} 
+                            animate={{ scale: 1, opacity: 1 }} 
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl space-y-8"
+                        >
+                            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                                <Wallet size={40} />
+                            </div>
+                            <div className="text-center space-y-2">
+                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Confirm Payment?</h3>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                    You are about to settle the salary for <br/>
+                                    <span className="text-slate-800 font-black">{confirmModal.staffData.Staff_Name}</span> for <span className="text-emerald-600">{confirmModal.staffData.Month} {confirmModal.staffData.Year}</span>.
+                                </p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Net Amount</span>
+                                    <span className="text-lg font-black text-slate-900">₹{confirmModal.staffData.Net_Salary}</span>
+                                </div>
+                                <div className="space-y-4 pt-2 border-t border-slate-200/50">
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Credit Date</label>
+                                        <input 
+                                            type="date" 
+                                            value={confirmModal.paymentDate}
+                                            onChange={(e) => setConfirmModal({ ...confirmModal, paymentDate: e.target.value })}
+                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-emerald-500 transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Remarks</label>
+                                        <input 
+                                            type="text" 
+                                            value={confirmModal.remarks}
+                                            onChange={(e) => setConfirmModal({ ...confirmModal, remarks: e.target.value })}
+                                            placeholder="Add remarks..."
+                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-emerald-500 transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4">
+                                <button 
+                                    onClick={() => setConfirmModal(null)}
+                                    className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    disabled={submitting}
+                                    onClick={async () => {
+                                        const { salaryId, remarks, staffData, paymentDate } = confirmModal;
+                                        setConfirmModal(null);
+                                        await onSettle(salaryId, remarks, staffData, paymentDate);
+                                    }}
+                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50"
+                                >
+                                    {submitting ? (
+                                        <div className="flex items-center justify-center gap-2">
+                                            <Loader2 className="animate-spin" size={14} />
+                                            <span>Processing...</span>
+                                        </div>
+                                    ) : "Confirm & Pay"}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Enhanced Staff Popup with History */}
             <AnimatePresence>
@@ -579,55 +767,128 @@ const SalaryEntryForm = ({ staff, onSubmit, submitting }) => {
     );
 };
 
-const AccountSettlementPanel = ({ pending, staff, onSettle, submitting }) => {
+const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submitting }) => {
     const [remarks, setRemarks] = useState({});
 
     return (
-        <div className="space-y-6">
-            {pending.length === 0 ? (
-                <div className="bg-white rounded-[3rem] p-32 text-center border border-slate-100">
-                    <CheckCircle2 className="mx-auto text-emerald-100 mb-6" size={80} />
-                    <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Clearance Complete</h3>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2">No pending settlements in current scope</p>
+        <div className="space-y-12">
+            {/* Pending Section */}
+            <div className="space-y-6">
+                <div className="flex items-center gap-3 ml-2">
+                    <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center border border-orange-100"><Clock size={16} /></div>
+                    <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Pending Actions ({pending.length})</h4>
                 </div>
-            ) : (
-                pending.map((item, idx) => {
-                    const s = staff.find(x => x.Staff_ID === item.Staff_ID);
-                    return (
-                        <div key={idx} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                            <div className="flex items-center gap-6">
-                                <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black border border-blue-100">{item.Staff_Name.substring(0, 2)}</div>
-                                <div>
-                                    <h4 className="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">{item.Staff_Name}</h4>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{item.Unit}</span>
-                                        <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.Month} {item.Year}</span>
+                
+                {pending.length === 0 ? (
+                    <div className="bg-white rounded-[3rem] p-24 text-center border border-slate-100">
+                        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
+                            <CheckCircle2 size={32} />
+                        </div>
+                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Clearance Complete</h3>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">All salaries for this cycle have been processed</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {pending.map((item, idx) => {
+                            const s = staff.find(x => x.Staff_ID === item.Staff_ID);
+                            return (
+                                <div key={idx} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-8 hover:border-blue-100 transition-all group">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-[1.5rem] flex items-center justify-center font-black border border-blue-100 group-hover:bg-blue-600 group-hover:text-white transition-all">{item.Staff_Name.substring(0, 2)}</div>
+                                        <div>
+                                            <h4 className="text-lg font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">{item.Staff_Name}</h4>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-[9px] font-black text-blue-600 uppercase tracking-widest">{item.Unit}</span>
+                                                <span className="w-1 h-1 bg-slate-200 rounded-full" />
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{item.Month} {item.Year}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col lg:flex-row items-center gap-6 flex-1 max-w-2xl">
+                                        <div className="w-full bg-slate-50 rounded-2xl p-4 flex flex-col justify-center border border-slate-100/50">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Settlement Amount</p>
+                                            <p className="text-2xl font-black text-slate-900 tracking-tighter">₹{parseFloat(item.Net_Salary).toLocaleString()}</p>
+                                        </div>
+                                        <div className="w-full space-y-2">
+                                            <div className="relative">
+                                                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Add Transaction ID / Remark..." 
+                                                    value={remarks[item.Salary_ID] || ''} 
+                                                    onChange={(e) => setRemarks({ ...remarks, [item.Salary_ID]: e.target.value })} 
+                                                    className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" 
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button 
+                                        onClick={() => onSettle(item.Salary_ID, remarks[item.Salary_ID], { ...item, ...s })} 
+                                        disabled={submitting} 
+                                        className="px-10 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl hover:bg-emerald-600 active:scale-95 transition-all"
+                                    >
+                                        {submitting ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Confirm</>}
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            {/* History Section */}
+            {settled.length > 0 && (
+                <div className="space-y-6 pt-12 border-t border-slate-100/50">
+                    <div className="flex items-center gap-3 ml-2">
+                        <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100"><History size={16} /></div>
+                        <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Financial Settlement History</h4>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {settled.map((item, idx) => (
+                            <div key={idx} className="bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-8 flex items-center justify-between group hover:bg-white transition-all">
+                                <div className="flex items-center gap-5">
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50"><CheckCircle2 size={20} /></div>
+                                    <div>
+                                        <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tighter mb-0.5">{item.Staff_Name}</h5>
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Paid on {item.Account_Confirm_Date?.split(' ')[0]}</p>
                                     </div>
                                 </div>
-                            </div>
-                            <div className="flex-1 lg:px-10 space-y-4">
-                                <div className="grid grid-cols-3 gap-6">
-                                    <div><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Gross</p><p className="text-sm font-black text-slate-800">₹{item.Gross_Salary}</p></div>
-                                    <div><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Net</p><p className="text-sm font-black text-emerald-600">₹{item.Net_Salary}</p></div>
-                                    <div><p className="text-[8px] font-black text-slate-400 uppercase mb-1">Bank</p><p className="text-sm font-black text-slate-800">****{s?.Account_Number?.slice(-4)}</p></div>
+                                <div className="text-right">
+                                    <p className="text-lg font-black text-slate-900 tracking-tighter">₹{parseFloat(item.Net_Salary).toLocaleString()}</p>
+                                    <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest italic truncate max-w-[120px]">{item.Account_Remarks}</p>
                                 </div>
-                                <input type="text" placeholder="Settlement Remarks..." value={remarks[item.Salary_ID] || ''} onChange={(e) => setRemarks({ ...remarks, [item.Salary_ID]: e.target.value })} className="w-full bg-slate-50 border-none rounded-xl py-3 px-4 text-[10px] font-bold outline-none" />
                             </div>
-                            <button onClick={() => onSettle(item.Salary_ID, remarks[item.Salary_ID], { ...item, ...s })} disabled={submitting} className="px-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl">
-                                {submitting ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Confirm Payment</>}
-                            </button>
-                        </div>
-                    );
-                })
+                        ))}
+                    </div>
+                </div>
             )}
         </div>
     );
 };
 
-const StaffMaster = ({ staff, units, departments, onAdd, submitting }) => {
+const StaffMaster = ({ staff, units, departments, onAdd, submitting, searchQuery }) => {
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ name: '', designation: '', department: departments[0], unit: units[0], mobile: '', accountNumber: '', ifscCode: '', baseSalary: '', joiningDate: '', clTotal: '12', elTotal: '15' });
+    const [masterPage, setMasterPage] = useState(1);
+    const [formData, setFormData] = useState({ 
+        name: '', 
+        designation: '', 
+        department: departments[0] || '', 
+        unit: units[0] || '', 
+        mobile: '', 
+        accountNumber: '', 
+        ifscCode: '', 
+        joiningDate: new Date().toISOString().split('T')[0], 
+        baseSalary: 0, 
+        clTotal: 0, 
+        elTotal: 0 
+    });
+
+    const filteredStaff = staff.filter(s => 
+        !searchQuery || 
+        String(s.Name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        String(s.Staff_ID || '').toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     return (
         <div className="space-y-8">
@@ -679,7 +940,7 @@ const StaffMaster = ({ staff, units, departments, onAdd, submitting }) => {
             </AnimatePresence>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {staff.map((s, idx) => (
+                {filteredStaff.slice((masterPage-1)*9, masterPage*9).map((s, idx) => (
                     <div key={idx} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 hover:border-emerald-200 transition-all group shadow-sm">
                         <div className="flex items-center gap-5 mb-6">
                             <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all"><User size={24} /></div>
@@ -695,6 +956,14 @@ const StaffMaster = ({ staff, units, departments, onAdd, submitting }) => {
                     </div>
                 ))}
             </div>
+
+            {filteredStaff.length > 9 && (
+                <div className="flex items-center justify-center gap-6 mt-10">
+                    <button onClick={() => setMasterPage(p => Math.max(1, p-1))} disabled={masterPage === 1} className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm disabled:opacity-30 hover:bg-slate-50 transition-all"><ChevronLeft size={20} /></button>
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Page {masterPage}</span>
+                    <button onClick={() => setMasterPage(p => p+1)} disabled={masterPage * 9 >= filteredStaff.length} className="p-3 bg-white rounded-2xl border border-slate-200 shadow-sm disabled:opacity-30 hover:bg-slate-50 transition-all"><ChevronRight size={20} /></button>
+                </div>
+            )}
         </div>
     );
 };
