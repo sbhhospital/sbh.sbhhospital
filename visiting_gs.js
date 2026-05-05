@@ -101,11 +101,18 @@ function getVisitingPayments() {
   const activeSheet = ss.getSheetByName('Visiting_Payments');
   const archiveSheet = ss.getSheetByName('Visiting_Archive');
   
-  const activeData = activeSheet.getDataRange().getValues();
-  const archiveData = archiveSheet.getDataRange().getValues();
-  
-  const activeRows = mapRows(activeData);
-  const archiveRows = mapRows(archiveData);
+  let activeRows = [];
+  let archiveRows = [];
+
+  if (activeSheet) {
+    const activeData = activeSheet.getDataRange().getValues();
+    activeRows = mapRows(activeData);
+  }
+
+  if (archiveSheet) {
+    const archiveData = archiveSheet.getDataRange().getValues();
+    archiveRows = mapRows(archiveData);
+  }
   
   // Combine both for the frontend to have full history
   return createJsonResponse([...activeRows, ...archiveRows]);
