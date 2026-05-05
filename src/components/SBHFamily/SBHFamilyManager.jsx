@@ -7,13 +7,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const UNITS = ["SBH Women", "SBH Eye", "SBH Fafadih", "SBH pharmacy", "SBH Lab", "SBH Cosmetic"];
-const DEPARTMENTS = ["Nursing", "Front Desk", "Account", "HR", "Housekeeping", "Pharmacy", "Laboratory", "OT", "General"];
-
 const SBHFamilyManager = ({ scriptUrl, user }) => {
-    const [activeSubTab, setActiveSubTab] = useState('DASHBOARD'); // DASHBOARD, UNIT_VIEW, HR_ENTRY, ACCOUNT_PANEL, MASTER
+    const [activeSubTab, setActiveSubTab] = useState('DASHBOARD'); 
     const [staff, setStaff] = useState([]);
     const [ledger, setLedger] = useState([]);
+    const [units, setUnits] = useState(["SBH Women", "SBH Eye", "SBH Fafadih", "SBH pharmacy", "SBH Lab", "SBH Cosmetic"]);
+    const [departments, setDepartments] = useState(["Nursing", "Front Desk", "Account", "HR", "Housekeeping", "Pharmacy", "Laboratory", "OT", "General"]);
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -25,12 +24,15 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [staffData, ledgerData] = await Promise.all([
+            const [staffData, ledgerData, configData] = await Promise.all([
                 fetch(`${scriptUrl}?action=get_staff_master`).then(r => r.json()),
-                fetch(`${scriptUrl}?action=get_salary_ledger`).then(r => r.json())
+                fetch(`${scriptUrl}?action=get_salary_ledger`).then(r => r.json()),
+                fetch(`${scriptUrl}?action=get_config`).then(r => r.json())
             ]);
             setStaff(Array.isArray(staffData) ? staffData : []);
             setLedger(Array.isArray(ledgerData) ? ledgerData : []);
+            if (configData && configData.units) setUnits(configData.units);
+            if (configData && configData.depts) setDepartments(configData.depts);
         } catch (err) {
             console.error('Fetch error:', err);
         }
@@ -118,7 +120,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                             className="bg-emerald-50 text-emerald-700 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20"
                         >
                             <option value="ALL">All Units</option>
-                            {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                            {units.map(u => <option key={u} value={u}>{u}</option>)}
                         </select>
                         <select 
                             value={selectedMonth} 
@@ -238,7 +240,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
 
             {activeSubTab === 'UNIT_VIEW' && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {UNITS.map(unit => {
+                    {units.map(unit => {
                         const unitData = ledger.filter(l => l.Unit === unit && l.Month === selectedMonth && l.Year === selectedYear);
                         const total = unitData.reduce((sum, i) => sum + (parseFloat(i.Net_Salary) || 0), 0);
                         const pending = unitData.filter(i => i.Status === 'Pending').length;
@@ -332,6 +334,8 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
             {activeSubTab === 'MASTER' && (
                 <StaffMaster 
                     staff={staff} 
+                    units={units}
+                    departments={departments}
                     onAdd={async (data) => {
                         setSubmitting(true);
                         try {
@@ -602,9 +606,9 @@ const AccountSettlementPanel = ({ pending, staff, onSettle, submitting }) => {
     );
 };
 
-const StaffMaster = ({ staff, onAdd, submitting }) => {
+const StaffMaster = ({ staff, units, departments, onAdd, submitting }) => {
     const [showForm, setShowForm] = useState(false);
-    const [formData, setFormData] = useState({ name: '', designation: '', department: 'Nursing', unit: 'SBH Women', mobile: '', accountNumber: '', ifscCode: '', baseSalary: '', joiningDate: '', clTotal: '12', elTotal: '15' });
+    const [formData, setFormData] = useState({ name: '', designation: '', department: departments[0], unit: units[0], mobile: '', accountNumber: '', ifscCode: '', baseSalary: '', joiningDate: '', clTotal: '12', elTotal: '15' });
 
     return (
         <div className="space-y-8">
@@ -627,13 +631,13 @@ const StaffMaster = ({ staff, onAdd, submitting }) => {
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Department</label>
                                 <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
-                                    {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
                                 </select>
                             </div>
                             <div className="space-y-2">
                                 <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Assigned Unit</label>
                                 <select value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
-                                    {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                    {units.map(u => <option key={u} value={u}>{u}</option>)}
                                 </select>
                             </div>
                             <MasterInput label="Mobile" value={formData.mobile} onChange={(v) => setFormData({...formData, mobile: v})} />

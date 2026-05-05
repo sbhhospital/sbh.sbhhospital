@@ -30,6 +30,17 @@ function setupStaffSheets() {
     ]]);
     ledgerSheet.getRange("A1:P1").setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
   }
+
+  // 3. Config Sheet (Dynamic Units/Depts)
+  let configSheet = ss.getSheetByName('Config');
+  if (!configSheet) {
+    configSheet = ss.insertSheet('Config');
+    configSheet.appendRow(['Units', 'Departments']);
+    configSheet.getRange("A1:B1").setBackground("#444").setFontColor("white").setFontWeight("bold");
+    // Initial values
+    configSheet.appendRow(['SBH Women', 'Nursing']);
+    configSheet.appendRow(['SBH Eye', 'Front Desk']);
+  }
 }
 
 function doGet(e) {
@@ -37,9 +48,19 @@ function doGet(e) {
   try {
     if (action === 'get_staff_master') return getStaffMaster();
     if (action === 'get_salary_ledger') return getSalaryLedger();
+    if (action === 'get_config') return getConfig();
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
+}
+
+function getConfig() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Config');
+  const data = sheet.getDataRange().getValues();
+  const units = data.slice(1).map(row => row[0]).filter(v => v);
+  const depts = data.slice(1).map(row => row[1]).filter(v => v);
+  return createJsonResponse({ units, depts });
 }
 
 function doPost(e) {
