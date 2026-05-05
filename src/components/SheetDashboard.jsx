@@ -165,8 +165,35 @@ const Footer = () => {
         </footer>
     );
 };
-
-const StatCard = ({ icon, label, value, color, gradient }) => (
+const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
+    <div className="mb-2">
+        <button 
+            onClick={onToggle}
+            className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all duration-300 font-bold tracking-wide text-[12px]
+                ${isOpen ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-emerald-950/80 hover:bg-emerald-50'}`}
+        >
+            <div className="flex items-center gap-3">
+                <span className={isOpen ? 'text-white' : 'text-orange-500'}>{React.cloneElement(icon, { size: 18 })}</span>
+                <span className="uppercase tracking-widest">{label}</span>
+            </div>
+            <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
+                <ChevronRight size={14} className={isOpen ? 'text-white' : 'text-emerald-950/30'} />
+            </motion.div>
+        </button>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div 
+                    initial={{ height: 0, opacity: 0 }} 
+                    animate={{ height: 'auto', opacity: 1 }} 
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-emerald-50/30 rounded-2xl mt-1 py-1 px-2 space-y-1"
+                >
+                    {children}
+                </motion.div>
+            )}
+        </AnimatePresence>
+    </div>
+);
     <div className="bg-white rounded-[2.5rem] p-7 border border-slate-100 flex items-center gap-6 group hover:translate-y-[-4px] transition-all duration-500 shadow-sm relative overflow-hidden">
         <div className={`absolute -right-10 -bottom-10 opacity-[0.03] group-hover:opacity-[0.07] group-hover:scale-125 transition-all duration-700`}>{React.cloneElement(icon, { size: 120 })}</div>
         <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center text-white shadow-xl ${gradient || color}`}>{React.cloneElement(icon, { size: 30 })}</div>
@@ -660,7 +687,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [showForm, setShowForm] = useState(false);
     const [formType, setFormType] = useState('OPD');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [smileStats, setSmileStats] = useState({ all: [] });
+    const [openCategories, setOpenCategories] = useState({
+        smile: true,
+        lasik: false,
+        accounting: false
+    });
+
+    const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
     const [smileWinnersList, setSmileWinnersList] = useState([]);
     const [staffList, setStaffList] = useState([]);
     const [lasikData, setLasikData] = useState([]);
@@ -702,8 +735,8 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
         <div className="min-h-screen bg-[#F8FAFC] flex font-sans overflow-x-hidden">
             {!isPublic && (
                 <>
-                    {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
-                    <aside className={`fixed inset-y-0 left-0 bg-white border-r border-slate-100 z-50 transition-transform duration-500 w-72 shadow-[20px_0_50px_rgba(0,0,0,0.02)] flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+                    {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[190] lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
+                    <aside className={`fixed inset-y-0 left-0 bg-white border-r border-slate-100 z-[200] transition-transform duration-500 w-72 shadow-[20px_0_100px_rgba(0,0,0,0.1)] flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
                         <div className="p-8 border-b border-slate-100 flex flex-col items-center group relative cursor-pointer overflow-hidden bg-white">
                             <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 lg:hidden p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-rose-50 transition-colors z-20"><X size={20} /></button>
                             <h1 className="text-[20px] font-black text-slate-900 uppercase tracking-tighter relative z-10 text-center leading-none mb-1">
@@ -720,33 +753,45 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         
                         {/* HIDDEN: Management Section */}
 
-                        <p className="px-5 text-[9px] font-black text-orange-400 uppercase tracking-[0.3em]">Smile Award System</p>
-                        <div className="space-y-2">
-                            <NavItem icon={<Award size={18}/>} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} variant="orange" />
-                            <NavItem icon={<Trophy size={18}/>} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} variant="orange" />
-                            {(user === 'SBH' || user === 'HR') && (
-                                <>
-                                    <NavItem icon={<Users size={18}/>} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} variant="orange" />
-                                    <NavItem icon={<CheckCircle2 size={18}/>} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} variant="orange" />
-                                </>
+                        <div className="space-y-4">
+                            <CollapsibleCategory 
+                                icon={<Award />} 
+                                label="Smile Awards" 
+                                isOpen={openCategories.smile} 
+                                onToggle={() => toggleCategory('smile')}
+                            >
+                                <NavItem icon={<Award />} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
+                                <NavItem icon={<Trophy />} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} />
+                                {(user === 'SBH' || user === 'HR') && (
+                                    <>
+                                        <NavItem icon={<Users />} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
+                                        <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
+                                    </>
+                                )}
+                            </CollapsibleCategory>
+
+                            <CollapsibleCategory 
+                                icon={<ClipboardList />} 
+                                label="Lasik Section" 
+                                isOpen={openCategories.lasik} 
+                                onToggle={() => toggleCategory('lasik')}
+                            >
+                                <NavItem icon={<ClipboardList />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
+                                <NavItem icon={<TrendingUp />} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
+                                {user === 'SBH' && <NavItem icon={<Scan />} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />}
+                            </CollapsibleCategory>
+
+                            {(user === 'HR' || user === 'SBH' || user === 'ADMIN') && (
+                                <CollapsibleCategory 
+                                    icon={<IndianRupee />} 
+                                    label="Accounting" 
+                                    isOpen={openCategories.accounting} 
+                                    onToggle={() => toggleCategory('accounting')}
+                                >
+                                    <NavItem icon={<IndianRupee />} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
+                                </CollapsibleCategory>
                             )}
                         </div>
-
-                        <p className="px-5 text-[9px] font-black text-emerald-600 uppercase tracking-[0.3em]">LASIK Questionnaire</p>
-                        <div className="space-y-2">
-                            <NavItem icon={<ClipboardList size={18}/>} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
-                            <NavItem icon={<TrendingUp size={18}/>} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
-                            {user === 'SBH' && <NavItem icon={<Scan size={18}/>} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} variant="orange" />}
-                        </div>
-
-                        {(user === 'HR' || user === 'SBH' || user === 'ADMIN') && (
-                            <div className="mt-8">
-                                <p className="px-5 text-[9px] font-black text-emerald-800 uppercase tracking-[0.3em] mb-4">Accounting Desk</p>
-                                <div className="space-y-2">
-                                    <NavItem icon={<IndianRupee size={18}/>} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
-                                </div>
-                            </div>
-                        )}
                     </div>
                     <div className="p-6 border-t border-slate-100 bg-white/50">
                         <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-rose-600 hover:text-white shadow-sm active:scale-95 group">

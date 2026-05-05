@@ -207,7 +207,7 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-10 max-w-[1600px] mx-auto">
             {/* Professional Navigation Sticky Bar */}
-            <div className="bg-white border-b border-slate-200 -mx-6 px-10 py-3 sticky top-0 z-[100] flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
+            <div className="bg-white border-b border-slate-200 -mx-6 px-10 py-3 sticky top-0 z-30 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0">
                     {[
                         { id: 'HR_ENTRY', label: 'New Log', icon: Plus },
