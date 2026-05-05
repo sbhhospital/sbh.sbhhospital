@@ -38,8 +38,12 @@ function setupStaffSheets() {
     configSheet.appendRow(['Units', 'Departments']);
     configSheet.getRange("A1:B1").setBackground("#444").setFontColor("white").setFontWeight("bold");
     // Initial values
-    configSheet.appendRow(['SBH Women', 'Nursing']);
-    configSheet.appendRow(['SBH Eye', 'Front Desk']);
+    const units = ['SBH Women', 'SBH Eye', 'SBH Fafadih', 'SBH pharmacy', 'SBH Lab', 'SBH Cosmetic'];
+    const depts = ['Nursing', 'Front Desk', 'Account', 'HR', 'Housekeeping', 'Pharmacy', 'Laboratory', 'OT', 'General'];
+    const maxLen = Math.max(units.length, depts.length);
+    for (let i = 0; i < maxLen; i++) {
+      configSheet.appendRow([units[i] || '', depts[i] || '']);
+    }
   }
 }
 
@@ -57,6 +61,7 @@ function doGet(e) {
 function getConfig() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Config');
+  if (!sheet) return createJsonResponse({ units: [], depts: [] });
   const data = sheet.getDataRange().getValues();
   const units = data.slice(1).map(row => row[0]).filter(v => v);
   const depts = data.slice(1).map(row => row[1]).filter(v => v);
@@ -93,9 +98,11 @@ function addStaff(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Staff_Master');
   const nextId = "STF" + (sheet.getLastRow() + 100);
+  // Row: ID, Name, Desig, Dept, Unit, Mobile, Acc, IFSC, Base, Join, Resign, CL, EL, Status
   sheet.appendRow([
-    nextId, data.name, data.designation, data.department, 
-    data.mobile, data.accountNumber, data.ifscCode, data.baseSalary, 'Active'
+    nextId, data.name, data.designation, data.department, data.unit,
+    data.mobile, data.accountNumber, data.ifscCode, data.baseSalary,
+    data.joiningDate, '', data.clTotal || 0, data.elTotal || 0, 'Active'
   ]);
   return createJsonResponse({ success: true, staffId: nextId });
 }
@@ -107,8 +114,9 @@ function submitSalary(data) {
   const now = new Date();
   const hrSubmitDate = Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
   
+  // Row: ID, Staff_ID, Name, Unit, Month, Year, Days, Gross, Inc, Ded, Net, Status, HR_Date, Acc_Date, Remarks, Notif
   sheet.appendRow([
-    nextId, data.staffId, data.staffName, data.month, data.year, data.daysWorked,
+    nextId, data.staffId, data.staffName, data.unit, data.month, data.year, data.daysWorked,
     data.grossSalary, data.incentives, data.deductions, data.netSalary, 'Pending',
     hrSubmitDate, '', '', 'No'
   ]);
@@ -124,9 +132,9 @@ function settleSalary(data) {
 
   for (let i = 1; i < dataRange.length; i++) {
     if (dataRange[i][0] === data.salaryId) {
-      sheet.getRange(i + 1, 11).setValue('Settled');
-      sheet.getRange(i + 1, 13).setValue(confirmDate);
-      sheet.getRange(i + 1, 14).setValue(data.remarks || 'Salary Credited');
+      sheet.getRange(i + 1, 12).setValue('Settled');
+      sheet.getRange(i + 1, 14).setValue(confirmDate);
+      sheet.getRange(i + 1, 15).setValue(data.remarks || 'Salary Credited');
       
       // Notify Staff via WhatsApp
       const staffMobile = data.staffMobile;
@@ -140,7 +148,7 @@ function settleSalary(data) {
                       `- *SBH Administration*`;
       
       sendWhatsApp(staffMobile, message);
-      sheet.getRange(i + 1, 15).setValue('Yes');
+      sheet.getRange(i + 1, 16).setValue('Yes');
       return createJsonResponse({ success: true });
     }
   }
