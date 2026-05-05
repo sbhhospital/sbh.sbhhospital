@@ -17,6 +17,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
     const [submitting, setSubmitting] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedUnit, setSelectedUnit] = useState('ALL');
+    const [selectedDepartment, setSelectedDepartment] = useState('ALL');
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long' }));
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
     const [selectedStaff, setSelectedStaff] = useState(null);
@@ -50,16 +51,26 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
         return ledger.filter(item => {
             const matchesMonth = item.Month === selectedMonth && item.Year === selectedYear;
             const matchesUnit = selectedUnit === 'ALL' || item.Unit === selectedUnit;
+            // Join with staff master to get department for historical records if not in ledger
+            const staffInfo = staff.find(s => s.Staff_ID === item.Staff_ID);
+            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && staffInfo.Department === selectedDepartment);
+            
             const matchesSearch = !searchQuery || 
                 item.Staff_Name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                 item.Staff_ID.toLowerCase().includes(searchQuery.toLowerCase());
-            return matchesMonth && matchesUnit && matchesSearch;
+            return matchesMonth && matchesUnit && matchesDept && matchesSearch;
         });
-    }, [ledger, selectedMonth, selectedYear, selectedUnit, searchQuery]);
+    }, [ledger, staff, selectedMonth, selectedYear, selectedUnit, selectedDepartment, searchQuery]);
 
     const stats = useMemo(() => {
-        // Filter by Year and Unit for broad stats
-        const yearData = ledger.filter(item => item.Year === selectedYear && (selectedUnit === 'ALL' || item.Unit === selectedUnit));
+        // Filter by Year, Unit, and Dept for broad stats
+        const yearData = ledger.filter(item => {
+            const matchesYear = item.Year === selectedYear;
+            const matchesUnit = selectedUnit === 'ALL' || item.Unit === selectedUnit;
+            const staffInfo = staff.find(s => s.Staff_ID === item.Staff_ID);
+            const matchesDept = selectedDepartment === 'ALL' || (staffInfo && staffInfo.Department === selectedDepartment);
+            return matchesYear && matchesUnit && matchesDept;
+        });
         const currentMonthData = yearData.filter(item => item.Month === selectedMonth);
         
         return {
@@ -121,6 +132,14 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         >
                             <option value="ALL">All Units</option>
                             {units.map(u => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                        <select 
+                            value={selectedDepartment} 
+                            onChange={(e) => setSelectedDepartment(e.target.value)}
+                            className="bg-blue-50 text-blue-700 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                            <option value="ALL">All Depts</option>
+                            {departments.map(d => <option key={d} value={d}>{d}</option>)}
                         </select>
                         <select 
                             value={selectedMonth} 
