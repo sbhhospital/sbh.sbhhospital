@@ -97,20 +97,17 @@ const AccountUpdate = ({ scriptUrl }) => {
                         exit={{ scale: 1.05, opacity: 0, y: -20 }}
                         className="w-full max-w-xl bg-white rounded-[3.5rem] border border-slate-100 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.06)] overflow-hidden relative"
                     >
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50/50 rounded-bl-full -mr-20 -mt-20 z-0" />
+                        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50/50 rounded-bl-full -mr-20 -mt-20 z-0 animate-pulse" />
+                        <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-50/50 rounded-tr-full -ml-16 -mb-16 z-0" />
                         
-                        <div className="p-10 md:p-14 border-b border-slate-50 bg-white relative z-10">
-                            <div className="flex items-center gap-4 mb-10">
-                                <div className="px-4 py-1.5 bg-emerald-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] shadow-lg shadow-emerald-100 flex items-center gap-2">
-                                    <ShieldCheck size={14} /> Account Clearance
-                                </div>
-                                <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{paymentData?.Payment_ID}</span>
+                        <div className="relative z-10 mb-14 text-center">
+                            <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-6 shadow-lg shadow-emerald-100">
+                                <ShieldCheck size={16} /> Account Clearance
                             </div>
-                            
-                            <h2 className="text-4xl md:text-5xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-4">
-                                Confirm <span className="text-emerald-600 underline decoration-orange-400 underline-offset-8">Settlement</span>
+                            <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter uppercase mb-4 leading-none">
+                                Confirm <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent underline decoration-orange-400 underline-offset-8">Settlement</span>
                             </h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Validate consultant payment for ledger closing</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Validate consultant payment for ledger closing</p>
                         </div>
 
                         <div className="p-10 md:p-14 space-y-12 relative z-10">

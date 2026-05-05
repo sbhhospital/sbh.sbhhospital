@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Users, Plus, Calendar, IndianRupee, Clock, CheckCircle2, 
     AlertCircle, Search, Filter, Loader2, Save, X, Phone, 
-    Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw
+    Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw, ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
