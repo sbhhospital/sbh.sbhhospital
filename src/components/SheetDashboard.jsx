@@ -57,9 +57,21 @@ const downloadSvgAsPng = (svg, filename = "SBH_QR_Code.png") => {
 // --- HELPER COMPONENTS ---
 
 const NavItem = ({ icon, label, active, onClick, dot, variant = 'primary' }) => (
-    <button onClick={onClick} className={`w-full flex items-center gap-3 px-5 py-3 rounded-2xl transition-all group relative overflow-hidden ${active ? (variant === 'primary' ? 'bg-gradient-to-r from-emerald-600 to-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-lg shadow-orange-500/20') : 'hover:bg-slate-50 text-slate-500'}`}>
-        {icon && <span className={`transition-all ${active ? 'scale-110' : 'group-hover:text-slate-800'}`}>{icon}</span>}
-        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${active ? 'text-white' : 'text-slate-500/80 group-hover:text-slate-900 font-bold'}`}>{label}</span>
+    <button 
+        onClick={onClick} 
+        className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all duration-200 group relative overflow-hidden font-bold tracking-wide text-[12px] mb-1.5
+            ${active 
+                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]' 
+                : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'}`}
+    >
+        {icon && (
+            <span className={`transition-all ${active ? 'scale-110 text-white' : 'text-orange-500 group-hover:text-orange-600'}`}>
+                {React.cloneElement(icon, { size: 18, strokeWidth: active ? 2.5 : 2 })}
+            </span>
+        )}
+        <span className={`uppercase tracking-widest ${active ? 'text-white' : 'text-emerald-950/70 group-hover:text-emerald-950'}`}>
+            {label}
+        </span>
         {active && <motion.div layoutId="nav-pill" className="absolute left-0 w-1.5 h-6 bg-white rounded-r-full" />}
     </button>
 );
@@ -692,14 +704,19 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                 <>
                     {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
                     <aside className={`fixed inset-y-0 left-0 bg-white border-r border-slate-100 z-50 transition-transform duration-500 w-72 shadow-[20px_0_50px_rgba(0,0,0,0.02)] flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                        <div className="p-10 border-b border-slate-50 flex flex-col items-center group relative cursor-pointer overflow-hidden">
+                        <div className="p-8 border-b border-slate-100 flex flex-col items-center group relative cursor-pointer overflow-hidden bg-white">
                             <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 lg:hidden p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-rose-50 transition-colors z-20"><X size={20} /></button>
-                            <div className="absolute inset-0 bg-emerald-500/5 -translate-y-full group-hover:translate-y-0 transition-transform duration-500 z-0" />
-                            <h1 className="text-xl font-black text-slate-900 uppercase tracking-tighter relative z-10 text-center leading-tight mb-2">SBH Group <br/><span className="text-emerald-600">Of Hospitals</span></h1>
-                            <div className="px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-[8px] font-black tracking-widest uppercase text-white shadow-lg relative z-10">Automated System</div>
+                            <h1 className="text-[20px] font-black text-slate-900 uppercase tracking-tighter relative z-10 text-center leading-none mb-1">
+                                SBH GROUP <br/>
+                                <span className="text-emerald-600">OF HOSPITALS</span>
+                            </h1>
+                            <div className="w-full h-1 bg-emerald-100/50 mt-4 rounded-full overflow-hidden">
+                                <div className="w-2/3 h-full bg-emerald-500/20" />
+                            </div>
                         </div>
-                    <div className="p-6 flex-1 space-y-6 overflow-y-auto custom-scrollbar">
-                        <NavItem icon={<Heart size={18}/>} label="SBH Feedbacks" active={activeTab === 'DASHBOARD'} onClick={() => handleNavClick('DASHBOARD')} />
+                    <div className="p-6 flex-1 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/30">
+                        {/* Dashboard Hidden per Request */}
+                        {/* <NavItem icon={<Heart size={18}/>} label="SBH Feedbacks" active={activeTab === 'DASHBOARD'} onClick={() => handleNavClick('DASHBOARD')} /> */}
                         
                         {/* HIDDEN: Management Section */}
 
@@ -723,15 +740,19 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         </div>
 
                         {(user === 'HR' || user === 'SBH' || user === 'ADMIN') && (
-                            <>
-                                <p className="px-5 text-[9px] font-black text-rose-500 uppercase tracking-[0.3em] mt-4">Accounting</p>
+                            <div className="mt-8">
+                                <p className="px-5 text-[9px] font-black text-emerald-800 uppercase tracking-[0.3em] mb-4">Accounting Desk</p>
                                 <div className="space-y-2">
                                     <NavItem icon={<IndianRupee size={18}/>} label="Visiting Doctors" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
-                    <div className="p-8 border-t border-slate-50 bg-slate-50/50"><button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-white text-rose-500 border border-rose-100 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-rose-500 hover:text-white shadow-sm active:scale-95"><LogOut size={16} /> Logout Securely</button></div>
+                    <div className="p-6 border-t border-slate-100 bg-white/50">
+                        <button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-rose-50 text-rose-600 border border-rose-100 rounded-2xl font-black text-[11px] uppercase tracking-widest transition-all hover:bg-rose-600 hover:text-white shadow-sm active:scale-95 group">
+                            <LogOut size={18} className="group-hover:-translate-x-1 transition-transform" /> Logout Securely
+                        </button>
+                    </div>
                 </aside>
                 </>
             )}
