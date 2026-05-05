@@ -13,6 +13,8 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [showDoctorForm, setShowDoctorForm] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedPayment, setSelectedPayment] = useState(null);
     const [doctorFormData, setDoctorFormData] = useState({ name: '', specialty: '', mobile: '', email: '' });
     const [paymentFormData, setPaymentFormData] = useState({ 
         doctorId: '', 
@@ -25,6 +27,16 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
     // Filters
     const [filterDoctor, setFilterDoctor] = useState('All');
     const [filterMonth, setFilterMonth] = useState('All');
+
+    const filteredSearchResults = useMemo(() => {
+        if (!searchQuery.trim()) return [];
+        const q = searchQuery.toLowerCase();
+        return payments.filter(p => 
+            p.Payment_ID?.toLowerCase().includes(q) ||
+            p.Doctor_ID?.toLowerCase().includes(q) ||
+            p.Doctor_Name?.toLowerCase().includes(q)
+        ).slice(0, 5);
+    }, [payments, searchQuery]);
 
     const fetchData = async () => {
         setLoading(true);
@@ -202,7 +214,7 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                         { id: 'HR_ENTRY', label: 'New Log', icon: Plus },
                         { id: 'SETTLED', label: 'Settlements', icon: CheckCircle2 },
                         { id: 'REPORT', label: 'Archive', icon: Briefcase },
-                        { id: 'MASTER', label: 'Master', icon: User }
+                        { id: 'MASTER', label: 'Master', icon: Users }
                     ].map(tab => (
                         <button 
                             key={tab.id}
@@ -216,10 +228,55 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                     <div className="w-[1px] h-5 bg-slate-200 mx-2 hidden md:block"></div>
                     <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={14} /></button>
                 </div>
+
+                {/* Global Search Bar */}
+                <div className="relative flex-1 max-w-md mx-4 group">
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-emerald-500 transition-colors">
+                        <Search size={16} />
+                    </div>
+                    <input 
+                        type="text" 
+                        placeholder="Search ID, Doctor or Payment..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-2 pl-12 pr-4 text-[11px] font-bold text-slate-800 outline-none focus:bg-white focus:border-emerald-500/20 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-inner"
+                    />
+                    
+                    {/* Search Results Dropdown */}
+                    <AnimatePresence>
+                        {searchQuery && filteredSearchResults.length > 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }} 
+                                animate={{ opacity: 1, y: 0 }} 
+                                exit={{ opacity: 0, y: 10 }}
+                                className="absolute top-full left-0 right-0 mt-2 bg-white border border-slate-100 rounded-3xl shadow-2xl overflow-hidden z-[200]"
+                            >
+                                {filteredSearchResults.map((res, i) => (
+                                    <button 
+                                        key={i}
+                                        onClick={() => { setSelectedPayment(res); setSearchQuery(''); }}
+                                        className="w-full px-6 py-4 flex items-center justify-between hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0 group"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${res.Status === 'Paid' ? 'bg-emerald-50 text-emerald-600' : 'bg-orange-50 text-orange-600'}`}>
+                                                <User size={14} />
+                                            </div>
+                                            <div className="text-left">
+                                                <p className="text-[10px] font-black text-slate-800 uppercase leading-none mb-1">{res.Doctor_Name}</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{res.Payment_ID} • {res.Status}</p>
+                                            </div>
+                                        </div>
+                                        <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                                    </button>
+                                ))}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
                 
                 <div className="hidden md:flex items-center gap-3">
                     <div className="flex items-center gap-2 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Service: Ledger-v4.0
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Service: Ledger-v4.1
                     </div>
                 </div>
             </div>
@@ -527,6 +584,72 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                     </div>
                 </div>
             )}
+
+            {/* Global Search Detail Popup */}
+            <AnimatePresence>
+                {selectedPayment && (
+                    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }} 
+                            onClick={() => setSelectedPayment(null)}
+                            className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }} 
+                            animate={{ scale: 1, opacity: 1, y: 0 }} 
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="relative w-full max-w-lg bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-slate-100"
+                        >
+                            <div className="p-10 md:p-14">
+                                <div className="flex items-center justify-between mb-10">
+                                    <div className="px-4 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest border border-slate-200">
+                                        Reference: {selectedPayment.Payment_ID}
+                                    </div>
+                                    <button onClick={() => setSelectedPayment(null)} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400"><X size={20} /></button>
+                                </div>
+
+                                <div className="text-center mb-10">
+                                    <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-50">
+                                        <Award size={40} />
+                                    </div>
+                                    <h3 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-4">{selectedPayment.Doctor_Name}</h3>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Consultant Professional Profile</p>
+                                </div>
+
+                                <div className="space-y-4 bg-slate-50 rounded-[3rem] p-10 border border-slate-100 mb-10">
+                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">When Raised</p>
+                                        <p className="text-[11px] font-black text-slate-800">{selectedPayment.HR_Entry_Date || '—'}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Current Status</p>
+                                        <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-orange-100 text-orange-600'}`}>
+                                            {selectedPayment.Status === 'Paid' ? 'Settled' : 'Awaiting Accounts'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Invoice Amount</p>
+                                        <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{selectedPayment.Amount_To_Pay}</p>
+                                    </div>
+                                    <div className="flex items-center justify-between py-4">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Pending Source</p>
+                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase italic">
+                                            <div className={`w-2 h-2 rounded-full ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
+                                            {selectedPayment.Status === 'Paid' ? 'Ledger Closed' : 'Accounting Desk'}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button onClick={() => setSelectedPayment(null)} className="w-full py-6 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-4 group">
+                                    <CheckCircle2 size={20} className="group-hover:rotate-12 transition-transform" /> Close Record View
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
