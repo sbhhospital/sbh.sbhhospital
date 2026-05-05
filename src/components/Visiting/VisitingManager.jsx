@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
     Users, Plus, Calendar, IndianRupee, Clock, CheckCircle2, 
     AlertCircle, Search, Filter, Loader2, Save, X, Phone, 
-    Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw, ChevronRight
+    Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw, ChevronRight, Award, Linkedin
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -263,7 +263,9 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                                             </div>
                                             <div className="text-left">
                                                 <p className="text-[10px] font-black text-slate-800 uppercase leading-none mb-1">{res.Doctor_Name}</p>
-                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{res.Payment_ID} • {res.Status}</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    {res.Payment_ID} • {res.Status === 'Paid' ? `Settled: ${res.Payment_Date}` : 'Pending'}
+                                                </p>
                                             </div>
                                         </div>
                                         <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
@@ -600,50 +602,56 @@ const VisitingManager = ({ scriptUrl, loading: parentLoading }) => {
                             initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                             animate={{ scale: 1, opacity: 1, y: 0 }} 
                             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-lg bg-white rounded-[4rem] shadow-2xl overflow-hidden border border-slate-100"
+                            className="relative w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100"
                         >
-                            <div className="p-10 md:p-14">
-                                <div className="flex items-center justify-between mb-10">
-                                    <div className="px-4 py-1 bg-slate-100 rounded-full text-[9px] font-black text-slate-400 uppercase tracking-widest border border-slate-200">
-                                        Reference: {selectedPayment.Payment_ID}
+                            <div className="p-8 md:p-10">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="px-4 py-1 bg-slate-100 rounded-full text-[8px] font-black text-slate-400 uppercase tracking-widest border border-slate-200">
+                                        Ref: {selectedPayment.Payment_ID}
                                     </div>
-                                    <button onClick={() => setSelectedPayment(null)} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400"><X size={20} /></button>
+                                    <button onClick={() => setSelectedPayment(null)} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400"><X size={16} /></button>
                                 </div>
 
-                                <div className="text-center mb-10">
-                                    <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-50">
-                                        <Award size={40} />
+                                <div className="text-center mb-6">
+                                    <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-50">
+                                        <Award size={32} />
                                     </div>
-                                    <h3 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-4">{selectedPayment.Doctor_Name}</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Consultant Professional Profile</p>
+                                    <h3 className="text-2xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">{selectedPayment.Doctor_Name}</h3>
+                                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Consultant Profile</p>
                                 </div>
 
-                                <div className="space-y-4 bg-slate-50 rounded-[3rem] p-10 border border-slate-100 mb-10">
-                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">When Raised</p>
-                                        <p className="text-[11px] font-black text-slate-800">{selectedPayment.HR_Entry_Date || '—'}</p>
+                                <div className="space-y-3 bg-slate-50 rounded-[2rem] p-6 border border-slate-100 mb-8">
+                                    <div className="flex items-center justify-between py-2.5 border-b border-slate-200/50">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Raised Date</p>
+                                        <p className="text-[10px] font-black text-slate-800">{selectedPayment.HR_Entry_Date || '—'}</p>
                                     </div>
-                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Current Status</p>
-                                        <span className={`px-4 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-100' : 'bg-orange-100 text-orange-600'}`}>
-                                            {selectedPayment.Status === 'Paid' ? 'Settled' : 'Awaiting Accounts'}
+                                    {selectedPayment.Status === 'Paid' && (
+                                        <div className="flex items-center justify-between py-2.5 border-b border-slate-200/50">
+                                            <p className="text-[8px] font-black text-emerald-600 uppercase tracking-[0.2em]">Settled On</p>
+                                            <p className="text-[10px] font-black text-emerald-700">{selectedPayment.Payment_Date}</p>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between py-2.5 border-b border-slate-200/50">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Status</p>
+                                        <span className={`px-3 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500 text-white shadow-md' : 'bg-orange-100 text-orange-600'}`}>
+                                            {selectedPayment.Status === 'Paid' ? 'Settled' : 'In Process'}
                                         </span>
                                     </div>
-                                    <div className="flex items-center justify-between py-4 border-b border-slate-200/50">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Invoice Amount</p>
-                                        <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{selectedPayment.Amount_To_Pay}</p>
+                                    <div className="flex items-center justify-between py-2.5 border-b border-slate-200/50">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Amount</p>
+                                        <p className="text-xl font-black text-slate-900 tracking-tighter">₹{selectedPayment.Amount_To_Pay}</p>
                                     </div>
-                                    <div className="flex items-center justify-between py-4">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em]">Pending Source</p>
-                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-600 uppercase italic">
-                                            <div className={`w-2 h-2 rounded-full ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
-                                            {selectedPayment.Status === 'Paid' ? 'Ledger Closed' : 'Accounting Desk'}
+                                    <div className="flex items-center justify-between py-2.5">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em]">Source</p>
+                                        <div className="flex items-center gap-2 text-[9px] font-black text-slate-600 uppercase italic">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${selectedPayment.Status === 'Paid' ? 'bg-emerald-500' : 'bg-orange-500 animate-pulse'}`}></div>
+                                            {selectedPayment.Status === 'Paid' ? 'Archive' : 'Accounting'}
                                         </div>
                                     </div>
                                 </div>
 
-                                <button onClick={() => setSelectedPayment(null)} className="w-full py-6 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-[0.3em] hover:bg-emerald-600 transition-all shadow-2xl shadow-slate-200 flex items-center justify-center gap-4 group">
-                                    <CheckCircle2 size={20} className="group-hover:rotate-12 transition-transform" /> Close Record View
+                                <button onClick={() => setSelectedPayment(null)} className="w-full py-4 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-600 transition-all shadow-xl flex items-center justify-center gap-3 group">
+                                    <CheckCircle2 size={16} className="group-hover:rotate-12 transition-transform" /> Close Record
                                 </button>
                             </div>
                         </motion.div>

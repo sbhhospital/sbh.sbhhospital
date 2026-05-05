@@ -5,7 +5,7 @@ import {
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee
+    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
 import { QRCodeSVG } from 'qrcode.react';
@@ -74,22 +74,85 @@ const SectionLoader = ({ message = "Syncing with cloud..." }) => (
     </div>
 );
 
-const Footer = () => (
-    <footer className="fixed bottom-0 left-0 right-0 bg-white/70 backdrop-blur-3xl border-t border-white/60 py-3.5 px-6 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-5 z-[100] shadow-[0_-10px_40px_rgba(0,0,0,0.04)] overflow-hidden">
-        <div className="absolute -left-10 bottom-0 w-64 h-32 bg-orange-500/10 blur-[60px] rounded-full pointer-events-none" />
-        <div className="absolute -right-10 bottom-0 w-64 h-32 bg-emerald-500/10 blur-[60px] rounded-full pointer-events-none" />
-        <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-orange-400/30 to-emerald-400/30" />
-        
-        <div className="flex items-center gap-3 relative z-10">
-            <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em]">Architecture By</span>
-            <span className="px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-50/80 to-emerald-50/80 border border-white/80 text-[10px] font-black uppercase tracking-[0.3em] bg-gradient-to-r from-orange-600 to-emerald-600 bg-clip-text text-transparent shadow-sm">Naman Mishra</span>
-        </div>
-        <div className="hidden md:block h-4 w-[2px] bg-slate-200/50 rounded-full relative z-10" />
-        <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] mt-1 md:mt-0 flex items-center gap-2 relative z-10">
-            © 2026 Hospital Management System
-        </p>
-    </footer>
-);
+const Footer = () => {
+    return (
+        <footer className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-[#f59e0b] via-[#10b981] to-[#2e7d32] py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10">
+            {/* Subtle Overlay */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none bg-white/5"></div>
+
+            <div className="max-w-full mx-auto px-4 md:px-10 relative z-10">
+
+                {/* 📱 MOBILE VIEW (Simple 2-line stack - Even Smaller Height) */}
+                <div className="flex flex-col items-center justify-center md:hidden py-0.5">
+                    <a
+                        href="https://www.sbhhospital.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 no-underline"
+                    >
+                        <ShieldCheck size={11} className="text-white" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
+                            SBH Group Of Hospitals
+                        </span>
+                    </a>
+                    <a
+                        href="https://www.linkedin.com/in/ignamanmishra"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 no-underline mt-0.5 opacity-90"
+                    >
+                        <span className="text-[8px] font-bold text-white uppercase tracking-widest italic leading-none">
+                            Architected by
+                            <span className="ml-2 text-[9px] font-black text-white uppercase tracking-widest not-italic">Naman Mishra</span>
+                        </span>
+                        <Linkedin size={8} className="text-[#0077b5] bg-white rounded-[1px] p-[0.5px]" />
+                    </a>
+                </div>
+
+                {/* 💻 DESKTOP VIEW (Tight Layout) */}
+                <div className="hidden md:flex items-center justify-between gap-6 h-8">
+                    {/* 🏷️ BRANDING */}
+                    <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-md shadow-sm">
+                            <Activity size={14} className="text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">SBH INTEL</span>
+                            <span className="text-[8px] font-extrabold text-white/80 tracking-wider mt-0.5">SYSTEM OPERATIONAL</span>
+                        </div>
+                    </div>
+
+                    {/* 🏢 CENTER */}
+                    <a
+                        href="https://www.sbhhospital.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 py-1 px-4 bg-white/10 hover:bg-white/20 rounded-full border border-white/20 backdrop-blur-lg transition-all transform hover:scale-105 group no-underline shadow-sm"
+                    >
+                        <ShieldCheck size={12} className="text-white" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-1.5 leading-none">
+                            SBH Group Of Hospitals
+                        </span>
+                    </a>
+
+                    {/* 👤 ARCHITECT */}
+                    <a
+                        href="https://www.linkedin.com/in/ignamanmishra"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col text-right group no-underline"
+                    >
+                        <span className="text-[8px] font-bold text-white/80 uppercase tracking-widest italic leading-none mb-1">Architected by</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1.5 leading-none">
+                            Naman Mishra
+                            <Linkedin size={10} className="text-[#0077b5] bg-white rounded-[2px] p-[1px] opacity-100" />
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </footer>
+    );
+};
 
 const StatCard = ({ icon, label, value, color, gradient }) => (
     <div className="bg-white rounded-[2.5rem] p-7 border border-slate-100 flex items-center gap-6 group hover:translate-y-[-4px] transition-all duration-500 shadow-sm relative overflow-hidden">
@@ -636,17 +699,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             <div className="px-3 py-1 bg-slate-900 border border-slate-800 rounded-full text-[8px] font-black tracking-widest uppercase text-white shadow-lg relative z-10">Automated System</div>
                         </div>
                     <div className="p-6 flex-1 space-y-6 overflow-y-auto custom-scrollbar">
-                        <NavItem icon={<BarChart3 size={18}/>} label="Dashboard" active={activeTab === 'DASHBOARD'} onClick={() => handleNavClick('DASHBOARD')} />
+                        <NavItem icon={<Heart size={18}/>} label="SBH Feedbacks" active={activeTab === 'DASHBOARD'} onClick={() => handleNavClick('DASHBOARD')} />
                         
-                        {user === 'SBH' && (
-                            <>
-                                <p className="px-5 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Management</p>
-                                <div className="space-y-2">
-                                    <NavItem label="OPD Records" active={activeTab === 'OPD'} onClick={() => handleNavClick('OPD')} dot />
-                                    <NavItem label="Radiology" active={activeTab === 'RADIOLOGY'} onClick={() => handleNavClick('RADIOLOGY')} dot />
-                                </div>
-                            </>
-                        )}
+                        {/* HIDDEN: Management Section */}
 
                         <p className="px-5 text-[9px] font-black text-orange-400 uppercase tracking-[0.3em]">Smile Award System</p>
                         <div className="space-y-2">
@@ -686,24 +741,18 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-xl shadow-lg shadow-orange-500/30 active:scale-90 transition-all"><Menu size={24} /></button>
                         <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{activeTab.replace(/_/g, ' ')}</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <div className="hidden md:flex items-center gap-3 bg-slate-100 hover:bg-slate-200 transition-colors rounded-2xl px-6 py-3 cursor-pointer group">
-                            <Calendar size={18} className="text-emerald-600 group-hover:scale-110 transition-transform" />
-                            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="bg-transparent text-[10px] font-black tracking-widest text-slate-600 outline-none uppercase cursor-pointer" />
+                        {/* Dashboard header input hidden */}
+                        <div className="flex items-center gap-6">
+                            {/* HIDDEN: Date and Add Entry */}
                         </div>
-                        {(activeTab === 'OPD' || activeTab === 'RADIOLOGY') && (
-                            <button onClick={() => { setFormType(activeTab === 'RADIOLOGY' ? 'SONO' : 'OPD'); setShowForm(true); }} className="hidden sm:block px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-200 hover:-translate-y-1 active:translate-y-0 transition-all">+ Add Entry</button>
-                        )}
-                    </div>
                 </header>
                 <main className="flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full">
                     <AnimatePresence mode="wait">
                         {activeTab === 'DASHBOARD' && (
                             <div className="space-y-12 animate-in fade-in duration-700">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                    <StatCard icon={<Users />} label="OPD Patients" value={opdData.length} color="bg-emerald-600" gradient="bg-gradient-to-br from-emerald-600 to-teal-500" />
-                                    <StatCard icon={<Scan />} label="Radiology" value={sonoData.length} color="bg-slate-800" gradient="bg-gradient-to-br from-slate-900 to-slate-800" />
-                                    <StatCard icon={<Heart />} label="Smile Votes" value={smileStats.all.length} color="bg-orange-500" gradient="bg-gradient-to-br from-orange-600 to-amber-500" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <StatCard icon={<Heart />} label="Smile Award Votes" value={smileStats.all.length} color="bg-orange-500" gradient="bg-gradient-to-br from-orange-600 to-amber-500" />
+                                    <StatCard icon={<Award />} label="Approved Winners" value={smileWinnersList.length} color="bg-emerald-600" gradient="bg-gradient-to-br from-emerald-600 to-teal-500" />
                                 </div>
                             </div>
                         )}
