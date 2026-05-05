@@ -194,6 +194,7 @@ const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
         </AnimatePresence>
     </div>
 );
+const StatCard = ({ icon, label, value, color, gradient }) => (
     <div className="bg-white rounded-[2.5rem] p-7 border border-slate-100 flex items-center gap-6 group hover:translate-y-[-4px] transition-all duration-500 shadow-sm relative overflow-hidden">
         <div className={`absolute -right-10 -bottom-10 opacity-[0.03] group-hover:opacity-[0.07] group-hover:scale-125 transition-all duration-700`}>{React.cloneElement(icon, { size: 120 })}</div>
         <div className={`w-16 h-16 rounded-[1.25rem] flex items-center justify-center text-white shadow-xl ${gradient || color}`}>{React.cloneElement(icon, { size: 30 })}</div>
@@ -694,6 +695,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     });
 
     const toggleCategory = (cat) => setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }));
+    const [smileStats, setSmileStats] = useState({ all: [] });
     const [smileWinnersList, setSmileWinnersList] = useState([]);
     const [staffList, setStaffList] = useState([]);
     const [lasikData, setLasikData] = useState([]);
