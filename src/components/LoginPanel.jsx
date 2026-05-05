@@ -3,16 +3,14 @@ import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospi
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginPanel = ({ onLogin }) => {
-  const [username, setUsername] = useState('CRM');
+  const [username, setUsername] = useState('SBH');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
   const users = [
     { name: 'SBH', password: 'Naman@22@12' },
-    { name: 'HR', password: 'Hr@Sbh' },
-    { name: 'CRM', password: 'SBH@999' },
-    { name: 'RECEPTION', password: 'SBH#123' }
+    { name: 'SBH HRD', password: 'Hr@Sbh' }
   ];
 
   const handleLogin = async (e) => {
@@ -24,7 +22,7 @@ const LoginPanel = ({ onLogin }) => {
     await new Promise(resolve => setTimeout(resolve, 600));
 
     const user = users.find(u => u.name === username);
-    if (user && password === user.password) {
+    if (user && password.trim() === user.password) {
       localStorage.setItem('auth_user', username);
       onLogin(username);
     } else {
@@ -75,9 +73,7 @@ const LoginPanel = ({ onLogin }) => {
                 className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-5 px-6 appearance-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 transition-all outline-none font-bold text-slate-700 cursor-pointer"
               >
                 <option value="SBH">Administrator (SBH)</option>
-                <option value="HR">HR Department (Smile Award)</option>
-                <option value="CRM">CRM Department</option>
-                <option value="RECEPTION">Reception & Billing</option>
+                <option value="SBH HRD">SBH HRD</option>
               </select>
               <ChevronDown className="absolute right-6 top-5.5 w-5 h-5 text-slate-300 pointer-events-none group-hover:text-indigo-500 transition-colors" />
             </div>

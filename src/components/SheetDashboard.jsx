@@ -702,27 +702,42 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
 
     const scriptUrl = 'https://script.google.com/macros/s/AKfycbx9ZM4dSz8Yu3jmuVhWWgBdxCuUjeNRF7WXEio_hhs6JFfHvktAFraoy7Mtar6sL3c/exec';
-    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
+    const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbwEKRvMvdVa8xNHs4SYG0i4wtRn1FYqsH9NoKBzA-gKFY1W3uspV_sqdShW075OIa-q4A/exec';
+    const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
 
     const fetchData = async () => {
         setLoading(true);
         try {
+            // Fetch everything independently so one error doesn't block the rest
+            const fetchJson = async (url) => {
+                try {
+                    const r = await fetch(url);
+                    return await r.json();
+                } catch (e) {
+                    console.error(`Fetch failed for ${url}:`, e);
+                    return [];
+                }
+            };
+
             const [opd, sono, leaderboard, winners, staff, lasik] = await Promise.all([
-                fetch(`${scriptUrl}?sheet=OPD_Records&date=${selectedDate}`).then(r => r.json()),
-                fetch(`${scriptUrl}?sheet=SONO_Records&date=${selectedDate}`).then(r => r.json()),
-                fetch(`${smileScriptUrl}?action=get_leaderboard`).then(r => r.json()),
-                fetch(`${smileScriptUrl}?action=get_winners`).then(r => r.json()),
-                fetch(`${smileScriptUrl}?action=get_staff`).then(r => r.json()),
-                fetch(lasikScriptUrl).then(r => r.json())
+                fetchJson(`${scriptUrl}?sheet=OPD_Records&date=${selectedDate}`),
+                fetchJson(`${scriptUrl}?sheet=SONO_Records&date=${selectedDate}`),
+                fetchJson(`${smileScriptUrl}?action=get_leaderboard`),
+                fetchJson(`${smileScriptUrl}?action=get_winners`),
+                fetchJson(`${smileScriptUrl}?action=get_staff`),
+                fetchJson(lasikScriptUrl)
             ]);
-            setOpdData(opd || []);
-            setSonoData(sono || []);
+
+            setOpdData(Array.isArray(opd) ? opd : []);
+            setSonoData(Array.isArray(sono) ? sono : []);
             setSmileStats({ all: Array.isArray(leaderboard) ? leaderboard : [] });
             setSmileWinnersList(Array.isArray(winners) ? winners : []);
             setStaffList(Array.isArray(staff) ? staff : []);
             setLasikData(Array.isArray(lasik) ? lasik : []);
-        } catch (err) { console.error('Fetch error:', err); }
+        } catch (err) { 
+            console.error('Global Fetch error:', err); 
+        }
         setLoading(false);
     };
 
@@ -764,7 +779,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             >
                                 <NavItem icon={<Award />} label="Nominate Staff" active={activeTab === 'SMILE_AWARD'} onClick={() => handleNavClick('SMILE_AWARD')} />
                                 <NavItem icon={<Trophy />} label="Leaderboard" active={activeTab === 'SMILE_STATS'} onClick={() => handleNavClick('SMILE_STATS')} />
-                                {(user === 'SBH' || user === 'HR') && (
+                                {(user === 'SBH' || user === 'SBH HRD') && (
                                     <>
                                         <NavItem icon={<Users />} label="Employee List" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
                                         <NavItem icon={<CheckCircle2 />} label="Approval Portal" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
@@ -772,18 +787,20 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 )}
                             </CollapsibleCategory>
 
-                            <CollapsibleCategory 
-                                icon={<ClipboardList />} 
-                                label="Lasik Section" 
-                                isOpen={openCategories.lasik} 
-                                onToggle={() => toggleCategory('lasik')}
-                            >
-                                <NavItem icon={<ClipboardList />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
-                                <NavItem icon={<TrendingUp />} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
-                                {user === 'SBH' && <NavItem icon={<Scan />} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />}
-                            </CollapsibleCategory>
+                            {user === 'SBH' && (
+                                <CollapsibleCategory 
+                                    icon={<ClipboardList />} 
+                                    label="Lasik Section" 
+                                    isOpen={openCategories.lasik} 
+                                    onToggle={() => toggleCategory('lasik')}
+                                >
+                                    <NavItem icon={<ClipboardList />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
+                                    <NavItem icon={<TrendingUp />} label="Lasik Responses" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
+                                    <NavItem icon={<Scan />} label="QR Station" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
+                                </CollapsibleCategory>
+                            )}
 
-                            {(user === 'HR' || user === 'SBH' || user === 'ADMIN') && (
+                            {(user === 'SBH HRD' || user === 'SBH' || user === 'ADMIN') && (
                                 <CollapsibleCategory 
                                     icon={<IndianRupee />} 
                                     label="Accounting" 
@@ -809,9 +826,18 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-xl shadow-lg shadow-orange-500/30 active:scale-90 transition-all"><Menu size={24} /></button>
                         <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{activeTab.replace(/_/g, ' ')}</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
                     </div>
-                        {/* Dashboard header input hidden */}
                         <div className="flex items-center gap-6">
-                            {/* HIDDEN: Date and Add Entry */}
+                            {!isPublic && (
+                                <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl shadow-sm group hover:border-emerald-200 transition-all cursor-default">
+                                    <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
+                                        <User size={16} />
+                                    </div>
+                                    <div className="hidden sm:block">
+                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">Active Session</p>
+                                        <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter leading-none">{user}</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                 </header>
                 <main className="flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full">
@@ -868,8 +894,8 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </div>
                             </div>
                         )}
-                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={smileScriptUrl} loading={loading} />}
-                        {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={smileScriptUrl} />}
+                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />}
+                        {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
                     </AnimatePresence>
                 </main>
             </div>
