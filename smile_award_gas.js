@@ -115,10 +115,28 @@ function doGet(e) {
     if (action === 'get_staff') return getStaffList();
     if (action === 'get_leaderboard') return getLeaderboardData();
     if (action === 'get_winners') return getFinalWinners();
+    if (action === 'get_entries') return getEntriesList();
   } catch (err) {
     return createJsonResponse({ success: false, error: err.toString() });
   }
   return createJsonResponse({ success: false, message: "Invalid action" });
+}
+
+function getEntriesList() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName('Smile_Entries');
+  if (!sheet) return createJsonResponse([]);
+  const data = sheet.getDataRange().getDisplayValues();
+  if (data.length <= 1) return createJsonResponse([]);
+  
+  const headers = data[0];
+  const entries = data.slice(1).map(row => {
+    let obj = {};
+    headers.forEach((h, i) => obj[h.toLowerCase()] = row[i]);
+    return obj;
+  });
+  // Sort by timestamp desc
+  return createJsonResponse(entries.reverse());
 }
 
 function doPost(e) {
@@ -299,19 +317,6 @@ function saveVote(res) {
   const timestamp = Utilities.formatDate(now, "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
   const month = Utilities.formatDate(now, "GMT+5:30", "MMMM yyyy");
   
-  // Self-Learning: Add Nominee to Master if new
-  if (res.isNewNominee && res.employeeName) {
-    const nextId = "ST" + (staffSheet.getLastRow() + 100);
-    // A:ID, B:Name, C:Mobile, D:Email, E:Birthday, F:Anniversary, G:Dept, H:Role, I:DOL
-    staffSheet.appendRow([nextId, res.employeeName, '', '', '', '', res.department || 'General', 'Staff', '']);
-  }
-
-  // Self-Learning: Add Voter to Master if new
-  if (res.isNewVoter && res.voterName) {
-    const nextId = "ST" + (staffSheet.getLastRow() + 101);
-    staffSheet.appendRow([nextId, res.voterName, '', '', '', '', 'General', 'Staff', '']);
-  }
-
   entriesSheet.appendRow([
     timestamp,
     month,
@@ -384,10 +389,12 @@ function approveWinner(res) {
 function addStaff(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const staffSheet = ss.getSheetByName('Staff_Master');
-  const nextId = "ST" + (staffSheet.getLastRow() + 100);
+  
+  // Use passed staffId from frontend (SBH-XXXX) or generate default
+  const finalId = data.staffId || ("ST" + (staffSheet.getLastRow() + 100));
   
   staffSheet.appendRow([
-    nextId,
+    finalId,
     data.name,
     data.mobile || '',
     data.email || '',
@@ -397,7 +404,7 @@ function addStaff(data) {
     data.role || 'Staff',
     reformatDateString(data.dol) || ''
   ]);
-  return createJsonResponse({ success: true });
+  return createJsonResponse({ success: true, staffId: finalId });
 }
 
 function editStaff(data) {

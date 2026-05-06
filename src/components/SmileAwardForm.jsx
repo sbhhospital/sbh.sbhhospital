@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Heart, Star, Send, User, Briefcase, MessageCircle,
     CheckCircle2, Loader2, Award, ChevronRight, Search, Plus,
-    Sparkles, HandHeart, Trophy
+    Sparkles, HandHeart, Trophy, AlertCircle, ShieldCheck
 } from 'lucide-react';
 
 const SMILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
@@ -13,11 +13,10 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
         employeeId: '',
         employeeName: '',
         department: '',
+        role: '',
         remarks: '',
         voterId: '',
-        voterName: '',
-        isNewNominee: false,
-        isNewVoter: false
+        voterName: ''
     });
     
     const [staffList, setStaffList] = useState([]);
@@ -37,30 +36,28 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
         fetchStaff();
     }, []);
 
-    const handleNomineeChange = (label) => {
-        const name = label.split(' (')[0];
-        const exists = staffList.find(s => s.Name === name);
-        if (exists) {
-            setFormData(prev => ({ ...prev, employeeId: exists.Staff_ID, employeeName: exists.Name, department: exists.Department, isNewNominee: false }));
-        } else {
-            setFormData(prev => ({ ...prev, employeeId: 'NEW', employeeName: name, department: name ? prev.department : '', isNewNominee: true }));
-        }
+    const handleSelectNominee = (staff) => {
+        setFormData(prev => ({ 
+            ...prev, 
+            employeeId: staff.Staff_ID, 
+            employeeName: staff.Name, 
+            department: staff.Department || 'General',
+            role: staff.Role || 'Staff'
+        }));
     };
 
-    const handleVoterChange = (label) => {
-        const name = label.split(' (')[0];
-        const exists = staffList.find(s => s.Name === name);
-        if (exists) {
-            setFormData(prev => ({ ...prev, voterId: exists.Staff_ID, voterName: exists.Name, isNewVoter: false }));
-        } else {
-            setFormData(prev => ({ ...prev, voterId: 'NEW', voterName: name, isNewVoter: true }));
-        }
+    const handleSelectVoter = (staff) => {
+        setFormData(prev => ({ 
+            ...prev, 
+            voterId: staff.Staff_ID, 
+            voterName: staff.Name 
+        }));
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!formData.employeeName || !formData.voterName || !formData.remarks) {
-            alert('Please fill all mandatory fields.');
+        if (!formData.employeeId || !formData.voterId || !formData.remarks) {
+            alert('Please select an existing staff member for both fields and provide remarks.');
             return;
         }
 
@@ -82,12 +79,10 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
     if (submitted) {
         return (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center justify-center p-12 bg-white rounded-[3rem] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] text-center max-w-lg mx-auto border border-emerald-50">
-                <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-3xl flex items-center justify-center text-white mb-8 shadow-xl shadow-emerald-100 rotate-6">
-                    <Trophy size={48} />
-                </div>
-                <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter mb-4">Submission <span className="text-emerald-600">Successful!</span></h2>
-                <p className="text-slate-400 font-bold mb-10 uppercase text-[10px] tracking-[0.2em] leading-relaxed">Your recognition has been recorded. <br /> Together we build a culture of excellence.</p>
-                <button onClick={() => { setSubmitted(false); setFormData({ employeeId: '', employeeName: '', department: '', remarks: '', voterId: '', voterName: '', isNewNominee: false, isNewVoter: false }); }} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200">Nominate Another Professional</button>
+                <div className="w-24 h-24 bg-gradient-to-br from-emerald-500 to-teal-400 rounded-3xl flex items-center justify-center text-white mb-8 shadow-xl shadow-emerald-100 rotate-6"><Trophy size={48} /></div>
+                <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter mb-4">Nomination <span className="text-emerald-600">Saved!</span></h2>
+                <p className="text-slate-400 font-bold mb-10 uppercase text-[10px] tracking-[0.2em] leading-relaxed">Thank you for recognizing excellence. <br /> Your vote has been officially logged.</p>
+                <button onClick={() => { setSubmitted(false); setFormData({ employeeId: '', employeeName: '', department: '', role: '', remarks: '', voterId: '', voterName: '' }); }} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-600 transition-all shadow-xl shadow-slate-200">Submit New Nomination</button>
             </motion.div>
         );
     }
@@ -99,48 +94,49 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-orange-50/50 rounded-tr-full -ml-16 -mb-16 z-0" />
                 
                 <div className="relative z-10 mb-14 text-center">
-                    <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-6 shadow-lg shadow-emerald-100">
-                        <Award size={16} /> Workplace Excellence
-                    </div>
-                    <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter uppercase mb-4 leading-none">
-                        The Smile <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent underline decoration-orange-400 underline-offset-8">Award</span>
-                    </h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Honor the team member who makes SBH bright</p>
+                    <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-6 shadow-lg shadow-emerald-100"><Award size={16} /> Official Recognition Hub</div>
+                    <h2 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter uppercase mb-4 leading-none">The Smile <span className="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent underline decoration-orange-400 underline-offset-8">Award</span></h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Select existing staff members to nominate</p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="relative z-10 space-y-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <SearchInput 
-                            label="Your Name (The Voter)" 
-                            placeholder="Type or select your name"
+                        <SearchSelect 
+                            label="Your Name (Voter)" 
+                            placeholder="Search your name..."
                             icon={<HandHeart size={18} className="text-orange-500" />} 
-                            options={staffList.map(s => s.Department && s.Department !== 'General' ? `${s.Name} (${s.Department})` : s.Name)} 
+                            options={staffList} 
                             value={formData.voterName}
-                            onChange={handleVoterChange}
+                            onSelect={handleSelectVoter}
                             required
                         />
 
-                        <SearchInput 
+                        <SearchSelect 
                             label="Nominee (The Star)" 
-                            placeholder="Who deserves the award?"
+                            placeholder="Search staff to nominate..."
                             icon={<Sparkles size={18} className="text-emerald-500" />} 
-                            options={staffList.map(s => s.Department && s.Department !== 'General' ? `${s.Name} (${s.Department})` : s.Name)} 
+                            options={staffList} 
                             value={formData.employeeName}
-                            onChange={handleNomineeChange}
+                            onSelect={handleSelectNominee}
                             required
                         />
                     </div>
 
                     <div className="space-y-8">
-                        <SmileInput 
-                            label="Department of Nominee" 
-                            icon={<Briefcase size={18} className="text-slate-400" />} 
-                            value={formData.department}
-                            onChange={v => setFormData({ ...formData, department: v })}
-                            placeholder={formData.isNewNominee ? "Enter department for new professional" : "Department automatically detected"}
-                            disabled={!formData.isNewNominee && formData.employeeName !== ''}
-                            required
-                        />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <DisplayField 
+                                label="Department" 
+                                icon={<Briefcase size={18} className="text-slate-400" />} 
+                                value={formData.department}
+                                placeholder="Select a nominee first"
+                            />
+                            <DisplayField 
+                                label="Current Role / Post" 
+                                icon={<ShieldCheck size={18} className="text-slate-400" />} 
+                                value={formData.role}
+                                placeholder="Select a nominee first"
+                            />
+                        </div>
 
                         <SmileInput 
                             label="Reason for Recognition" 
@@ -157,17 +153,17 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
                         <motion.button 
                             whileHover={{ scale: 1.02, y: -2 }}
                             whileTap={{ scale: 0.98 }}
-                            disabled={isSubmitting || loadingStaff}
+                            disabled={isSubmitting || loadingStaff || !formData.employeeId || !formData.voterId}
                             className="w-full bg-slate-950 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.4em] text-xs shadow-2xl shadow-slate-300 flex items-center justify-center gap-4 hover:bg-emerald-600 transition-all disabled:opacity-50"
                         >
-                            {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : <><Send size={20} /> Submit Nomination</>}
+                            {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing...</> : <><Send size={20} /> Submit Recognition</>}
                         </motion.button>
                         
-                        {(formData.isNewNominee || formData.isNewVoter) && (
-                            <div className="mt-8 p-4 bg-orange-50 rounded-2xl border border-orange-100 flex items-center justify-center gap-3">
-                                <AlertCircle size={14} className="text-orange-600" />
-                                <p className="text-[9px] text-orange-700 font-black uppercase tracking-widest">
-                                    New profile(s) will be automatically registered in the system
+                        {!formData.employeeId && !loadingStaff && (
+                            <div className="mt-8 p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-center gap-3">
+                                <AlertCircle size={14} className="text-slate-400" />
+                                <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest">
+                                    Only existing staff from the roster can be nominated
                                 </p>
                             </div>
                         )}
@@ -178,17 +174,17 @@ const SmileAwardForm = ({ onSubmissionSuccess }) => {
     );
 };
 
-const AlertCircle = ({ size, className }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-);
-
-const SearchInput = ({ label, icon, options, value, onChange, placeholder, required }) => {
+const SearchSelect = ({ label, icon, options, value, onSelect, placeholder, required }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const [filter, setFilter] = useState('');
+    const [query, setQuery] = useState('');
 
     const filteredOptions = useMemo(() => {
-        return options.filter(opt => opt.toLowerCase().includes(filter.toLowerCase())).slice(0, 10);
-    }, [options, filter]);
+        if (!query) return options.slice(0, 5);
+        return options.filter(opt => 
+            opt.Name.toLowerCase().includes(query.toLowerCase()) || 
+            (opt.Department && opt.Department.toLowerCase().includes(query.toLowerCase()))
+        ).slice(0, 10);
+    }, [options, query]);
 
     return (
         <div className="space-y-3 relative">
@@ -200,8 +196,8 @@ const SearchInput = ({ label, icon, options, value, onChange, placeholder, requi
                     type="text"
                     className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 pr-12 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-emerald-500/20 focus:ring-8 focus:ring-emerald-500/5 transition-all"
                     placeholder={placeholder}
-                    value={value || filter}
-                    onChange={e => { setFilter(e.target.value); onChange(e.target.value); setIsOpen(true); }}
+                    value={isOpen ? query : value}
+                    onChange={e => { setQuery(e.target.value); setIsOpen(true); }}
                     onFocus={() => setIsOpen(true)}
                     onBlur={() => setTimeout(() => setIsOpen(false), 200)}
                     required={required}
@@ -212,13 +208,18 @@ const SearchInput = ({ label, icon, options, value, onChange, placeholder, requi
             </div>
             
             <AnimatePresence>
-                {isOpen && filter && filteredOptions.length > 0 && (
+                {isOpen && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="absolute z-20 top-full left-0 right-0 mt-3 bg-white border border-slate-100 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] max-h-56 overflow-hidden overflow-y-auto custom-scrollbar">
-                        {filteredOptions.map(opt => (
-                            <button key={opt} type="button" onClick={() => { onChange(opt); setFilter(''); setIsOpen(false); }} className="w-full text-left px-7 py-4 text-xs font-black text-slate-600 hover:bg-emerald-500 hover:text-white transition-all uppercase tracking-widest border-b border-slate-50 last:border-0">
-                                {opt}
+                        {filteredOptions.length > 0 ? filteredOptions.map(opt => (
+                            <button key={opt.Staff_ID} type="button" onClick={() => { onSelect(opt); setQuery(''); setIsOpen(false); }} className="w-full text-left px-7 py-4 hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0 group">
+                                <p className="text-xs font-black text-slate-800 uppercase tracking-widest group-hover:text-emerald-600">{opt.Name}</p>
+                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{opt.Department} • {opt.Role || 'Staff'}</p>
                             </button>
-                        ))}
+                        )) : (
+                            <div className="px-7 py-6 text-center">
+                                <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No matching staff found</p>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -226,16 +227,25 @@ const SearchInput = ({ label, icon, options, value, onChange, placeholder, requi
     );
 };
 
-const SmileInput = ({ label, icon, isTextArea, value, onChange, placeholder, required, disabled }) => (
+const DisplayField = ({ label, icon, value, placeholder }) => (
+    <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
+            {icon} {label}
+        </label>
+        <div className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-5 px-6 h-16 flex items-center">
+            <span className={`text-sm font-black uppercase tracking-widest ${value ? 'text-slate-800' : 'text-slate-300'}`}>
+                {value || placeholder}
+            </span>
+        </div>
+    </div>
+);
+
+const SmileInput = ({ label, icon, isTextArea, value, onChange, placeholder, required }) => (
     <div className="space-y-3">
         <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
             {icon} {label} {required && <span className="text-orange-500">*</span>}
         </label>
-        {isTextArea ? (
-            <textarea className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-bold text-sm outline-none transition-all h-36 resize-none focus:bg-white focus:border-emerald-500/20 focus:ring-8 focus:ring-emerald-500/5" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} required={required} />
-        ) : (
-            <input className={`w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none transition-all h-16 ${disabled ? 'opacity-40 cursor-not-allowed' : 'focus:bg-white focus:border-emerald-500/20 focus:ring-8 focus:ring-emerald-500/5'}`} placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} required={required} disabled={disabled} />
-        )}
+        <textarea className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-bold text-sm outline-none transition-all h-36 resize-none focus:bg-white focus:border-emerald-500/20 focus:ring-8 focus:ring-emerald-500/5" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} required={required} />
     </div>
 );
 
