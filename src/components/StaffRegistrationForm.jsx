@@ -137,11 +137,6 @@ const StaffRegistrationForm = () => {
                     </div>
                 </form>
 
-                <div className="mt-12 pt-10 border-t border-slate-50 text-center">
-                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center justify-center gap-2">
-                        <Info size={12}/> Secure Onboarding System v2.0 • SBH Group of Hospitals
-                    </p>
-                </div>
             </motion.div>
         </div>
     );

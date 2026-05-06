@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import LasikSurvey from './LasikSurvey';
 import {
     Search, Edit3, Loader2, RefreshCw, Filter, Plus, Users, Activity, Bed,
-    CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight,
+    CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight, ChevronLeft,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
     TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Link as LinkIcon
@@ -104,6 +104,50 @@ const Footer = () => {
     );
 };
 
+const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    if (totalPages <= 1) return null;
+
+    return (
+        <div className="flex items-center justify-center gap-2 mt-8">
+            <button 
+                disabled={currentPage === 1}
+                onClick={() => onPageChange(currentPage - 1)}
+                className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+                <ChevronLeft size={18} />
+            </button>
+            <div className="flex items-center gap-1">
+                {[...Array(totalPages)].map((_, i) => {
+                    const page = i + 1;
+                    // Show first, last, and pages around current
+                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                        return (
+                            <button
+                                key={page}
+                                onClick={() => onPageChange(page)}
+                                className={`w-10 h-10 rounded-xl font-black text-[10px] transition-all shadow-sm border ${currentPage === page ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100 hover:border-orange-200'}`}
+                            >
+                                {page}
+                            </button>
+                        );
+                    } else if (page === currentPage - 2 || page === currentPage + 2) {
+                        return <span key={page} className="text-slate-300 px-1 font-black">...</span>;
+                    }
+                    return null;
+                })}
+            </div>
+            <button 
+                disabled={currentPage === totalPages}
+                onClick={() => onPageChange(currentPage + 1)}
+                className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all shadow-sm"
+            >
+                <ChevronRight size={18} />
+            </button>
+        </div>
+    );
+};
+
 const RefreshButton = ({ onRefresh, loading, className = "" }) => (
     <button 
         onClick={onRefresh} 
@@ -128,10 +172,19 @@ const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
 // --- SMILE AWARD MODULES ---
 
 const SmileEntriesSection = ({ entries, onOpenForm, loading, onRefresh }) => {
-    if (loading) return <SectionLoader messages={["Retrieving nomination history...", "Loading staff recognitions...", "Syncing award records..."]} />;
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
+    
+    const paginatedEntries = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return entries.slice(start, start + itemsPerPage);
+    }, [entries, currentPage]);
+
+    if (loading) return <SectionLoader messages = {["Retrieving nomination history...", "Loading staff recognitions...", "Syncing award records..."]} />;
+    
     return (
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <div className="px-1 flex flex-col md:flex-row justify-between md:items-end gap-6">
+            <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-end gap-6">
                 <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Nomination <span className="text-orange-600">Ledger</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Recent recognitions from our team members</p></div>
                 <div className="flex items-center gap-3">
                     <RefreshButton onRefresh={onRefresh} loading={loading} />
@@ -142,7 +195,7 @@ const SmileEntriesSection = ({ entries, onOpenForm, loading, onRefresh }) => {
                 <div className="overflow-x-auto"><table className="w-full text-left min-w-[800px] lg:min-w-full">
                     <thead><tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-slate-50/80 border-b border-slate-100"><th className="px-10 py-6">Timestamp</th><th className="px-10 py-6">Nominated Professional</th><th className="px-10 py-6">Acknowledged By</th><th className="px-10 py-6">Recognition Remarks</th></tr></thead>
                     <tbody className="divide-y divide-slate-50">
-                        {entries.map((e, i) => (
+                        {paginatedEntries.map((e, i) => (
                             <tr key={i} className="hover:bg-slate-50/50 transition-all group">
                                 <td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-[10px] mb-1">{e.month}</p><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{e.timestamp.split(' ')[0]}</p></div></td>
                                 <td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-[11px] mb-1">{e.employee_name}</p><p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{e.department}</p></div></td>
@@ -154,6 +207,7 @@ const SmileEntriesSection = ({ entries, onOpenForm, loading, onRefresh }) => {
                     </tbody>
                 </table></div>
             </div>
+            <Pagination totalItems={entries.length} itemsPerPage={itemsPerPage} currentPage={currentPage} onPageChange={setCurrentPage} />
         </div>
     );
 };
@@ -204,8 +258,47 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
             )}
 
             <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100">
-                <div className="px-6 md:px-10 py-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50"><h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4"><Activity className="text-emerald-600" size={18} /> Detailed Standings</h3></div>
-                <div className="overflow-x-auto"><table className="w-full text-left min-w-[600px] md:min-w-full"><thead><tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-white"><th className="px-10 py-6">Rank</th><th className="px-10 py-6 font-bold">Staff Member</th><th className="px-10 py-6">Department</th><th className="px-10 py-6 text-right">Votes</th></tr></thead><tbody className="divide-y divide-slate-50">{filteredStats.map((entry, i) => (<tr key={i} className={`hover:bg-slate-50 transition-all group ${approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() ? 'bg-orange-50/30' : ''}`}><td className="px-10 py-7"><div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all ${i === 0 ? 'bg-orange-100 text-orange-700 shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{i+1}</div></td><td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-[11px] leading-tight mb-1">{entry.name} {approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() && '🏆'}</p><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Nominated Professional</p></div></td><td className="px-10 py-7 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{entry.dept}</td><td className="px-10 py-7 text-right"><span className={`inline-block px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all ${i === 0 ? 'bg-orange-600 text-white shadow-xl' : 'bg-slate-100 text-slate-600'}`}>{entry.votes} <span className="text-[8px] opacity-60 ml-0.5">VOTES</span></span></td></tr>))}</tbody></table></div></div>
+                <div className="px-6 md:px-10 py-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4">
+                        <Activity className="text-emerald-600" size={18} /> Detailed Standings
+                    </h3>
+                </div>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left min-w-[600px] md:min-w-full">
+                        <thead>
+                            <tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-white">
+                                <th className="px-10 py-6">Rank</th>
+                                <th className="px-10 py-6 font-bold">Staff Member</th>
+                                <th className="px-10 py-6">Department</th>
+                                <th className="px-10 py-6 text-right">Votes</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredStats.map((entry, i) => (
+                                <tr key={i} className={`hover:bg-slate-50 transition-all group ${approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() ? 'bg-orange-50/30' : ''}`}>
+                                    <td className="px-10 py-7">
+                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all ${i === 0 ? 'bg-orange-100 text-orange-700 shadow-lg' : 'bg-slate-100 text-slate-400'}`}>
+                                            {i+1}
+                                        </div>
+                                    </td>
+                                    <td className="px-10 py-7">
+                                        <div>
+                                            <p className="font-black text-slate-800 uppercase text-[11px] leading-tight mb-1">{entry.name} {approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() && '🏆'}</p>
+                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Nominated Professional</p>
+                                        </div>
+                                    </td>
+                                    <td className="px-10 py-7 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{entry.dept}</td>
+                                    <td className="px-10 py-7 text-right">
+                                        <span className={`inline-block px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all ${i === 0 ? 'bg-orange-600 text-white shadow-xl' : 'bg-slate-100 text-slate-600'}`}>
+                                            {entry.votes} <span className="text-[8px] opacity-60 ml-0.5">VOTES</span>
+                                        </span>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     );
 };
@@ -258,21 +351,33 @@ const HRApprovalPanel = ({ stats, winners, onApprove, loading, onRefresh }) => {
     );
 };
 
-const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
+const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
     const [submitting, setSubmitting] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
 
     const filteredStaff = useMemo(() => {
-        if (!searchTerm) return staffList;
-        const s = searchTerm.toLowerCase();
-        return staffList.filter(item => 
-            (item.Name || '').toLowerCase().includes(s) || 
-            (item.Staff_ID || '').toLowerCase().includes(s) ||
-            (item.Department || '').toLowerCase().includes(s)
-        );
+        let list = staffList;
+        if (searchTerm) {
+            const s = searchTerm.toLowerCase();
+            list = list.filter(item => 
+                (item.Name || '').toLowerCase().includes(s) || 
+                (item.Staff_ID || '').toLowerCase().includes(s) ||
+                (item.Department || '').toLowerCase().includes(s)
+            );
+        }
+        return list;
     }, [staffList, searchTerm]);
+
+    const paginatedStaff = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filteredStaff.slice(start, start + itemsPerPage);
+    }, [filteredStaff, currentPage]);
+
+    useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
     const handleEdit = (s) => {
         const toFormDate = (val) => {
@@ -366,7 +471,7 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {filteredStaff.map((s, i) => (
+                            {paginatedStaff.map((s, i) => (
                                 <tr key={i} className="hover:bg-slate-50/50 transition-all group">
                                     <td className="px-10 py-7">
                                         <div>
@@ -390,7 +495,7 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
                                     </td>
                                 </tr>
                             ))}
-                            {filteredStaff.length === 0 && (
+                            {paginatedStaff.length === 0 && (
                                 <tr>
                                     <td colSpan="4" className="px-10 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-30">
@@ -404,6 +509,14 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
                     </table>
                 </div>
             </div>
+
+            {/* PAGINATION */}
+            <Pagination 
+                totalItems={filteredStaff.length} 
+                itemsPerPage={itemsPerPage} 
+                currentPage={currentPage} 
+                onPageChange={setCurrentPage} 
+            />
 
             {/* POPUP MODAL FOR ADD/EDIT */}
             <AnimatePresence>
@@ -574,7 +687,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             setStaffList(Array.isArray(staff) ? staff : []);
             setLasikData(Array.isArray(lasik) ? lasik : []);
             setSmileEntriesList(Array.isArray(entries) ? entries : []);
-        } catch (err) {}
+        } catch (err) {
+            console.error('Data fetch error:', err);
+        }
         setLoading(false);
     };
 
@@ -582,11 +697,22 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
 
     const handleNavClick = (tab) => { setActiveTab(tab); if (window.innerWidth < 1024) setIsSidebarOpen(false); };
 
+    const [lasikPage, setLasikPage] = useState(1);
+    const lasikItemsPerPage = 10;
+    const paginatedLasik = useMemo(() => {
+        const start = (lasikPage - 1) * lasikItemsPerPage;
+        return lasikData.slice(start, start + lasikItemsPerPage);
+    }, [lasikData, lasikPage]);
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex font-sans overflow-x-hidden">
             {!isPublic && (
-                <aside className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-                    <div className="h-24 px-8 flex items-center gap-4 border-b border-slate-50 sticky top-0 bg-white z-20"><div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-200 rotate-3"><Activity size={24} strokeWidth={2.5} /></div><div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Intel Hub</p></div></div>
+                <aside className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'}`}>
+                    <div className="h-24 px-8 flex items-center gap-4 border-b border-slate-50 sticky top-0 bg-white z-20">
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-200 rotate-3"><Activity size={24} strokeWidth={2.5} /></div>
+                        <div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Intel Hub</p></div>
+                        <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                    </div>
                     <div className="p-6 flex-1 space-y-4 overflow-y-auto custom-scrollbar bg-slate-50/20">
                         <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => setOpenCategories(p => ({...p, smile: !p.smile}))}>
                             <NavItem icon={<Plus />} label="Cast Nomination" active={activeTab === 'SMILE_FORM'} onClick={() => handleNavClick('SMILE_FORM')} />
@@ -609,8 +735,18 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
                             <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                         </CollapsibleCategory>
+                        
+                        {/* MANAGEMENT CONTROLS */}
+                        <div className="pt-8 border-t border-slate-100">
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-6 mb-4">Management Controls</p>
+                            <button onClick={onLogout} className="w-full flex items-center gap-4 px-6 py-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all group">
+                                <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all">
+                                    <LogOut size={18}/>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Sign Out System</span>
+                            </button>
+                        </div>
                     </div>
-                    <div className="p-6 border-t border-slate-100"><button onClick={onLogout} className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-rose-50 text-rose-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all"><LogOut size={18}/> Sign Out</button></div>
                 </aside>
             )}
             <div className={`flex-1 flex flex-col pb-20 w-full ${isPublic ? 'min-h-screen py-10 bg-slate-50' : 'lg:pl-72'}`}>
@@ -632,19 +768,58 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'SMILE_FORM' && <SmileAwardFormSection key="form" onSubmissionSuccess={() => { fetchData(); if(!isPublic) handleNavClick('SMILE_ENTRIES'); }} />}
                         {activeTab === 'SMILE_LEADERBOARD' && <SmileLeaderboardSection key="stats" stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'SMILE_WINNERS' && <SmileWinnersSection key="winners" winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
-                        {activeTab === 'HR_PANEL' && <HRApprovalPanel key="hr" stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} onRefresh={fetchData} />}
+                        {activeTab === 'HR_PANEL' && (
+                            <HRApprovalPanel 
+                                key="hr" 
+                                stats={smileStats} 
+                                winners={smileWinnersList} 
+                                onApprove={async(d)=> { 
+                                    await fetch(smileScriptUrl, {
+                                        method:'POST',
+                                        mode:'no-cors',
+                                        headers:{'Content-Type':'text/plain'},
+                                        body:JSON.stringify({action:'approve_winner',...d})
+                                    }); 
+                                    fetchData(); 
+                                }} 
+                                loading={loading} 
+                                onRefresh={fetchData} 
+                            />
+                        )}
                         {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection onRefresh={fetchData} loading={loading} />}
                         {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
-                        {activeTab === 'LASIK_DATA' && (<div className="space-y-10 animate-in fade-in pb-20"><div className="flex items-center justify-between px-1"><div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div><RefreshButton onRefresh={fetchData} loading={loading} /></div><div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm shadow-slate-100"><div className="overflow-x-auto"><table className="w-full text-left min-w-[1000px]"><thead className="bg-slate-50/50"><tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr></thead><tbody className="divide-y divide-slate-100">{lasikData.map((row, idx) => (<tr key={idx} className="hover:bg-slate-50/50 transition-all"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>))}</tbody></table></div></div></div>)}
+                        {activeTab === 'LASIK_DATA' && (
+                            <div className="space-y-10 animate-in fade-in pb-20">
+                                <div className="flex items-center justify-between px-1">
+                                    <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div>
+                                    <RefreshButton onRefresh={fetchData} loading={loading} />
+                                </div>
+                                <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm shadow-slate-100">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left min-w-[1000px]">
+                                            <thead className="bg-slate-50/50">
+                                                <tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100">
+                                                {paginatedLasik.map((row, idx) => (
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-all"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <Pagination totalItems={lasikData.length} itemsPerPage={lasikItemsPerPage} currentPage={lasikPage} onPageChange={setLasikPage} />
+                            </div>
+                        )}
                         {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
                         {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} onRefresh={fetchData} loading={loading} />}
                     </AnimatePresence>
                 </main>
             </div>
-            {!isPublic && <Footer />}
+            <Footer />
         </div>
     );
 };
