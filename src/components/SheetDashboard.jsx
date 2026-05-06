@@ -236,15 +236,236 @@ const HRApprovalPanel = ({ stats, winners, onApprove, loading }) => {
 
 const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
     const [submitting, setSubmitting] = useState(false);
-    const [showForm, setShowForm] = useState(false);
+    const [showModal, setShowModal] = useState(false);
+    const [searchTerm, setSearchTerm] = useState('');
     const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
-    const handleEdit = (s) => { const toFormDate = (val) => { if (!val) return ''; const sVal = String(val); if (sVal.length === 10 && sVal.charAt(2) === '-') { const parts = sVal.split('-'); return `${parts[2]}-${parts[1]}-${parts[0]}`; } return sVal.substring(0, 10); }; setFormData({ staffId: s.Staff_ID, name: s.Name, mobile: s.Mobile, email: s.Email, birthday: toFormDate(s.Birthday), anniversary: toFormDate(s.Anniversary), department: s.Department, role: s.Role, dol: toFormDate(s.DOL) }); setShowForm(true); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-    const handleSubmit = async (e) => { e.preventDefault(); setSubmitting(true); try { await fetch(smileScriptUrl, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ action: formData.staffId ? 'edit_staff' : 'add_staff', ...formData }) }); setShowForm(false); fetchStaff(); alert("Success!"); } catch(e) { alert("Error."); } setSubmitting(false); };
+
+    const filteredStaff = useMemo(() => {
+        if (!searchTerm) return staffList;
+        const s = searchTerm.toLowerCase();
+        return staffList.filter(item => 
+            (item.Name || '').toLowerCase().includes(s) || 
+            (item.Staff_ID || '').toLowerCase().includes(s) ||
+            (item.Department || '').toLowerCase().includes(s)
+        );
+    }, [staffList, searchTerm]);
+
+    const handleEdit = (s) => {
+        const toFormDate = (val) => {
+            if (!val) return '';
+            const sVal = String(val);
+            if (sVal.length === 10 && sVal.charAt(2) === '-') {
+                const parts = sVal.split('-');
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+            return sVal.substring(0, 10);
+        };
+        setFormData({
+            staffId: s.Staff_ID,
+            name: s.Name,
+            mobile: s.Mobile,
+            email: s.Email,
+            birthday: toFormDate(s.Birthday),
+            anniversary: toFormDate(s.Anniversary),
+            department: s.Department,
+            role: s.Role,
+            dol: toFormDate(s.DOL)
+        });
+        setShowModal(true);
+    };
+
+    const handleNew = () => {
+        setFormData({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
+        setShowModal(true);
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSubmitting(true);
+        try {
+            await fetch(smileScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: formData.staffId ? 'edit_staff' : 'add_staff', ...formData })
+            });
+            setShowModal(false);
+            fetchStaff();
+            alert("Roster Updated Successfully!");
+        } catch (e) {
+            alert("Sync Failed. Please check connectivity.");
+        }
+        setSubmitting(false);
+    };
+
     return (
-        <div className="space-y-12 animate-in fade-in pb-20">
-            <div className="px-1 flex flex-col md:flex-row justify-between md:items-end gap-6"><div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Staff <span className="text-emerald-600">Roster</span></h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Manage employee profiles and automated triggers</p></div><div className="flex items-center gap-3"><button onClick={fetchStaff} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-emerald-600 transition-all shadow-sm"><RotateCcw size={20}/></button><button onClick={() => { setFormData({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' }); setShowForm(!showForm); }} className="px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-200 flex items-center gap-3">{showForm ? <X size={16}/> : <Plus size={16}/>} {showForm ? 'Close Form' : 'New Entry'}</button></div></div>
-            <AnimatePresence>{showForm && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><form onSubmit={handleSubmit} className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-2xl mb-10"><div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"><input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Name"/><input required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Mobile"/><input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Email"/></div><div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10"><input type="date" value={formData.birthday} onChange={e => setFormData({...formData, birthday: e.target.value})} className="bg-slate-50 p-5 rounded-2xl font-bold outline-none"/><input type="date" value={formData.anniversary} onChange={e => setFormData({...formData, anniversary: e.target.value})} className="bg-slate-50 p-5 rounded-2xl font-bold outline-none"/><button type="submit" disabled={submitting} className="bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all">{submitting ? 'Saving...' : 'Finalize Profile'}</button></div></form></motion.div>)}</AnimatePresence>
-            <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl"><table className="w-full text-left"><thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b"><tr><th className="px-10 py-6">Identity</th><th className="px-10 py-6">Dept & Role</th><th className="px-10 py-6">WhatsApp</th><th className="px-10 py-6 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-50">{staffList.map((s, i) => (<tr key={i} className="hover:bg-slate-50/50 transition-all"><td className="px-10 py-6"><p className="font-black text-slate-800 uppercase text-[11px] mb-1">{s.Name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{s.Staff_ID}</p></td><td className="px-10 py-6"><p className="text-[10px] font-black text-slate-700 uppercase">{s.Department}</p><p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{s.Role || 'Professional Staff'}</p></td><td className="px-10 py-6"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-500"><Phone size={12} className="text-slate-300"/> {s.Mobile}</div></td><td className="px-10 py-6 text-right"><button onClick={() => handleEdit(s)} className="p-3 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all"><Edit3 size={16}/></button></td></tr>))}</tbody></table></div>
+        <div className="space-y-8 animate-in fade-in pb-20">
+            {/* HEADER & SEARCH */}
+            <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-center gap-6">
+                <div>
+                    <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Staff <span className="text-emerald-600">Roster</span></h2>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Manage employee profiles and automated triggers</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    {/* SEARCH BAR */}
+                    <div className="relative w-full sm:w-80 group">
+                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={18} />
+                        <input 
+                            type="text"
+                            placeholder="Search name, ID or dept..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full bg-white border border-slate-100 pl-14 pr-6 py-4 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500/20 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
+                        />
+                    </div>
+
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <button onClick={fetchStaff} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-emerald-600 transition-all shadow-sm">
+                            <RotateCcw size={20}/>
+                        </button>
+                        <button onClick={handleNew} className="flex-1 sm:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 transition-all hover:bg-slate-900 active:scale-95">
+                            <Plus size={16}/> New Entry
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* SCROLLABLE TABLE CONTAINER */}
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden relative">
+                <div className="max-h-[650px] overflow-y-auto custom-scrollbar overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-50/80 backdrop-blur-md sticky top-0 z-10">
+                            <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
+                                <th className="px-10 py-6">Identity</th>
+                                <th className="px-10 py-6">Dept & Role</th>
+                                <th className="px-10 py-6">WhatsApp</th>
+                                <th className="px-10 py-6 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50">
+                            {filteredStaff.map((s, i) => (
+                                <tr key={i} className="hover:bg-slate-50/50 transition-all group">
+                                    <td className="px-10 py-7">
+                                        <div>
+                                            <p className="font-black text-slate-800 uppercase text-[11px] mb-1">{s.Name}</p>
+                                            <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{s.Staff_ID}</p>
+                                        </div>
+                                    </td>
+                                    <td className="px-10 py-7">
+                                        <p className="text-[10px] font-black text-slate-700 uppercase leading-none mb-1.5">{s.Department}</p>
+                                        <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest leading-none">{s.Role || 'Professional Staff'}</p>
+                                    </td>
+                                    <td className="px-10 py-7">
+                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
+                                            <Phone size={12} className="text-slate-300"/> {s.Mobile}
+                                        </div>
+                                    </td>
+                                    <td className="px-10 py-7 text-right">
+                                        <button onClick={() => handleEdit(s)} className="p-3 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
+                                            <Edit3 size={16}/>
+                                        </button>
+                                    </td>
+                                </tr>
+                            ))}
+                            {filteredStaff.length === 0 && (
+                                <tr>
+                                    <td colSpan="4" className="px-10 py-20 text-center">
+                                        <div className="flex flex-col items-center gap-4 opacity-30">
+                                            <Search size={48} />
+                                            <p className="text-[10px] font-black uppercase tracking-widest">No staff members match your search</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* POPUP MODAL FOR ADD/EDIT */}
+            <AnimatePresence>
+                {showModal && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowModal(false)}
+                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
+                                        {formData.staffId ? <Edit3 size={20} /> : <Plus size={20} />}
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none">{formData.staffId ? 'Modify Profile' : 'New Specialist'}</h3>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{formData.staffId ? `Updating ID: ${formData.staffId}` : 'Entering system roster'}</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"><X size={20}/></button>
+                            </div>
+
+                            <div className="p-10 overflow-y-auto custom-scrollbar">
+                                <form id="staff-form" onSubmit={handleSubmit} className="space-y-8">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Full Name</label>
+                                            <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Enter name"/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Number</label>
+                                            <input required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Phone No."/>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Department</label>
+                                            <input required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="e.g. Nursing"/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Official Role</label>
+                                            <input required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="e.g. Senior Nurse"/>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Birth Date</label>
+                                            <input type="date" value={formData.birthday} onChange={e => setFormData({...formData, birthday: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all"/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Joining Date</label>
+                                            <input type="date" value={formData.anniversary} onChange={e => setFormData({...formData, anniversary: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all"/>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Email (Optional)</label>
+                                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="email@sbh.com"/>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <div className="p-10 border-t border-slate-50 flex items-center justify-end gap-4 shrink-0 bg-slate-50/50">
+                                <button onClick={() => setShowModal(false)} className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Discard</button>
+                                <button form="staff-form" type="submit" disabled={submitting} className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center gap-3 disabled:opacity-50">
+                                    {submitting ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                    {submitting ? 'Processing...' : 'Finalize Profile'}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
