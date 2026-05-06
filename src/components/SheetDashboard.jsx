@@ -60,17 +60,17 @@ const downloadSvgAsPng = (svg, filename = "SBH_QR_Code.png") => {
 const NavItem = ({ icon, label, active, onClick, dot, variant = 'primary' }) => (
     <button 
         onClick={onClick} 
-        className={`w-full flex items-center gap-3 px-5 py-3.5 rounded-2xl transition-all duration-200 group relative overflow-hidden font-bold tracking-wide text-[12px] mb-1.5
+        className={`w-full flex items-center gap-3 px-5 py-4 rounded-2xl transition-all duration-200 group relative overflow-hidden mb-1.5
             ${active 
                 ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]' 
                 : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90 hover:opacity-100 hover:translate-x-1'}`}
     >
         {icon && (
-            <span className={`transition-all ${active ? 'scale-110 text-white' : 'text-orange-500 group-hover:text-orange-600'}`}>
+            <span className={`flex items-center justify-center transition-all ${active ? 'scale-110 text-white' : 'text-orange-500 group-hover:text-orange-600'}`}>
                 {React.cloneElement(icon, { size: 18, strokeWidth: active ? 2.5 : 2 })}
             </span>
         )}
-        <span className={`uppercase tracking-widest ${active ? 'text-white' : 'text-emerald-950/70 group-hover:text-emerald-950'}`}>
+        <span className={`uppercase tracking-widest text-[11px] font-black leading-none mt-[1px] ${active ? 'text-white' : 'text-emerald-950/70 group-hover:text-emerald-950'}`}>
             {label}
         </span>
         {active && <motion.div layoutId="nav-pill" className="absolute left-0 w-1.5 h-6 bg-white rounded-r-full" />}
@@ -196,14 +196,16 @@ const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
     <div className="mb-2">
         <button 
             onClick={onToggle}
-            className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl transition-all duration-300 font-bold tracking-wide text-[12px]
+            className={`w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-all duration-300
                 ${isOpen ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-100' : 'text-emerald-950/80 hover:bg-emerald-50'}`}
         >
             <div className="flex items-center gap-3">
-                <span className={isOpen ? 'text-white' : 'text-orange-500'}>{React.cloneElement(icon, { size: 18 })}</span>
-                <span className="uppercase tracking-widest">{label}</span>
+                <span className={`flex items-center justify-center ${isOpen ? 'text-white' : 'text-orange-500'}`}>
+                    {React.cloneElement(icon, { size: 18, strokeWidth: 2.5 })}
+                </span>
+                <span className="uppercase tracking-widest text-[11px] font-black leading-none mt-[1px]">{label}</span>
             </div>
-            <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }}>
+            <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.3 }} className="flex items-center">
                 <ChevronRight size={14} className={isOpen ? 'text-white' : 'text-emerald-950/30'} />
             </motion.div>
         </button>
@@ -822,7 +824,6 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch everything independently so one error doesn't block the rest
             const fetchJson = async (url) => {
                 try {
                     const r = await fetch(url);
@@ -865,24 +866,31 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
         <div className="min-h-screen bg-[#F8FAFC] flex font-sans overflow-x-hidden">
             {!isPublic && (
                 <>
-                    {isSidebarOpen && <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-[190] lg:hidden" onClick={() => setIsSidebarOpen(false)} />}
-                    <aside className={`fixed inset-y-0 left-0 bg-white border-r border-slate-100 z-[200] transition-transform duration-500 w-72 shadow-[20px_0_100px_rgba(0,0,0,0.1)] flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-                        <div className="p-8 border-b border-slate-100 flex flex-col items-center group relative cursor-pointer overflow-hidden bg-white">
-                            <button onClick={() => setIsSidebarOpen(false)} className="absolute top-4 right-4 lg:hidden p-2 text-slate-400 hover:text-rose-500 rounded-full hover:bg-rose-50 transition-colors z-20"><X size={20} /></button>
-                            <h1 className="text-[20px] font-black text-slate-900 uppercase tracking-tighter relative z-10 text-center leading-none mb-1">
-                                SBH GROUP <br/>
-                                <span className="text-emerald-600">OF HOSPITALS</span>
-                            </h1>
-                            <div className="w-full h-1 bg-emerald-100/50 mt-4 rounded-full overflow-hidden">
-                                <div className="w-2/3 h-full bg-emerald-500/20" />
-                            </div>
-                        </div>
-                    <div className="p-6 flex-1 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/30">
-                        {/* Dashboard Hidden per Request */}
-                        {/* <NavItem icon={<Heart size={18}/>} label="SBH Feedbacks" active={activeTab === 'DASHBOARD'} onClick={() => handleNavClick('DASHBOARD')} /> */}
-                        
-                        {/* HIDDEN: Management Section */}
+                {/* Mobile Overlay */}
+                <AnimatePresence>
+                    {isSidebarOpen && (
+                        <motion.div 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsSidebarOpen(false)}
+                            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] lg:hidden"
+                        />
+                    )}
+                </AnimatePresence>
 
+                <aside className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 ease-spring lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                    <div className="h-24 px-8 flex items-center gap-4 bg-white sticky top-0 z-10 border-b border-slate-50">
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-200 rotate-3 group hover:rotate-0 transition-all duration-500">
+                            <Activity size={24} strokeWidth={2.5} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Intelligence Hub</p>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 flex-1 space-y-6 overflow-y-auto custom-scrollbar bg-slate-50/30">
                         <div className="space-y-4">
                             <CollapsibleCategory 
                                 icon={<Award />} 
@@ -941,20 +949,21 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                 </aside>
                 </>
             )}
-            <div className={`flex-1 flex flex-col pb-20 w-full ${isPublic ? '' : 'lg:pl-72'}`}>
-                <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-                    <div className="flex items-center gap-5">
-                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-xl shadow-lg shadow-orange-500/30 active:scale-90 transition-all"><Menu size={24} /></button>
-                        <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{
-                            activeTab === 'SMILE_AWARD' ? 'Nomination & Leaderboard' : 
-                            activeTab === 'EMPLOYEE_ROSTER' ? 'Employee Roster' :
-                            activeTab === 'SBH_FAMILY_DASHBOARD' ? 'SBH Family Payroll' :
-                            activeTab === 'VISITING_DASHBOARD' ? 'Visiting Doctors Payout' :
-                            activeTab.replace(/_/g, ' ')
-                        }</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
-                    </div>
-                        <div className="flex items-center gap-6">
-                            {!isPublic && (
+            
+            <div className={`flex-1 flex flex-col pb-20 w-full ${isPublic ? 'min-h-screen justify-center py-10 sm:py-20 bg-slate-50' : 'lg:pl-72'}`}>
+                {!isPublic && (
+                    <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
+                        <div className="flex items-center gap-5">
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-gradient-to-br from-orange-500 to-rose-500 text-white rounded-xl shadow-lg shadow-orange-500/30 active:scale-90 transition-all"><Menu size={24} /></button>
+                            <div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{
+                                activeTab === 'SMILE_AWARD' ? 'Nomination & Leaderboard' : 
+                                activeTab === 'EMPLOYEE_ROSTER' ? 'Employee Roster' :
+                                activeTab === 'SBH_FAMILY_DASHBOARD' ? 'SBH Family Payroll' :
+                                activeTab === 'VISITING_DASHBOARD' ? 'Visiting Doctors Payout' :
+                                activeTab.replace(/_/g, ' ')
+                            }</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Management System</p></div>
+                        </div>
+                            <div className="flex items-center gap-6">
                                 <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl shadow-sm group hover:border-emerald-200 transition-all cursor-default">
                                     <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-lg shadow-emerald-200/50">
                                         <User size={16} />
@@ -964,12 +973,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                         <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter leading-none">{user}</p>
                                     </div>
                                 </div>
-                            )}
-                        </div>
-                </header>
-                <main className="flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full">
+                            </div>
+                    </header>
+                )}
+                
+                <main className={`flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full ${isPublic ? 'flex flex-col items-center' : ''}`}>
                     <AnimatePresence mode="wait">
-                        {activeTab === 'DASHBOARD' && (
+                        {activeTab === 'DASHBOARD' && !isPublic && (
                             <div className="space-y-12 animate-in fade-in duration-700">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <StatCard icon={<Heart />} label="Smile Award Votes" value={smileStats.all.length} color="bg-orange-500" gradient="bg-gradient-to-br from-orange-600 to-amber-500" />
@@ -978,24 +988,24 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             </div>
                         )}
                         {activeTab === 'SMILE_AWARD' && (
-                            <div className="space-y-12">
-                                <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />
-                                <div className="pt-20 border-t border-slate-100 relative">
-                                    <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-8 py-2 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">Nominate Your Champion Below</div>
-                                    <SmileAwardForm key="smile-award" onSubmissionSuccess={() => setTimeout(fetchData, 2000)} />
+                            <div className={`space-y-12 w-full ${isPublic ? 'max-w-2xl' : ''}`}>
+                                {!isPublic && <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
+                                <div className={`${isPublic ? '' : 'pt-20 border-t border-slate-100'} relative`}>
+                                    {!isPublic && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-8 py-2 bg-slate-50 border border-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest text-slate-400">Nominate Your Champion Below</div>}
+                                    <SmileAwardForm key="smile-award" onSubmissionSuccess={() => !isPublic && setTimeout(fetchData, 2000)} />
                                 </div>
                             </div>
                         )}
-                        {activeTab === 'SMILE_STATS' && <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
-                        {activeTab === 'HR_PANEL' && <HRApprovalPanel stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} />}
-                        {activeTab === 'EMPLOYEE_ROSTER' && (
+                        {activeTab === 'SMILE_STATS' && !isPublic && <SmileAwardStats stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
+                        {activeTab === 'HR_PANEL' && !isPublic && <HRApprovalPanel stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} />}
+                        {activeTab === 'EMPLOYEE_ROSTER' && !isPublic && (
                             loading ? <SectionLoader messages={["Fetching employee directory...", "Syncing with master records...", "Updating staff important dates...", "Preparing staff roster..."]} /> : 
                             <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} smileWinnersList={smileWinnersList} />
                         )}
-                        {activeTab === 'PRINT_QR' && <PrintQRSection />}
-                        {(activeTab === 'OPD' || activeTab === 'RADIOLOGY') && <DataTable data={activeTab === 'RADIOLOGY' ? sonoData : opdData} type={activeTab} onEdit={setEditingRow} />}
+                        {activeTab === 'PRINT_QR' && !isPublic && <PrintQRSection />}
+                        {(activeTab === 'OPD' || activeTab === 'RADIOLOGY') && !isPublic && <DataTable data={activeTab === 'RADIOLOGY' ? sonoData : opdData} type={activeTab} onEdit={setEditingRow} />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
-                        {activeTab === 'LASIK_DATA' && (
+                        {activeTab === 'LASIK_DATA' && !isPublic && (
                             loading ? <SectionLoader messages={["Loading patient responses...", "Analyzing lasik surveys...", "Updating feedback data..."]} /> :
                             <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm">
                                 <div className="overflow-x-auto custom-scrollbar">
@@ -1033,13 +1043,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </div>
                             </div>
                         )}
-                        {activeTab === 'VISITING_DASHBOARD' && (loading ? <SectionLoader messages={["Syncing visiting doctor records...", "Calculating payouts...", "Updating clinical ledger..."]} /> : <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />)}
+                        {activeTab === 'VISITING_DASHBOARD' && !isPublic && (loading ? <SectionLoader messages={["Syncing visiting doctor records...", "Calculating payouts...", "Updating clinical ledger..."]} /> : <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />)}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
-                        {activeTab === 'SBH_FAMILY_DASHBOARD' && (loading ? <SectionLoader messages={["Syncing SBH Family records...", "Preparing payroll data...", "Verifying cloud ledger..."]} /> : <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />)}
+                        {activeTab === 'SBH_FAMILY_DASHBOARD' && !isPublic && (loading ? <SectionLoader messages={["Syncing SBH Family records...", "Preparing payroll data...", "Verifying cloud ledger..."]} /> : <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />)}
                     </AnimatePresence>
                 </main>
             </div>
-            <Footer />
+            {!isPublic && <Footer />}
         </div>
     );
 };

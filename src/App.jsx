@@ -10,8 +10,8 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const type = params.get('type') || params.get('mode');
     
-    if (type === 'survey' || type === 'smile_award' || type === 'lasik' || type === 'visiting_update') {
-      setIsPublicMode(type); // Store the mode type
+    if (type === 'survey' || type === 'smile_award' || type === 'smile' || type === 'lasik' || type === 'visiting_update') {
+      setIsPublicMode(type === 'smile' ? 'smile_award' : type); 
     }
 
     const savedUser = localStorage.getItem('auth_user');
