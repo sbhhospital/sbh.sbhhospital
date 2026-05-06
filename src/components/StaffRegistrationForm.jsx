@@ -9,16 +9,16 @@ import {
 
 const SMILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
 
-const SuccessPopup = ({ staffId }) => (
+const SuccessPopup = () => (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6">
         <motion.div initial={{ scale: 0.8, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.8, y: 20 }} className="bg-white rounded-[3.5rem] p-10 md:p-14 text-center max-w-lg w-full shadow-2xl border border-blue-50 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-blue-500" />
             <div className="w-24 h-24 bg-blue-500 text-white rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-100 rotate-6"><CheckCircle size={48} strokeWidth={2.5} /></div>
             <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter mb-2">Registration <span className="text-blue-600">Complete!</span></h2>
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-widest mb-6 border border-blue-100">
-                <Fingerprint size={12}/> ID Assigned: {staffId}
+                <Fingerprint size={12}/> Profile Synchronized Successfully
             </div>
-            <p className="text-slate-400 font-bold mb-10 uppercase text-[10px] tracking-[0.2em] leading-relaxed">Your professional profile has been securely synchronized with the hospital's central roster.</p>
+            <p className="text-slate-400 font-bold mb-10 uppercase text-[10px] tracking-[0.2em] leading-relaxed">Your professional profile has been securely added to the hospital's central roster.</p>
             <button onClick={() => window.location.reload()} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200">Done & Finish</button>
         </motion.div>
     </motion.div>
@@ -39,7 +39,6 @@ const StaffRegistrationForm = () => {
     const [loading, setLoading] = useState(true);
     const [loadingStep, setLoadingStep] = useState(0);
     const [error, setError] = useState(null);
-    const [generatedId, setGeneratedId] = useState('');
 
     const loadingMessages = ["Initializing roster sync...", "Encrypting staff data portal...", "Verifying SBH protocols...", "Loading registration interface..."];
 
@@ -47,11 +46,6 @@ const StaffRegistrationForm = () => {
         const interval = setInterval(() => setLoadingStep(prev => (prev + 1) % loadingMessages.length), 1200);
         const timer = setTimeout(() => setLoading(false), 2500);
         return () => { clearInterval(interval); clearTimeout(timer); };
-    }, []);
-
-    useEffect(() => {
-        const timestamp = Date.now().toString().slice(-4);
-        setGeneratedId(`SBH-${timestamp}`);
     }, []);
 
     const handleSubmit = async (e) => {
@@ -62,24 +56,25 @@ const StaffRegistrationForm = () => {
             // Mapping fields to match the Staff Roster columns
             const payload = {
                 action: 'add_staff',
-                staffId: generatedId,
+                staffId: '', // Let backend generate sequential ST-series ID
                 name: formData.name,
                 mobile: formData.mobile,
                 email: formData.email,
                 birthday: formData.birthday,
-                anniversary: '', // Placeholder or not used in public form
+                anniversary: formData.doj, 
                 department: formData.department,
                 role: formData.role,
-                dol: '', // Date of Leaving empty
-                doj: formData.doj // Date of Joining
+                dol: '', 
+                doj: formData.doj 
             };
 
-            await fetch(SMILE_SCRIPT_URL, {
+            const response = await fetch(SMILE_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
+            
             setTimeout(() => setShowSuccess(true), 1500);
         } catch (err) { setError("Connection failed. Please check your internet."); }
         finally { setIsSubmitting(false); }
@@ -94,7 +89,7 @@ const StaffRegistrationForm = () => {
 
     return (
         <div className="min-h-screen bg-[#F8FAFC] py-10 md:py-20 px-4 flex items-center justify-center">
-            <AnimatePresence>{showSuccess && <SuccessPopup staffId={generatedId} />}</AnimatePresence>
+            <AnimatePresence>{showSuccess && <SuccessPopup />}</AnimatePresence>
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[3.5rem] shadow-2xl p-8 md:p-14 border border-slate-50 max-w-3xl w-full relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-bl-full -mr-20 -mt-20 -z-10 animate-pulse" />
                 
@@ -110,8 +105,8 @@ const StaffRegistrationForm = () => {
 
                 <form onSubmit={handleSubmit} className="relative z-10 space-y-10">
                     <div className="flex justify-between items-center px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                        <div className="flex items-center gap-3"><Fingerprint className="text-blue-500" size={18}/><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assigned Profile ID:</span></div>
-                        <span className="text-sm font-black text-slate-800 tracking-widest">{generatedId}</span>
+                        <div className="flex items-center gap-3"><Fingerprint className="text-blue-500" size={18}/><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Profile Identity ID:</span></div>
+                        <span className="text-[10px] font-black text-blue-600 tracking-widest uppercase bg-blue-50 px-4 py-2 rounded-full border border-blue-100">Auto-Generated by System</span>
                     </div>
 
                     {error && <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600"><XCircle size={18} /><p className="text-[10px] font-black uppercase tracking-widest">{error}</p></div>}

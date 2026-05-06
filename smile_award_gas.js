@@ -389,9 +389,24 @@ function approveWinner(res) {
 function addStaff(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const staffSheet = ss.getSheetByName('Staff_Master');
+  const lastRow = staffSheet.getLastRow();
   
-  // Use passed staffId from frontend (SBH-XXXX) or generate default
-  const finalId = data.staffId || ("ST" + (staffSheet.getLastRow() + 100));
+  let finalId = data.staffId;
+  
+  // SEQUENTIAL ID GENERATION (ST Series)
+  if (!finalId || finalId === "" || finalId.startsWith('SBH-')) {
+    const lastIdRange = staffSheet.getRange(lastRow, 1).getValue().toString().trim();
+    if (lastIdRange.startsWith('ST')) {
+      const lastNum = parseInt(lastIdRange.replace('ST', ''));
+      if (!isNaN(lastNum)) {
+        finalId = 'ST' + (lastNum + 1);
+      } else {
+        finalId = 'ST' + (lastRow + 200); // Robust fallback
+      }
+    } else {
+      finalId = 'ST' + (lastRow + 200); // Initial series start fallback
+    }
+  }
   
   staffSheet.appendRow([
     finalId,
@@ -399,11 +414,12 @@ function addStaff(data) {
     data.mobile || '',
     data.email || '',
     reformatDateString(data.birthday) || '',
-    reformatDateString(data.anniversary) || '',
+    reformatDateString(data.anniversary) || '', // Used for DOJ / Anniversary
     data.department || 'General',
     data.role || 'Staff',
     reformatDateString(data.dol) || ''
   ]);
+  
   return createJsonResponse({ success: true, staffId: finalId });
 }
 
