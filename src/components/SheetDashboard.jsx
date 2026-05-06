@@ -104,6 +104,17 @@ const Footer = () => {
     );
 };
 
+const RefreshButton = ({ onRefresh, loading, className = "" }) => (
+    <button 
+        onClick={onRefresh} 
+        disabled={loading}
+        className={`p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-orange-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 ${className}`}
+        title="Refresh Data"
+    >
+        <RotateCcw size={18} className={loading ? "animate-spin text-orange-500" : ""} />
+    </button>
+);
+
 const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
     <div className="mb-3">
         <button onClick={onToggle} className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 ${isOpen ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-600 hover:bg-slate-50'}`}>
@@ -116,13 +127,16 @@ const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
 
 // --- SMILE AWARD MODULES ---
 
-const SmileEntriesSection = ({ entries, onOpenForm, loading }) => {
+const SmileEntriesSection = ({ entries, onOpenForm, loading, onRefresh }) => {
     if (loading) return <SectionLoader messages={["Retrieving nomination history...", "Loading staff recognitions...", "Syncing award records..."]} />;
     return (
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
             <div className="px-1 flex flex-col md:flex-row justify-between md:items-end gap-6">
                 <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Nomination <span className="text-orange-600">Ledger</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Recent recognitions from our team members</p></div>
-                <button onClick={onOpenForm} className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 whitespace-nowrap"><Edit3 size={16}/> Cast Your Vote</button>
+                <div className="flex items-center gap-3">
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                    <button onClick={onOpenForm} className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 whitespace-nowrap"><Edit3 size={16}/> Cast Your Vote</button>
+                </div>
             </div>
             <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100">
                 <div className="overflow-x-auto"><table className="w-full text-left min-w-[800px] lg:min-w-full">
@@ -144,7 +158,7 @@ const SmileEntriesSection = ({ entries, onOpenForm, loading }) => {
     );
 };
 
-const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange, loading }) => {
+const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange, loading, onRefresh }) => {
     const [departmentFilter, setDepartmentFilter] = useState('ALL');
     const filteredStats = useMemo(() => {
         const target = (selectedMonth || "").trim().toLowerCase();
@@ -165,9 +179,10 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
     
     return (
         <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
+            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 px-1">
                 <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter mb-2">Leader <span className="text-emerald-600">Board</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Real-time voting scoreboard & champion highlight</p></div>
                 <div className="flex flex-col md:flex-row items-center gap-4">
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
                     <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600"><Briefcase size={20} /></div><select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer"><option value="ALL">All Depts</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
                     <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><Calendar size={20} /></div><select value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer">{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
                 </div>
@@ -195,13 +210,19 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
     );
 };
 
-const SmileWinnersSection = ({ winners, selectedMonth, onMonthChange, loading }) => {
+const SmileWinnersSection = ({ winners, selectedMonth, onMonthChange, loading, onRefresh }) => {
     const months = useMemo(() => { const set = new Set((winners || []).map(w => (w.month || "").trim())); set.add(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })); return Array.from(set).filter(Boolean).sort((a,b) => new Date(b) - new Date(a)); }, [winners]);
     const approvedWinners = useMemo(() => { const target = (selectedMonth || "").trim().toLowerCase(); return (winners || []).filter(w => (w.month || "").trim().toLowerCase().includes(target)); }, [winners, selectedMonth]);
     if (loading) return <SectionLoader message="Fetching champion gallery..." />;
     return (
         <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1"><div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Champion <span className="text-orange-500">Hall of Fame</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Honoring our approved excellence stars</p></div><div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><Calendar size={20} /></div><select value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer">{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div></div>
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
+                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Champion <span className="text-orange-500">Hall of Fame</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Honoring our approved excellence stars</p></div>
+                <div className="flex items-center gap-3">
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                    <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><Calendar size={20} /></div><select value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer">{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+                </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{approvedWinners.map((winner, idx) => (<motion.div key={idx} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.1 }} className="bg-slate-900 rounded-[3rem] p-9 relative overflow-hidden group shadow-2xl shadow-slate-200"><div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-bl-full group-hover:scale-125 transition-transform duration-700" /><Sparkles className="absolute -left-4 -top-4 text-orange-400/20 group-hover:rotate-12 transition-transform" size={100} /><div className="relative z-10"><div className="flex items-center gap-2 mb-6"><span className="px-3 py-1 bg-gradient-to-r from-orange-600 to-amber-500 text-white rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-lg shadow-orange-500/30">Official Champion</span></div><p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-1">{winner.department}</p><h3 className="text-2xl font-black text-white uppercase tracking-tight mb-6 leading-tight">{winner.employee_name}</h3><div className="flex items-center justify-between items-end border-t border-slate-800 pt-6"><div><p className="text-3xl font-black text-white leading-none mb-1">{winner.votes}</p><p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Approved Votes</p></div><div className="text-right text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">{winner.month}</div></div></div></motion.div>))}{approvedWinners.length === 0 && (<div className="col-span-full py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 text-center"><Trophy size={48} className="mx-auto text-slate-200 mb-4" /><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">No champions have been finalized for this month yet</p></div>)}</div>
         </div>
     );
@@ -215,7 +236,7 @@ const SmileAwardFormSection = ({ onSubmissionSuccess }) => (
 );
 
 // --- REMAINING COMPONENTS (Simplified) ---
-const HRApprovalPanel = ({ stats, winners, onApprove, loading }) => {
+const HRApprovalPanel = ({ stats, winners, onApprove, loading, onRefresh }) => {
     const [submitting, setSubmitting] = useState(false);
     const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const now = new Date();
@@ -226,7 +247,10 @@ const HRApprovalPanel = ({ stats, winners, onApprove, loading }) => {
     const handleApproved = async (candidate) => { setSubmitting(candidate.name); try { await onApprove(candidate); alert(`Approved ${candidate.name}!`); } catch(e) { alert("Approval failed."); } setSubmitting(false); };
     return (
         <div className="space-y-12 animate-in fade-in pb-20">
-            <div className="px-1"><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Approval <span className="text-orange-600">Hub</span></h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Designate monthly champions from top nominees</p></div>
+            <div className="px-1 flex items-center justify-between">
+                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Approval <span className="text-orange-600">Hub</span></h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Designate monthly champions from top nominees</p></div>
+                <RefreshButton onRefresh={onRefresh} loading={loading} />
+            </div>
             {Object.keys(groupedData).length === 0 ? (<div className="bg-white rounded-[3rem] p-24 text-center border-2 border-dashed border-slate-100"><p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">No pending nominations for this month</p></div>) : Object.entries(groupedData).map(([dept, candidates]) => (
                 <div key={dept} className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden mb-8"><div className="px-6 md:px-10 py-6 bg-slate-50/80 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-orange-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Briefcase size={20} /></div><div><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Department</p><p className="text-xl font-black text-slate-800 uppercase tracking-tight">{dept}</p></div></div><div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest">{candidates.length} Nominees</div></div><div className="overflow-x-auto"><table className="w-full text-left min-w-[500px] md:min-w-full"><tbody className="divide-y divide-slate-50">{candidates.map((c, i) => (<tr key={i} className="group hover:bg-slate-50/50 transition-all"><td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-xs leading-none mb-1">{c.name}</p><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">{c.votes} Overall Votes</p></div></td><td className="px-10 py-7 text-right"><button disabled={submitting === c.name} onClick={() => handleApproved(c)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50">{submitting === c.name ? "Processing..." : "Approve as Star"}</button></td></tr>))}</tbody></table></div></div>
             ))}
@@ -321,9 +345,7 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff }) => {
                     </div>
 
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <button onClick={fetchStaff} className="p-4 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-emerald-600 transition-all shadow-sm">
-                            <RotateCcw size={20}/>
-                        </button>
+                        <RefreshButton onRefresh={fetchStaff} loading={loading} />
                         <button onClick={handleNew} className="flex-1 sm:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 transition-all hover:bg-slate-900 active:scale-95">
                             <Plus size={16}/> New Entry
                         </button>
@@ -595,24 +617,30 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                 {!isPublic && (
                     <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
                         <div className="flex items-center gap-5"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-orange-500 text-white rounded-xl shadow-lg active:scale-90 transition-all"><Menu size={24} /></button><div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{activeTab.replace(/_/g, ' ')}</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Management Operations</p></div></div>
-                        <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl"><div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white"><User size={16} /></div><p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter hidden sm:block">{user}</p></div>
+                        <div className="flex items-center gap-4">
+                            <RefreshButton onRefresh={fetchData} loading={loading} className="hidden sm:flex border-none shadow-none hover:bg-slate-50" />
+                            <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl">
+                                <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white"><User size={16} /></div>
+                                <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter hidden sm:block">{user}</p>
+                            </div>
+                        </div>
                     </header>
                 )}
                 <main className={`flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full ${isPublic ? 'flex flex-col items-center' : ''}`}>
                     <AnimatePresence mode="wait">
-                        {activeTab === 'SMILE_ENTRIES' && <SmileEntriesSection entries={smileEntriesList} onOpenForm={() => handleNavClick('SMILE_FORM')} loading={loading} />}
+                        {activeTab === 'SMILE_ENTRIES' && <SmileEntriesSection entries={smileEntriesList} onOpenForm={() => handleNavClick('SMILE_FORM')} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'SMILE_FORM' && <SmileAwardFormSection key="form" onSubmissionSuccess={() => { fetchData(); if(!isPublic) handleNavClick('SMILE_ENTRIES'); }} />}
-                        {activeTab === 'SMILE_LEADERBOARD' && <SmileLeaderboardSection key="stats" stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
-                        {activeTab === 'SMILE_WINNERS' && <SmileWinnersSection key="winners" winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} />}
-                        {activeTab === 'HR_PANEL' && <HRApprovalPanel key="hr" stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} />}
-                        {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} />}
-                        {activeTab === 'PRINT_QR' && <PrintQRSection />}
+                        {activeTab === 'SMILE_LEADERBOARD' && <SmileLeaderboardSection key="stats" stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
+                        {activeTab === 'SMILE_WINNERS' && <SmileWinnersSection key="winners" winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
+                        {activeTab === 'HR_PANEL' && <HRApprovalPanel key="hr" stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} onRefresh={fetchData} />}
+                        {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} />}
+                        {activeTab === 'PRINT_QR' && <PrintQRSection onRefresh={fetchData} loading={loading} />}
                         {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
-                        {activeTab === 'LASIK_DATA' && (<div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm"><div className="overflow-x-auto"><table className="w-full text-left min-w-[1000px]"><thead className="bg-slate-50/50"><tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr></thead><tbody className="divide-y divide-slate-100">{lasikData.map((row, idx) => (<tr key={idx} className="hover:bg-slate-50/50"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>))}</tbody></table></div></div>)}
-                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />}
+                        {activeTab === 'LASIK_DATA' && (<div className="space-y-10 animate-in fade-in pb-20"><div className="flex items-center justify-between px-1"><div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div><RefreshButton onRefresh={fetchData} loading={loading} /></div><div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm shadow-slate-100"><div className="overflow-x-auto"><table className="w-full text-left min-w-[1000px]"><thead className="bg-slate-50/50"><tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr></thead><tbody className="divide-y divide-slate-100">{lasikData.map((row, idx) => (<tr key={idx} className="hover:bg-slate-50/50 transition-all"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>))}</tbody></table></div></div></div>)}
+                        {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
-                        {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} />}
+                        {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} onRefresh={fetchData} loading={loading} />}
                     </AnimatePresence>
                 </main>
             </div>
