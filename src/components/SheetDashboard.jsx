@@ -8,6 +8,7 @@ import {
     TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Link as LinkIcon
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
+import StaffRegistrationForm from './StaffRegistrationForm';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VisitingManager from './Visiting/VisitingManager';
@@ -290,6 +291,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [activeTab, setActiveTab] = useState(() => {
         if (isPublic) {
             if (publicType === 'smile_award') return 'SMILE_FORM';
+            if (publicType === 'register') return 'STAFF_REGISTER';
             if (publicType === 'lasik') return 'LASIK_FORM';
             if (publicType === 'visiting_update') return 'VISITING_UPDATE';
             return 'SMILE_FORM';
@@ -384,6 +386,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'HR_PANEL' && <HRApprovalPanel key="hr" stats={smileStats} winners={smileWinnersList} onApprove={async(d)=> { await fetch(smileScriptUrl,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action:'approve_winner',...d})}); fetchData(); }} loading={loading} />}
                         {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection />}
+                        {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
                         {activeTab === 'LASIK_DATA' && (<div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm"><div className="overflow-x-auto"><table className="w-full text-left min-w-[1000px]"><thead className="bg-slate-50/50"><tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr></thead><tbody className="divide-y divide-slate-100">{lasikData.map((row, idx) => (<tr key={idx} className="hover:bg-slate-50/50"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>))}</tbody></table></div></div>)}
                         {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} />}

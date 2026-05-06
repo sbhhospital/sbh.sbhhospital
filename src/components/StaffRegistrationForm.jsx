@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     User, Briefcase, Phone, Mail, Calendar, 
     ShieldCheck, CheckCircle, Loader2, UserPlus, 
-    Sparkles, XCircle, Send, Fingerprint, Activity, Info
+    Sparkles, XCircle, Send, Fingerprint, Activity, Info,
+    CalendarCheck, Award
 } from 'lucide-react';
 
 const SMILE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
@@ -24,7 +25,15 @@ const SuccessPopup = ({ staffId }) => (
 );
 
 const StaffRegistrationForm = () => {
-    const [formData, setFormData] = useState({ name: '', mobile: '', email: '', birthday: '', department: '', role: '' });
+    const [formData, setFormData] = useState({ 
+        name: '', 
+        mobile: '', 
+        email: '', 
+        birthday: '', 
+        department: '', 
+        role: '',
+        doj: '' // Date of Joining
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -50,13 +59,28 @@ const StaffRegistrationForm = () => {
         setIsSubmitting(true);
         setError(null);
         try {
+            // Mapping fields to match the Staff Roster columns
+            const payload = {
+                action: 'add_staff',
+                staffId: generatedId,
+                name: formData.name,
+                mobile: formData.mobile,
+                email: formData.email,
+                birthday: formData.birthday,
+                anniversary: '', // Placeholder or not used in public form
+                department: formData.department,
+                role: formData.role,
+                dol: '', // Date of Leaving empty
+                doj: formData.doj // Date of Joining
+            };
+
             await fetch(SMILE_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ action: 'add_staff', staffId: generatedId, ...formData })
+                body: JSON.stringify(payload)
             });
-            setTimeout(() => setShowSuccess(true), 2000);
+            setTimeout(() => setShowSuccess(true), 1500);
         } catch (err) { setError("Connection failed. Please check your internet."); }
         finally { setIsSubmitting(false); }
     };
@@ -73,23 +97,75 @@ const StaffRegistrationForm = () => {
             <AnimatePresence>{showSuccess && <SuccessPopup staffId={generatedId} />}</AnimatePresence>
             <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} className="bg-white rounded-[3.5rem] shadow-2xl p-8 md:p-14 border border-slate-50 max-w-3xl w-full relative overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50/50 rounded-bl-full -mr-20 -mt-20 -z-10 animate-pulse" />
-                <div className="relative z-10 text-center mb-14"><div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-6 shadow-lg shadow-blue-100"><UserPlus size={16} /> Official Staff Registration</div><h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter uppercase mb-4 leading-none">Join the <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent underline decoration-indigo-200 underline-offset-8">SBH Family</span></h1><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Enter your professional details to generate your official ID</p></div>
+                
+                <div className="relative z-10 text-center mb-14">
+                    <div className="inline-flex items-center gap-3 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-full text-[9px] font-black uppercase tracking-[0.3em] mb-6 shadow-lg shadow-blue-100">
+                        <UserPlus size={16} /> Official Staff Registration
+                    </div>
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter uppercase mb-4 leading-none">
+                        Join the <span className="bg-gradient-to-r from-blue-600 to-indigo-500 bg-clip-text text-transparent underline decoration-indigo-200 underline-offset-8">SBH Family</span>
+                    </h1>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Enter your professional details for the hospital roster</p>
+                </div>
+
                 <form onSubmit={handleSubmit} className="relative z-10 space-y-10">
-                    <div className="flex justify-between items-center px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100"><div className="flex items-center gap-3"><Fingerprint className="text-blue-500" size={18}/><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assigned Profile ID:</span></div><span className="text-sm font-black text-slate-800 tracking-widest">{generatedId}</span></div>
+                    <div className="flex justify-between items-center px-6 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                        <div className="flex items-center gap-3"><Fingerprint className="text-blue-500" size={18}/><span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Assigned Profile ID:</span></div>
+                        <span className="text-sm font-black text-slate-800 tracking-widest">{generatedId}</span>
+                    </div>
+
                     {error && <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl flex items-center gap-3 text-rose-600"><XCircle size={18} /><p className="text-[10px] font-black uppercase tracking-widest">{error}</p></div>}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8"><SmileInputField label="Full Name" icon={<User size={18} className="text-blue-500"/>} placeholder="Enter your full name" value={formData.name} onChange={v => setFormData({...formData, name: v})} required /><SmileInputField label="Mobile Number" icon={<Phone size={18} className="text-indigo-500"/>} placeholder="+91 00000 00000" value={formData.mobile} onChange={v => setFormData({...formData, mobile: v})} required /></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8"><SmileInputField label="Department" icon={<Briefcase size={18} className="text-slate-400"/>} placeholder="e.g. IT, Nursing" value={formData.department} onChange={v => setFormData({...formData, department: v})} required /><SmileInputField label="Role / Post" icon={<ShieldCheck size={18} className="text-slate-400"/>} placeholder="e.g. Senior Nurse" value={formData.role} onChange={v => setFormData({...formData, role: v})} required /></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-50 pt-10"><SmileInputField label="Email Address" icon={<Mail size={18} className="text-slate-400"/>} placeholder="name@sbhhospital.com" type="email" value={formData.email} onChange={v => setFormData({...formData, email: v})} /><SmileInputField label="Birthday" icon={<Calendar size={18} className="text-slate-400"/>} type="date" value={formData.birthday} onChange={v => setFormData({...formData, birthday: v})} /></div>
-                    <div className="pt-6"><motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} disabled={isSubmitting} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] hover:bg-blue-600 transition-all shadow-2xl flex items-center justify-center gap-4 shadow-slate-200">{isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Registering...</> : <><Send size={20} /> Register My Profile</>}</motion.button></div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <SmileInputField label="Full Name" icon={<User size={18} className="text-blue-500"/>} placeholder="Enter your full name" value={formData.name} onChange={v => setFormData({...formData, name: v})} required />
+                        <SmileInputField label="Mobile Number" icon={<Phone size={18} className="text-indigo-500"/>} placeholder="+91 00000 00000" value={formData.mobile} onChange={v => setFormData({...formData, mobile: v})} required />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <SmileInputField label="Department" icon={<Briefcase size={18} className="text-slate-400"/>} placeholder="e.g. Nursing, Front Desk" value={formData.department} onChange={v => setFormData({...formData, department: v})} required />
+                        <SmileInputField label="Post / Role" icon={<ShieldCheck size={18} className="text-slate-400"/>} placeholder="e.g. Senior Nurse" value={formData.role} onChange={v => setFormData({...formData, role: v})} required />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <SmileInputField label="Date of Birth" icon={<Calendar size={18} className="text-slate-400"/>} type="date" value={formData.birthday} onChange={v => setFormData({...formData, birthday: v})} required />
+                        <SmileInputField label="Date of Joining" icon={<CalendarCheck size={18} className="text-slate-400"/>} type="date" value={formData.doj} onChange={v => setFormData({...formData, doj: v})} required />
+                    </div>
+
+                    <div className="border-t border-slate-50 pt-10">
+                        <SmileInputField label="Email Address (Optional)" icon={<Mail size={18} className="text-slate-400"/>} placeholder="name@sbhhospital.com" type="email" value={formData.email} onChange={v => setFormData({...formData, email: v})} />
+                    </div>
+
+                    <div className="pt-6">
+                        <motion.button type="submit" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }} disabled={isSubmitting} className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] hover:bg-blue-600 transition-all shadow-2xl flex items-center justify-center gap-4 shadow-slate-200">
+                            {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Registering...</> : <><Send size={20} /> Register My Profile</>}
+                        </motion.button>
+                    </div>
                 </form>
-                <div className="mt-12 pt-10 border-t border-slate-50 text-center"><p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center justify-center gap-2"><Info size={12}/> Secure Onboarding System v2.0 • SBH Group of Hospitals</p></div>
+
+                <div className="mt-12 pt-10 border-t border-slate-50 text-center">
+                    <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest flex items-center justify-center gap-2">
+                        <Info size={12}/> Secure Onboarding System v2.0 • SBH Group of Hospitals
+                    </p>
+                </div>
             </motion.div>
         </div>
     );
 };
 
 const SmileInputField = ({ label, icon, placeholder, value, onChange, type = "text", required }) => (
-    <div className="space-y-3"><label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">{icon} {label} {required && <span className="text-blue-500">*</span>}</label><input type={type} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none transition-all focus:bg-white focus:border-blue-500/30" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} required={required} /></div>
+    <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
+            {icon} {label} {required && <span className="text-blue-500">*</span>}
+        </label>
+        <input 
+            type={type} 
+            className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none transition-all focus:bg-white focus:border-blue-500/30" 
+            placeholder={placeholder} 
+            value={value} 
+            onChange={e => onChange(e.target.value)} 
+            required={required} 
+        />
+    </div>
 );
 
 export default StaffRegistrationForm;
