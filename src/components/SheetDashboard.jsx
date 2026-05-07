@@ -670,13 +670,13 @@ const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) 
         try {
             await fetch(smileScriptUrl, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify({ 
                     action: 'send_manual_reminder', 
                     type: ev.type, 
                     name: ev.name, 
                     mobile: ev.mobile,
+                    email: ev.email,
                     years: ev.type === 'ANNIVERSARY' ? (new Date().getFullYear() - ev.date.getFullYear()) : 0
                 })
             });
@@ -724,14 +724,14 @@ const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) 
             if (bday) {
                 const days = getDaysUntil(bday);
                 if (days <= 60) { // Show events in next 60 days
-                    list.push({ type: 'BIRTHDAY', name: s.Name, date: bday, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile });
+                    list.push({ type: 'BIRTHDAY', name: s.Name, date: bday, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile, email: s.Email });
                 }
             }
             const anniv = parseDate(s.Anniversary);
             if (anniv) {
                 const days = getDaysUntil(anniv);
                 if (days <= 60) { // Show events in next 60 days
-                    list.push({ type: 'ANNIVERSARY', name: s.Name, date: anniv, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile });
+                    list.push({ type: 'ANNIVERSARY', name: s.Name, date: anniv, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile, email: s.Email });
                 }
             }
         });
