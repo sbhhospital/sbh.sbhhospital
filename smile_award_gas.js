@@ -14,6 +14,11 @@ const BIRTHDAY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1bhc0
 const ANNIVERSARY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB";
 const WHATSAPP_GROUP_ID = "120363406464175673@g.us"; 
 
+// --- EMAIL CONFIGURATION ---
+const SENDER_EMAIL = "no-reply@sbhhospital.com"; // Ensure this is added as an alias in Gmail settings
+const HR_BCC_EMAILS = "hr@sbhhospital.com, dme@sbhhospital.com, asst.managerhr@sbhhospital.com";
+const HOSPITAL_NAME = "SBH Group Of Hospitals";
+
 function setupSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   
@@ -500,13 +505,21 @@ function sendManualReminder(data) {
        // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
        sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
        
+       // --- EMAIL FOR BIRTHDAY ---
+       sendProfessionalCelebrationEmail(data.email, 'BIRTHDAY', name);
+       
        if (WHATSAPP_GROUP_ID) {
          const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
          sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
        }
     } else if (type === 'ANNIVERSARY') {
-       // --- META API FOR ANNIVERSARY (Using 2 params as per your CURL) ---
-       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, name], ANNIVERSARY_IMAGE_URL);
+       // --- META API FOR ANNIVERSARY ---
+       const years = data.years || 1;
+       // Sending Name and Years as params. If your template has {{1}} and {{2}}
+       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+
+       // --- EMAIL FOR ANNIVERSARY ---
+       sendProfessionalCelebrationEmail(data.email, 'ANNIVERSARY', name, years);
 
        if (WHATSAPP_GROUP_ID) {
          const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
@@ -573,11 +586,71 @@ function sendMetaWhatsApp(recipient, campaignName, templateParams, mediaUrl) {
 
   try {
     const response = UrlFetchApp.fetch(META_API_URL, options);
-    console.log(`Meta WhatsApp Sent to ${phone}. Response: ${response.getContentText()}`);
-    return response.getContentText();
+    const resText = response.getContentText();
+    console.log(`Meta API Status for ${phone}: ${response.getResponseCode()}`);
+    console.log(`Meta API Response: ${resText}`);
+    return resText;
   } catch (e) {
-    console.error(`Meta API Error: ${e.toString()}`);
+    console.error(`Meta API Critical Error: ${e.toString()}`);
     return null;
+  }
+}
+
+/**
+ * Sends a Professional HTML Email for Celebrations
+ */
+function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
+  if (!recipientEmail || recipientEmail === 'N/A' || !recipientEmail.includes('@')) return;
+
+  const isBirthday = type.toUpperCase() === 'BIRTHDAY';
+  const subject = isBirthday 
+    ? `🌟 Happy Birthday ${name}! - SBH Group Of Hospitals` 
+    : `🎊 Happy Work Anniversary ${name}! - SBH Group Of Hospitals`;
+  
+  const imageUrl = isBirthday ? BIRTHDAY_IMAGE_URL : ANNIVERSARY_IMAGE_URL;
+  const greeting = isBirthday 
+    ? `May your birthday be the start of a year filled with good luck, good health and much happiness.`
+    : `Congratulations on completing ${years} Year(s) of excellence with SBH Group! We are incredibly grateful for your dedication.`;
+
+  const htmlBody = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 20px;">
+      <div style="background-color: #ffffff; padding: 40px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; border: 1px solid #eee;">
+        <h2 style="color: #333; margin-bottom: 5px; font-weight: 800;">Dear ${name},</h2>
+        <p style="color: #666; font-style: italic; margin-bottom: 30px; line-height: 1.6;">${greeting}</p>
+        
+        <div style="margin-bottom: 30px; border-radius: 20px; overflow: hidden;">
+          <img src="${imageUrl}" alt="Celebration" style="width: 100%; max-width: 500px; height: auto; border-radius: 15px;" />
+        </div>
+        
+        <p style="color: #888; font-size: 12px; margin-bottom: 5px;">Best wishes from</p>
+        <h3 style="color: #2E7D32; margin: 0; font-weight: 900; letter-spacing: 1px; text-transform: uppercase;">SAI BABA GROUP OF HOSPITAL</h3>
+      </div>
+      <div style="text-align: center; padding: 20px; color: #aaa; font-size: 10px; letter-spacing: 2px;">
+        © ${new Date().getFullYear()} ${HOSPITAL_NAME} | Internal HR System
+      </div>
+    </div>
+  `;
+
+  try {
+    GmailApp.sendEmail(recipientEmail, subject, "", {
+      htmlBody: htmlBody,
+      bcc: HR_BCC_EMAILS,
+      from: SENDER_EMAIL, // Must be pre-configured as alias
+      name: HOSPITAL_NAME
+    });
+    console.log(`Professional Email sent to ${recipientEmail}`);
+  } catch (e) {
+    // Fallback if 'from' alias fails
+    try {
+      GmailApp.sendEmail(recipientEmail, subject, "", {
+        htmlBody: htmlBody,
+        bcc: HR_BCC_EMAILS,
+        name: HOSPITAL_NAME
+      });
+      console.log(`Email sent to ${recipientEmail} (Fallback sender)`);
+    } catch (err) {
+      console.error(`Failed to send email to ${recipientEmail}: ${err.toString()}`);
+    }
   }
 }
 
@@ -663,6 +736,9 @@ function dailyCheckEvents() {
        // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
        sendMetaWhatsApp(mobile, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
        
+       // --- EMAIL FOR BIRTHDAY ---
+       sendProfessionalCelebrationEmail(data[i][3], 'BIRTHDAY', name); // data[i][3] is Email
+       
        if (WHATSAPP_GROUP_ID) {
          const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
          sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
@@ -680,9 +756,12 @@ function dailyCheckEvents() {
            }
        } catch(e) {}
        
-       if(years > 0) {
-           // --- META API FOR ANNIVERSARY (Using 2 params as per your CURL) ---
-           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, name], ANNIVERSARY_IMAGE_URL);
+       if(years >= 0) {
+           // --- META API FOR ANNIVERSARY ---
+           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+
+           // --- EMAIL FOR ANNIVERSARY ---
+           sendProfessionalCelebrationEmail(data[i][3], 'ANNIVERSARY', name, years);
 
            if (WHATSAPP_GROUP_ID) {
              const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
