@@ -735,11 +735,12 @@ function sendWhatsApp(recipient, message, mediaUrl) {
 
   if (isGroup) {
     payload.groupId = recipientStr;
-    payload.group_id = recipientStr; // Fallback for some versions
-    payload.isGroup = true; // Boolean true
-    payload.is_group = "true"; // Another common variation
+    payload.receiverMobileNo = recipientStr; // Crucial: Some versions use this for Group ID too
+    payload.isGroup = "true";
+    payload.group_id = recipientStr;
   } else {
     payload.receiverMobileNo = recipientStr;
+    payload.isGroup = "false";
   }
 
   if (mediaUrl) {
