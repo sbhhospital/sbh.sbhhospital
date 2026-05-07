@@ -878,29 +878,21 @@ function testGroupMessage() {
 }
 
 /**
- * Utility to find your WhatsApp Group IDs
- * Run this function in Apps Script to see the IDs in the log
+ * TEST FUNCTION: Use this to check if group messages are working
  */
-function getWhatsAppGroups() {
-  const username = "SBH HOSPITAL";
-  const password = "123456789";
-  const url = `https://app.messageautosender.com/api/v1/groups?username=${username}&password=${password}`;
+function testGroupMessage() {
+  const testName = "TEST EMPLOYEE";
+  const testMsg = `📢 *TEST CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nThis is a TEST message to verify the automation. Please ignore.\n\n- *SBH Group Of Hospitals* 🏥`;
+  const testMedia = "https://lh3.googleusercontent.com/d/1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly=s1000";
   
-  try {
-    const response = UrlFetchApp.fetch(url);
-    const groupsText = response.getContentText();
-    const groups = JSON.parse(groupsText);
-    
-    console.log("--- YOUR WHATSAPP GROUPS ---");
-    if (groups && Array.isArray(groups)) {
-      groups.forEach(g => {
-        console.log(`Group Name: ${g.name} | Group ID: ${g.id}`);
-      });
-    } else {
-      console.log("No groups found or API error: " + groupsText);
-    }
-    console.log("----------------------------");
-  } catch (e) {
-    console.error("Error fetching groups: " + e.toString());
+  console.log("Starting Group Message Test...");
+  console.log("Target Group ID: " + WHATSAPP_GROUP_ID);
+  
+  if (!WHATSAPP_GROUP_ID || WHATSAPP_GROUP_ID.includes("PASTE")) {
+    console.error("Error: WHATSAPP_GROUP_ID is not set!");
+    return;
   }
+  
+  sendWhatsApp(WHATSAPP_GROUP_ID, testMsg, testMedia);
+  console.log("Test message dispatched to group!");
 }
