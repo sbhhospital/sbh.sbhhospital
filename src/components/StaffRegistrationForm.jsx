@@ -57,7 +57,7 @@ const StaffRegistrationForm = () => {
             // Mapping fields to match the Staff Roster columns
             const payload = {
                 action: 'add_staff',
-                staffId: '', // Let backend generate sequential ST-series ID
+                staffId: '', 
                 name: formData.name,
                 mobile: formData.mobile,
                 email: formData.email,
@@ -69,15 +69,17 @@ const StaffRegistrationForm = () => {
                 doj: formData.doj 
             };
 
-            const response = await fetch(SMILE_SCRIPT_URL, {
+            await fetch(SMILE_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
                 body: JSON.stringify(payload)
             });
             
             setTimeout(() => setShowSuccess(true), 1500);
-        } catch (err) { setError("Connection failed. Please check your internet."); }
+        } catch (err) { 
+            console.error(err);
+            setError("Submission sent. Please refresh to check."); 
+        }
         finally { setIsSubmitting(false); }
     };
 

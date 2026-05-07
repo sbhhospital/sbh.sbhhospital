@@ -802,26 +802,25 @@ const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) 
                                         : 'bg-white border-slate-50 hover:border-orange-200 shadow-sm hover:shadow-xl'
                                     }`}
                                 >
-                                    {ev.days === 0 && <Sparkles className="absolute -right-4 -top-4 text-orange-400/20" size={100} />}
-                                    
                                     <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-6">
-                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${ev.days === 0 ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-orange-50 text-orange-500'}`}>
-                                                {ev.type === 'BIRTHDAY' ? <Cake size={24} /> : <Gift size={24} />}
-                                            </div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border ${
+                                                ev.days === 0 
+                                                ? 'bg-orange-500 text-white border-orange-400 animate-pulse' 
+                                                : 'bg-slate-50 text-slate-400 border-slate-100'
+                                            }`}>
+                                                {ev.type === 'BIRTHDAY' ? 'Birthday' : 'Work Anniversary'}
+                                            </span>
                                             {ev.days === 0 && (
-                                                <span className="px-4 py-1.5 bg-orange-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest animate-bounce">Today!</span>
+                                                <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest animate-bounce">Today!</span>
                                             )}
                                             {ev.days === 1 && (
-                                                <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-widest">Tomorrow</span>
-                                            )}
-                                            {ev.days > 1 && ev.days <= 7 && (
-                                                <span className="px-3 py-1 bg-slate-50 text-slate-400 rounded-full text-[8px] font-black uppercase tracking-widest">In {ev.days} days</span>
+                                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Tomorrow</span>
                                             )}
                                         </div>
 
-                                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${ev.days === 0 ? 'text-orange-400' : 'text-slate-400'}`}>{ev.dept}</p>
-                                        <h3 className={`text-xl font-black uppercase tracking-tight mb-4 leading-tight ${ev.days === 0 ? 'text-white animate-slow-blink' : 'text-slate-800'}`}>{ev.name}</h3>
+                                        <p className={`text-[8px] font-black uppercase tracking-[0.2em] mb-1 ${ev.days === 0 ? 'text-orange-400' : 'text-slate-400'}`}>{ev.dept}</p>
+                                        <h3 className={`text-base font-black uppercase tracking-tight mb-4 leading-tight ${ev.days === 0 ? 'text-white animate-slow-blink' : 'text-slate-800'}`}>{ev.name}</h3>
                                         
                                         <div className={`flex items-center justify-between pt-6 border-t ${ev.days === 0 ? 'border-slate-800' : 'border-slate-50'}`}>
                                             <div className="flex items-center gap-3">

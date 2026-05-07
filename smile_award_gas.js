@@ -109,7 +109,7 @@ function fixExistingDates() {
       }
       
       if (finalVal && finalVal !== val.toString()) {
-        sheet.getRange(i + 1, col + 1).setValue(finalVal);
+        sheet.getRange(i + 1, col + 1).setValue("'" + finalVal);
       }
     });
   }
@@ -187,14 +187,31 @@ function getStaffList() {
 }
 
 function reformatDateString(val) {
-  if (!val || typeof val !== 'string') return val;
-  // If format is YYYY-MM-DD
-  if (val.length === 10 && val.charAt(4) === '-') {
-    const parts = val.split('-');
-    // Ensure parts[2] is day, parts[1] is month, parts[0] is year
+  if (!val) return '';
+  const sVal = val.toString().trim();
+  
+  // 1. If already DD-MM-YYYY, return as is
+  if (/^\d{2}-\d{2}-\d{4}$/.test(sVal)) return sVal;
+  
+  // 2. If format is YYYY-MM-DD or YYYY/MM/DD
+  if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(sVal)) {
+    const separator = sVal.includes('-') ? '-' : '/';
+    const parts = sVal.split(separator);
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
-  return val;
+  
+  // 3. Try parsing with native Date as last resort
+  try {
+    const d = new Date(sVal);
+    if (!isNaN(d.getTime())) {
+      const day = ("0" + d.getDate()).slice(-2);
+      const month = ("0" + (d.getMonth() + 1)).slice(-2);
+      const year = d.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch(e) {}
+
+  return sVal;
 }
 
 function syncStaff(externalUrl) {
@@ -420,11 +437,11 @@ function addStaff(data) {
     data.name,
     data.mobile || '',
     data.email || '',
-    reformatDateString(data.birthday) || '',
-    reformatDateString(data.anniversary) || '', // Used for DOJ / Anniversary
+    "'" + (reformatDateString(data.birthday) || ''),
+    "'" + (reformatDateString(data.anniversary) || ''), 
     data.department || 'General',
     data.role || 'Staff',
-    reformatDateString(data.dol) || ''
+    "'" + (reformatDateString(data.dol) || '')
   ]);
   
   return createJsonResponse({ success: true, staffId: finalId });
@@ -435,17 +452,20 @@ function editStaff(data) {
   const staffSheet = ss.getSheetByName('Staff_Master');
   const staffData = staffSheet.getDataRange().getValues();
   
+  const targetId = String(data.staffId || "").trim().toUpperCase();
+  
   for (let i = 1; i < staffData.length; i++) {
-    if (staffData[i][0] === data.staffId) {
+    const rowId = String(staffData[i][0] || "").trim().toUpperCase();
+    if (rowId === targetId) {
        staffSheet.getRange(i + 1, 2, 1, 8).setValues([[
          data.name, 
          data.mobile || '', 
          data.email || '', 
-         reformatDateString(data.birthday) || '', 
-         reformatDateString(data.anniversary) || '', 
+         "'" + (reformatDateString(data.birthday) || ''), 
+         "'" + (reformatDateString(data.anniversary) || ''), 
          data.department || 'General', 
          data.role || 'Staff', 
-         reformatDateString(data.dol) || ''
+         "'" + (reformatDateString(data.dol) || '')
        ]]);
        return createJsonResponse({ success: true, message: "Staff updated" });
     }
@@ -485,9 +505,8 @@ function sendManualReminder(data) {
          sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
        }
     } else if (type === 'ANNIVERSARY') {
-       // --- META API FOR ANNIVERSARY ---
-       const years = data.years || 1;
-       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+       // --- META API FOR ANNIVERSARY (Using 2 params as per your CURL) ---
+       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, name], ANNIVERSARY_IMAGE_URL);
 
        if (WHATSAPP_GROUP_ID) {
          const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
@@ -662,8 +681,8 @@ function dailyCheckEvents() {
        } catch(e) {}
        
        if(years > 0) {
-           // --- META API FOR ANNIVERSARY ---
-           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+           // --- META API FOR ANNIVERSARY (Using 2 params as per your CURL) ---
+           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, name], ANNIVERSARY_IMAGE_URL);
 
            if (WHATSAPP_GROUP_ID) {
              const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
