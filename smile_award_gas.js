@@ -735,8 +735,9 @@ function sendWhatsApp(recipient, message, mediaUrl) {
 
   if (isGroup) {
     payload.groupId = recipientStr;
-    payload.isGroup = "true";
-    payload.receiverMobileNo = ""; // Must be empty for groups
+    payload.group_id = recipientStr; // Fallback for some versions
+    payload.isGroup = true; // Boolean true
+    payload.is_group = "true"; // Another common variation
   } else {
     payload.receiverMobileNo = recipientStr;
   }
@@ -754,7 +755,9 @@ function sendWhatsApp(recipient, message, mediaUrl) {
 
   try {
     const response = UrlFetchApp.fetch(baseUrl, options);
-    console.log(`WhatsApp sent to ${recipient}. Status: ${response.getResponseCode()}`);
+    const resBody = response.getContentText();
+    console.log(`WhatsApp Status: ${response.getResponseCode()}`);
+    console.log(`Full API Response: ${resBody}`);
   } catch (e) {
     console.error(`Failed to send WhatsApp to ${recipient}: ` + e.toString());
   }
