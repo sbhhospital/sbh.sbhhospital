@@ -725,30 +725,23 @@ function sendWhatsApp(recipient, message, mediaUrl) {
   const baseUrl = "https://app.messageautosender.com/message/new";
   
   const recipientStr = String(recipient || "");
-  const isGroup = recipientStr.includes('-') || recipientStr.includes('@g.us') || recipientStr.length > 15;
+  const isGroup = recipientStr.includes('@g.us') || recipientStr.includes('-');
   
-  // SAFETY CHECK: If this is a personal message (not group) AND it's a celebration message,
-  // we block it here to ensure it ONLY goes through Meta.
-  const isCelebration = message.includes("BIRTHDAY") || message.includes("ANNIVERSARY") || message.includes("🎂") || message.includes("🌟");
-  if (!isGroup && isCelebration) {
-    console.warn("Blocking personal celebration message in sendWhatsApp. Use sendMetaWhatsApp instead.");
-    return;
-  }
-
   const payload = {
     username: username,
     password: password,
-    message: message,
-    receiverMobileNo: recipientStr
+    message: message
   };
 
   if (isGroup) {
-    payload.groupId = recipient;
+    payload.groupId = recipientStr;
     payload.isGroup = "true";
+    payload.receiverMobileNo = ""; // Must be empty for groups
+  } else {
+    payload.receiverMobileNo = recipientStr;
   }
 
   if (mediaUrl) {
-    // Try both common parameter names to be safe
     payload.filePathUrl = mediaUrl;
     payload.file = mediaUrl; 
   }
