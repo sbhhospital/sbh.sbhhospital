@@ -603,28 +603,37 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
   if (!recipientEmail || recipientEmail === 'N/A' || !recipientEmail.includes('@')) return;
 
   const isBirthday = type.toUpperCase() === 'BIRTHDAY';
-  // Clean subject to avoid encoding issues
   const subject = isBirthday 
     ? `HAPPY BIRTHDAY ${name.toUpperCase()} - SBH GROUP OF HOSPITALS` 
     : `HAPPY WORK ANNIVERSARY ${name.toUpperCase()} - SBH GROUP OF HOSPITALS`;
-  
-  // USING HIGH-AVAILABILITY DATA LINKS (Best for Gmail embedding)
+
+  // IMAGE IDs from Google Drive
   const bdayId = "1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly";
   const annivId = "1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB";
-  const logoId = "1XU2RzU-k8v2q9y7H4N2W0v-I_A9J0fKk";
+  const logoId = "1L_m41iDGJn91fTT7lpqLl-gc0oRVD2KW";
 
-  const imageUrl = isBirthday 
-    ? `https://lh3.googleusercontent.com/d/${bdayId}=s1000` 
-    : `https://lh3.googleusercontent.com/d/${annivId}=s1000`;
-    
-  const logoUrl = `https://lh3.googleusercontent.com/d/${logoId}=s1000`;
-
+  const celId = isBirthday ? bdayId : annivId;
+  const mainColor = isBirthday ? "#f97316" : "#059669";
+  const secondaryColor = isBirthday ? "#fb923c" : "#10b981";
+  
   const greeting = isBirthday 
     ? `Wishing you a day filled with laughter, joy, and all your favorite things! Your contribution to SBH is invaluable.`
     : `Congratulations on completing ${years} incredible year(s) with SBH Group! Thank you for your unwavering dedication and excellence.`;
 
-  const mainColor = isBirthday ? "#f97316" : "#059669"; // Orange for Bday, Emerald for Anniversary
-  const secondaryColor = isBirthday ? "#fb923c" : "#10b981";
+  // Fetch Image Data for Inline Embedding (CID)
+  // Using DriveApp is the most reliable way as it uses internal permissions
+  let celebrationBlob, logoBlob;
+  try {
+    celebrationBlob = DriveApp.getFileById(celId).getBlob().setName("celebration");
+    logoBlob = DriveApp.getFileById(logoId).getBlob().setName("logo");
+  } catch (e) {
+    console.error("Failed to fetch images via DriveApp: " + e.toString());
+    // Try fallback to UrlFetch if DriveApp fails (though DriveApp is preferred)
+    try {
+      celebrationBlob = UrlFetchApp.fetch(`https://lh3.googleusercontent.com/d/${celId}`).getBlob().setName("celebration");
+      logoBlob = UrlFetchApp.fetch(`https://lh3.googleusercontent.com/d/${logoId}`).getBlob().setName("logo");
+    } catch(err) {}
+  }
 
   const htmlBody = `
     <div style="background-color: #f1f5f9; padding: 40px 20px; font-family: 'Segoe UI', Arial, sans-serif;">
@@ -632,7 +641,7 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
         
         <!-- HEADER GRADIENT -->
         <div style="background: linear-gradient(135deg, ${mainColor} 0%, ${secondaryColor} 100%); padding: 40px 20px; text-align: center;">
-          <img src="${logoUrl}" alt="SBH Logo" style="height: 70px; width: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />
+          <img src="cid:logo" alt="SBH Logo" style="height: 80px; width: auto;" />
         </div>
 
         <div style="padding: 40px; text-align: center;">
@@ -646,8 +655,8 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
             "${greeting}"
           </p>
           
-          <div style="margin-bottom: 40px; padding: 10px; background: linear-gradient(45deg, #f8fafc, #ffffff); border-radius: 24px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9;">
-            <img src="${imageUrl}" alt="Celebration" style="width: 100%; max-width: 520px; height: auto; border-radius: 18px; display: block;" />
+          <div style="margin-bottom: 40px; padding: 10px; background: linear-gradient(45deg, #f8fafc, #ffffff); border-radius: 24px; border: 1px solid #f1f5f9;">
+            <img src="cid:celebration" alt="Celebration" style="width: 100%; max-width: 520px; height: auto; border-radius: 18px; display: block;" />
           </div>
           
           <div style="background-color: #f8fafc; padding: 30px; border-radius: 24px; border: 1px dashed #e2e8f0;">
@@ -672,25 +681,29 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
     </div>
   `;
 
+  const inlineImages = {};
+  if (celebrationBlob) inlineImages["celebration"] = celebrationBlob;
+  if (logoBlob) inlineImages["logo"] = logoBlob;
+
   try {
     GmailApp.sendEmail(recipientEmail, subject, "", {
       htmlBody: htmlBody,
       bcc: HR_BCC_EMAILS,
-      from: SENDER_EMAIL, // Must be pre-configured as alias
-      name: HOSPITAL_NAME
+      from: SENDER_EMAIL, 
+      name: HOSPITAL_NAME,
+      inlineImages: inlineImages
     });
-    console.log(`Professional Email sent to ${recipientEmail}`);
+    console.log(`Professional Email sent to ${recipientEmail} with Inline Images`);
   } catch (e) {
-    // Fallback if 'from' alias fails
     try {
       GmailApp.sendEmail(recipientEmail, subject, "", {
         htmlBody: htmlBody,
         bcc: HR_BCC_EMAILS,
-        name: HOSPITAL_NAME
+        name: HOSPITAL_NAME,
+        inlineImages: inlineImages
       });
-      console.log(`Email sent to ${recipientEmail} (Fallback sender)`);
     } catch (err) {
-      console.error(`Failed to send email to ${recipientEmail}: ${err.toString()}`);
+      console.error(`Final email failure: ${err.toString()}`);
     }
   }
 }
