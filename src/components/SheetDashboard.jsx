@@ -5,7 +5,7 @@ import {
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight, ChevronLeft,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
     Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Link as LinkIcon
+    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Cake, Gift, PartyPopper, Send, Link as LinkIcon
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
 import StaffRegistrationForm from './StaffRegistrationForm';
@@ -467,16 +467,20 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
                                 <th className="px-10 py-6">Identity</th>
                                 <th className="px-10 py-6">Dept & Role</th>
                                 <th className="px-10 py-6">WhatsApp</th>
+                                <th className="px-10 py-6">Dates & Milestones</th>
                                 <th className="px-10 py-6 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {paginatedStaff.map((s, i) => (
-                                <tr key={i} className="hover:bg-slate-50/50 transition-all group">
+                             {paginatedStaff.map((s, i) => (
+                                <tr key={i} className={`hover:bg-slate-50/50 transition-all group ${s.DOL ? 'opacity-40 bg-slate-50/30' : ''}`}>
                                     <td className="px-10 py-7">
-                                        <div>
-                                            <p className="font-black text-slate-800 uppercase text-[11px] mb-1">{s.Name}</p>
-                                            <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{s.Staff_ID}</p>
+                                        <div className="flex items-center gap-3">
+                                            <div>
+                                                <p className="font-black text-slate-800 uppercase text-[11px] mb-1">{s.Name}</p>
+                                                <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{s.Staff_ID}</p>
+                                            </div>
+                                            {s.DOL && <span className="px-3 py-1 bg-slate-200 text-slate-500 rounded-lg text-[8px] font-black uppercase tracking-widest">Left</span>}
                                         </div>
                                     </td>
                                     <td className="px-10 py-7">
@@ -486,6 +490,16 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
                                     <td className="px-10 py-7">
                                         <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
                                             <Phone size={12} className="text-slate-300"/> {s.Mobile}
+                                        </div>
+                                    </td>
+                                    <td className="px-10 py-7">
+                                        <div className="space-y-2">
+                                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                <Cake size={10} className="text-orange-400"/> {s.Birthday || 'Not Set'}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                <Award size={10} className="text-emerald-400"/> {s.Anniversary || 'Not Set'}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-10 py-7 text-right">
@@ -583,9 +597,15 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Email (Optional)</label>
-                                        <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="email@sbh.com"/>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Email (Optional)</label>
+                                            <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="email@sbh.com"/>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black uppercase text-rose-400 ml-2">Date of Leaving (DOL)</label>
+                                            <input type="date" value={formData.dol} onChange={e => setFormData({...formData, dol: e.target.value})} className="w-full bg-rose-50/50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-rose-500/20 focus:bg-white transition-all"/>
+                                        </div>
                                     </div>
                                 </form>
                             </div>
@@ -636,6 +656,205 @@ const PrintQRSection = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+        </div>
+    );
+};
+
+const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) => {
+    const [sending, setSending] = useState(null);
+
+    const handleSendManual = async (ev) => {
+        const sendKey = ev.staffId + ev.type;
+        setSending(sendKey);
+        try {
+            await fetch(smileScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ 
+                    action: 'send_manual_reminder', 
+                    type: ev.type, 
+                    name: ev.name, 
+                    mobile: ev.mobile,
+                    years: ev.type === 'ANNIVERSARY' ? (new Date().getFullYear() - ev.date.getFullYear()) : 0
+                })
+            });
+            // We use a small delay because no-cors doesn't give us the response body
+            await new Promise(r => setTimeout(r, 1500));
+            alert(`Wishes sent to ${ev.name}!`);
+        } catch (e) {
+            alert("Failed to send wishes.");
+        }
+        setSending(null);
+    };
+
+    const parseDate = (val) => {
+        if (!val) return null;
+        const sVal = String(val);
+        // Handle DD-MM-YYYY
+        if (sVal.length === 10 && sVal.charAt(2) === '-') {
+            const [d, m, y] = sVal.split('-').map(Number);
+            return new Date(y, m - 1, d);
+        }
+        // Handle YYYY-MM-DD
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    const getDaysUntil = (date) => {
+        if (!date) return 999;
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+        const event = new Date(now.getFullYear(), date.getMonth(), date.getDate());
+        if (event < now) {
+            event.setFullYear(now.getFullYear() + 1);
+        }
+        const diffTime = event - now;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    const events = useMemo(() => {
+        const list = [];
+        (staffList || []).forEach(s => {
+            // SKIP IF LEFT (DOL is present)
+            if (s.DOL || s.dol) return;
+
+            const bday = parseDate(s.Birthday);
+            if (bday) {
+                const days = getDaysUntil(bday);
+                if (days <= 60) { // Show events in next 60 days
+                    list.push({ type: 'BIRTHDAY', name: s.Name, date: bday, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile });
+                }
+            }
+            const anniv = parseDate(s.Anniversary);
+            if (anniv) {
+                const days = getDaysUntil(anniv);
+                if (days <= 60) { // Show events in next 60 days
+                    list.push({ type: 'ANNIVERSARY', name: s.Name, date: anniv, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile });
+                }
+            }
+        });
+        return list.sort((a, b) => a.days - b.days);
+    }, [staffList]);
+
+    if (loading) return <SectionLoader message="Syncing celebrations calendar..." />;
+
+    return (
+        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
+            <style>{`
+                @keyframes slow-blink {
+                    0%, 100% { opacity: 1; transform: scale(1); }
+                    50% { opacity: 0.7; transform: scale(0.98); }
+                }
+                .animate-slow-blink {
+                    animation: slow-blink 3s infinite ease-in-out;
+                }
+            `}</style>
+            <div className="px-1 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-3">Event <span className="text-orange-500">Radar</span></h2>
+                    <p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Upcoming birthdays and work anniversaries</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                    {events.some(e => e.days === 0) && (
+                        <button 
+                            disabled={sending === 'ALL_TODAY'}
+                            onClick={async () => {
+                                const todayEvents = events.filter(e => e.days === 0);
+                                if (window.confirm(`Send wishes to all ${todayEvents.length} staff members celebrating today?`)) {
+                                    setSending('ALL_TODAY');
+                                    for (const ev of todayEvents) {
+                                        await handleSendManual(ev);
+                                    }
+                                    setSending(null);
+                                    alert("All today's wishes dispatched!");
+                                }
+                            }}
+                            className="px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 hover:bg-orange-600 transition-all disabled:opacity-50"
+                        >
+                            {sending === 'ALL_TODAY' ? <Loader2 className="animate-spin" size={14}/> : <Send size={14}/>}
+                            {sending === 'ALL_TODAY' ? 'Dispatching...' : "Dispatch Today's Wishes"}
+                        </button>
+                    )}
+                </div>
+            </div>
+
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
+                <div className="max-h-[800px] overflow-y-auto custom-scrollbar p-8 md:p-12 bg-slate-50/30">
+                    {events.length === 0 ? (
+                        <div className="py-32 text-center">
+                            <PartyPopper size={48} className="mx-auto text-slate-200 mb-6" />
+                            <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">No upcoming celebrations found in next 60 days</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {events.map((ev, i) => (
+                                <motion.div 
+                                    key={`${ev.staffId}-${ev.type}`}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ delay: i * 0.05 }}
+                                    className={`p-8 rounded-[2.5rem] relative overflow-hidden group transition-all duration-500 border ${
+                                        ev.days === 0 
+                                        ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-orange-100 scale-[1.02] z-10' 
+                                        : 'bg-white border-slate-50 hover:border-orange-200 shadow-sm hover:shadow-xl'
+                                    }`}
+                                >
+                                    {ev.days === 0 && <Sparkles className="absolute -right-4 -top-4 text-orange-400/20" size={100} />}
+                                    
+                                    <div className="relative z-10">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${ev.days === 0 ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-orange-50 text-orange-500'}`}>
+                                                {ev.type === 'BIRTHDAY' ? <Cake size={24} /> : <Gift size={24} />}
+                                            </div>
+                                            {ev.days === 0 && (
+                                                <span className="px-4 py-1.5 bg-orange-500 text-white rounded-full text-[9px] font-black uppercase tracking-widest animate-bounce">Today!</span>
+                                            )}
+                                            {ev.days === 1 && (
+                                                <span className="px-4 py-1.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-full text-[9px] font-black uppercase tracking-widest">Tomorrow</span>
+                                            )}
+                                            {ev.days > 1 && ev.days <= 7 && (
+                                                <span className="px-3 py-1 bg-slate-50 text-slate-400 rounded-full text-[8px] font-black uppercase tracking-widest">In {ev.days} days</span>
+                                            )}
+                                        </div>
+
+                                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${ev.days === 0 ? 'text-orange-400' : 'text-slate-400'}`}>{ev.dept}</p>
+                                        <h3 className={`text-xl font-black uppercase tracking-tight mb-4 leading-tight ${ev.days === 0 ? 'text-white animate-slow-blink' : 'text-slate-800'}`}>{ev.name}</h3>
+                                        
+                                        <div className={`flex items-center justify-between pt-6 border-t ${ev.days === 0 ? 'border-slate-800' : 'border-slate-50'}`}>
+                                            <div className="flex items-center gap-3">
+                                                <Calendar size={14} className={ev.days === 0 ? 'text-slate-500' : 'text-slate-300'} />
+                                                <span className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                    {ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                </span>
+                                            </div>
+                                            <button 
+                                                onClick={() => handleSendManual(ev)}
+                                                disabled={sending === (ev.staffId + ev.type)}
+                                                className={`p-3 rounded-xl transition-all flex items-center gap-2 group/btn ${
+                                                    ev.days === 0 
+                                                    ? 'bg-orange-500 text-white hover:bg-white hover:text-orange-600' 
+                                                    : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'
+                                                } disabled:opacity-50`}
+                                            >
+                                                {sending === (ev.staffId + ev.type) ? (
+                                                    <Loader2 className="animate-spin" size={14} />
+                                                ) : (
+                                                    <Send size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                )}
+                                                <span className="text-[9px] font-black uppercase tracking-widest">
+                                                    {sending === (ev.staffId + ev.type) ? 'Sending...' : 'Send Wishes'}
+                                                </span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -726,6 +945,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         <CollapsibleCategory icon={<Users />} label="Workforce" isOpen={openCategories.employees} onToggle={() => setOpenCategories(p => ({...p, employees: !p.employees}))}>
                             <NavItem icon={<Users />} label="Staff Roster" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
                             <NavItem icon={<Scan />} label="QR Manager" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
+                            <NavItem icon={<Cake />} label="Celebrations" active={activeTab === 'CELEBRATIONS'} onClick={() => handleNavClick('CELEBRATIONS')} />
                         </CollapsibleCategory>
                         <CollapsibleCategory icon={<ClipboardList />} label="Lasik Section" isOpen={openCategories.lasik} onToggle={() => setOpenCategories(p => ({...p, lasik: !p.lasik}))}>
                             <NavItem icon={<Edit3 />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
@@ -788,6 +1008,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         )}
                         {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection onRefresh={fetchData} loading={loading} />}
+                        {activeTab === 'CELEBRATIONS' && <CelebrationsSection staffList={staffList} loading={loading} onRefresh={fetchData} smileScriptUrl={smileScriptUrl} />}
                         {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
                         {activeTab === 'LASIK_DATA' && (

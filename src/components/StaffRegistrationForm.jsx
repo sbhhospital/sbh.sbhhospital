@@ -32,7 +32,8 @@ const StaffRegistrationForm = () => {
         birthday: '', 
         department: '', 
         role: '',
-        doj: '' // Date of Joining
+        doj: '', 
+        dol: '' 
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -64,7 +65,7 @@ const StaffRegistrationForm = () => {
                 anniversary: formData.doj, 
                 department: formData.department,
                 role: formData.role,
-                dol: '', 
+                dol: formData.dol, 
                 doj: formData.doj 
             };
 
@@ -126,8 +127,9 @@ const StaffRegistrationForm = () => {
                         <SmileInputField label="Date of Joining" icon={<CalendarCheck size={18} className="text-slate-400"/>} type="date" value={formData.doj} onChange={v => setFormData({...formData, doj: v})} required />
                     </div>
 
-                    <div className="border-t border-slate-50 pt-10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-50 pt-10">
                         <SmileInputField label="Email Address (Optional)" icon={<Mail size={18} className="text-slate-400"/>} placeholder="name@sbhhospital.com" type="email" value={formData.email} onChange={v => setFormData({...formData, email: v})} />
+                        <SmileInputField label="Date of Leaving (Optional)" icon={<Calendar size={18} className="text-rose-400"/>} type="date" value={formData.dol} onChange={v => setFormData({...formData, dol: v})} />
                     </div>
 
                     <div className="pt-6">

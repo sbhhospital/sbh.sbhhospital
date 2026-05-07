@@ -4,7 +4,14 @@
  * External Staff Master ID: 1L5fE1wnGnkdGwg-6WcMku9AP6mg1bSy4lJgOwgv4Mlk
  */
 
-const EXTERNAL_SS_ID = "1L5fE1wnGnkdGwg-6WcMku9AP6mg1bSy4lJgOwgv4Mlk";
+// --- META WHATSAPP API (AiSensy) ---
+const META_API_URL = "https://backend.api-wa.co/campaign/myoperator/api/v2";
+const META_API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2Y2M3MDdhZTY3ODYwMTZlZDkwZDYyMSIsIm5hbWUiOiJTQkggV29tZW4gSG9zcGl0YWwgUHJpdmF0ZSBMaW1pdGVkIiwiYXBwTmFtZSI6IkFpU2Vuc3kiLCJjbGllbnRJZCI6IjY2Y2M3MDdhZTY3ODYwMTZlZDkwZDVlZCIsImFjdGl2ZVBsYW4iOiJOT05FIiwiaWF0IjoxNzI0Njc0MTcwfQ.fUK8tMgQOWRl5WTwtlRn_M4mSBoKLq2HVlpzBFOZZvg";
+const META_USER_NAME = "SBH Women Hospital Private Limited";
+
+// --- CELEBRATION IMAGES (Direct Drive Download Links) ---
+const BIRTHDAY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly"; 
+const ANNIVERSARY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB";
 const WHATSAPP_GROUP_ID = "120363406464175673@g.us"; 
 
 function setupSheets() {
@@ -463,18 +470,32 @@ function getFinalWinners() {
 }
 
 function sendManualReminder(data) {
-    const mobileStr = data.mobile ? data.mobile.toString().trim() : '';
+    const mobileStr = String(data.mobile || "").trim();
     if (!mobileStr || mobileStr === 'N/A') return createJsonResponse({ success: false, message: "No mobile" });
-    let msg = "";
-    if (data.type === 'birthday') {
-        msg = `🎂 Happy Birthday *${data.name}*! 🎉\n\nWishing you a fantastic day filled with joy and success from all of us! Have a great year ahead!\n\n- *SBH Group Of Hospitals*`;
-    } else if (data.type === 'anniversary') {
-        const yearsStr = data.years ? ` ${data.years} ` : ' ';
-        msg = `🌟 Happy Work Anniversary *${data.name}*! 🎊\n\nCongratulations on completing${yearsStr}wonderful year(s) with us! We truly appreciate your hard work and dedication.\n\n- *SBH Group Of Hospitals*`;
+    
+    const type = (data.type || "").toUpperCase();
+    const name = data.name;
+    
+    if (type === 'BIRTHDAY') {
+       // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
+       sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
+       
+       if (WHATSAPP_GROUP_ID) {
+         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
+         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
+       }
+    } else if (type === 'ANNIVERSARY') {
+       // --- META API FOR ANNIVERSARY ---
+       const years = data.years || 1;
+       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+
+       if (WHATSAPP_GROUP_ID) {
+         const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
+         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, ANNIVERSARY_IMAGE_URL);
+       }
     }
     
-    if (msg) sendWhatsApp(data.mobile, msg);
-    return createJsonResponse({ success: true, message: "Reminder sent" });
+    return createJsonResponse({ success: true, message: "Manual wishes sent via Meta/Group" });
 }
 
 function sendRecognition(data) {
@@ -496,32 +517,94 @@ function sendRecognition(data) {
   sendWhatsApp(mobile, message);
 }
 
-function sendWhatsApp(recipient, message) {
+/**
+ * Sends Official Meta WhatsApp via AiSensy
+ */
+function sendMetaWhatsApp(recipient, campaignName, templateParams, mediaUrl) {
+  // Clean phone number (must be in format 91XXXXXXXXXX)
+  let phone = String(recipient || "").replace(/\D/g, "");
+  if (phone.length === 10) phone = "91" + phone;
+
+  const payload = {
+    apiKey: META_API_KEY,
+    campaignName: campaignName,
+    destination: phone,
+    userName: META_USER_NAME,
+    templateParams: templateParams, // Array of strings
+    source: "Ai HR Automation",
+    media: mediaUrl ? {
+      url: mediaUrl,
+      filename: campaignName + "_media"
+    } : null,
+    buttons: [],
+    carouselCards: [],
+    location: {},
+    attributes: {},
+    paramsFallbackValue: {
+      "FirstName": templateParams[0] || "user"
+    }
+  };
+
+  const options = {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(payload),
+    muteHttpExceptions: true
+  };
+
+  try {
+    const response = UrlFetchApp.fetch(META_API_URL, options);
+    console.log(`Meta WhatsApp Sent to ${phone}. Response: ${response.getContentText()}`);
+    return response.getContentText();
+  } catch (e) {
+    console.error(`Meta API Error: ${e.toString()}`);
+    return null;
+  }
+}
+
+function sendWhatsApp(recipient, message, mediaUrl) {
   const username = "SBH HOSPITAL";
   const password = "123456789";
   const baseUrl = "https://app.messageautosender.com/message/new";
   
-  // Clean recipient (remove @g.us if it's just a number, but keep for groups)
-  const isGroup = recipient.includes('-') || recipient.includes('@g.us') || recipient.length > 15;
+  const recipientStr = String(recipient || "");
+  const isGroup = recipientStr.includes('-') || recipientStr.includes('@g.us') || recipientStr.length > 15;
   
-  let finalUrl = baseUrl + 
-    "?username=" + encodeURIComponent(username) +
-    "&password=" + encodeURIComponent(password) +
-    "&message=" + encodeURIComponent(message);
-
-  if (isGroup) {
-    // Many APIs use 'groupId' or 'chatId' for groups
-    // Since we are unsure, we will try adding both parameters to be safe
-    finalUrl += "&receiverMobileNo=" + encodeURIComponent(recipient);
-    finalUrl += "&groupId=" + encodeURIComponent(recipient);
-    finalUrl += "&isGroup=true";
-  } else {
-    finalUrl += "&receiverMobileNo=" + encodeURIComponent(recipient);
+  // SAFETY CHECK: If this is a personal message (not group) AND it's a celebration message,
+  // we block it here to ensure it ONLY goes through Meta.
+  const isCelebration = message.includes("BIRTHDAY") || message.includes("ANNIVERSARY") || message.includes("🎂") || message.includes("🌟");
+  if (!isGroup && isCelebration) {
+    console.warn("Blocking personal celebration message in sendWhatsApp. Use sendMetaWhatsApp instead.");
+    return;
   }
 
+  const payload = {
+    username: username,
+    password: password,
+    message: message,
+    receiverMobileNo: recipientStr
+  };
+
+  if (isGroup) {
+    payload.groupId = recipient;
+    payload.isGroup = "true";
+  }
+
+  if (mediaUrl) {
+    // Try both common parameter names to be safe
+    payload.filePathUrl = mediaUrl;
+    payload.file = mediaUrl; 
+  }
+
+  const options = {
+    method: 'post',
+    payload: payload,
+    muteHttpExceptions: true
+  };
+
   try {
-    const response = UrlFetchApp.fetch(finalUrl);
-    console.log(`WhatsApp sent to ${recipient}. Response: ${response.getContentText()}`);
+    const response = UrlFetchApp.fetch(baseUrl, options);
+    console.log(`WhatsApp sent to ${recipient}. Status: ${response.getResponseCode()}`);
   } catch (e) {
     console.error(`Failed to send WhatsApp to ${recipient}: ` + e.toString());
   }
@@ -542,14 +625,12 @@ function dailyCheckEvents() {
 
   for(let i=1; i<data.length; i++) {
     const name = data[i][1];
-    const mobile = data[i][2]; // Index 2
-    let dob = data[i][4]; // Index 4 (Birthday)
-    let doj = data[i][5]; // Index 5 (Anniversary)
-    const dol = data[i][8]; // Index 8
+    const mobile = data[i][2];
+    let dob = data[i][4];
+    let doj = data[i][5];
+    const dol = data[i][8];
     
-    // SKIP IF LEFT
     if(dol) continue;
-
     if(!mobile || mobile.toString().trim() === '') continue;
 
     if (dob instanceof Date) dob = Utilities.formatDate(dob, "GMT+5:30", "dd-MM-yyyy");
@@ -558,43 +639,64 @@ function dailyCheckEvents() {
     const dobS = dob ? dob.toString() : '';
     const dojS = doj ? doj.toString() : '';
 
-    // Check Birthday (dd-MM-yyyy)
+    // --- BIRTHDAY LOGIC ---
     if(dobS.startsWith(todayStr)) {
-       const msg = `Dear *${name}*,\n\n*May you never feel lonely.*\n\nMay wonderful people and loved ones always are there in your life to support you and make you happy. \n\nWishing you a very *Happy Birthday!* 🎂🎈\n\n- *SBH Group Of Hospitals*`;
-       sendWhatsApp(mobile, msg);
+       // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
+       sendMetaWhatsApp(mobile, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
        
-        // Send to SBH Parivar Group
-        if (WHATSAPP_GROUP_ID) {
-          const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nMay wonderful people and loved ones always are there in your life to support you and make you happy. \n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈\n\n- *SBH Group Of Hospitals*`;
-          sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg);
-        }
-     }
+       if (WHATSAPP_GROUP_ID) {
+         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
+         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
+       }
+    }
 
-     // Check Anniversary (dd-MM-yyyy)
-     if(dojS.startsWith(todayStr)) {
-        let years = 0;
-        try {
-            const parts = dojS.split('-');
-            if (parts.length === 3) {
-              const joinYear = parseInt(parts[2]);
-              if (!isNaN(joinYear) && joinYear > 1900) {
-                years = todayYear - joinYear;
-              }
-            }
-        } catch(e) {}
-        
-        if(years > 0) {
-            const msg = `Hello *${name}*,\n\n*Happy Work Anniversary!* 🎊✨\n\nCongratulations on completing *${years} Year(s)* of excellence with SBH Group! 🏆\n\nWe are incredibly grateful for your dedication and the positive impact you've made. We are so glad you chose to join us and that you choose to stay with us. ❤️\n\n- *SBH Group Of Hospitals*`;
-            sendWhatsApp(mobile, msg);
+    // --- ANNIVERSARY LOGIC ---
+    if(dojS.startsWith(todayStr)) {
+       let years = 0;
+       try {
+           const parts = dojS.split('-');
+           if (parts.length === 3) {
+             const joinYear = parseInt(parts[2]);
+             if (!isNaN(joinYear) && joinYear > 1900) years = todayYear - joinYear;
+           }
+       } catch(e) {}
+       
+       if(years > 0) {
+           // --- META API FOR ANNIVERSARY ---
+           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
 
-            // Send to SBH Parivar Group
-            if (WHATSAPP_GROUP_ID) {
-              const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊\n\nWe are so proud to have you in our family. Thank you for your continued dedication and excellence. ✨❤️\n\n- *SBH Group Of Hospitals*`;
-              sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg);
-            }
-        }
-     }
+           if (WHATSAPP_GROUP_ID) {
+             const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
+             sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, ANNIVERSARY_IMAGE_URL);
+           }
+       }
+    }
   }
+}
+
+/**
+ * SETUP: Run this function once to enable automatic daily checking at 9:00 AM
+ */
+function setupAutomationTrigger() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  
+  // Clear existing triggers for this function to avoid duplicates
+  const triggers = ScriptApp.getProjectTriggers();
+  for (let i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === 'dailyCheckEvents') {
+      ScriptApp.deleteTrigger(triggers[i]);
+    }
+  }
+  
+  // Create new daily trigger
+  ScriptApp.newTrigger('dailyCheckEvents')
+    .timeBased()
+    .atHour(9)
+    .everyDays(1)
+    .inTimezone("GMT+5:30")
+    .create();
+    
+  Browser.msgBox("Automation Active: Birthday/Anniversary checks will now run daily at 9:00 AM.");
 }
 
 function createJsonResponse(obj) {
