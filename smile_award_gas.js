@@ -636,49 +636,65 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
   }
 
   const htmlBody = `
-    <div style="background-color: #f1f5f9; padding: 40px 20px; font-family: 'Segoe UI', Arial, sans-serif;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 32px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);">
-        
-        <!-- HEADER GRADIENT -->
-        <div style="background: linear-gradient(135deg, ${mainColor} 0%, ${secondaryColor} 100%); padding: 40px 20px; text-align: center;">
-          <img src="cid:logo" alt="SBH Logo" style="height: 80px; width: auto;" />
-        </div>
+    <html>
+      <head>
+        <style>
+          @media only screen and (max-width: 600px) {
+            .container { width: 100% !important; padding: 10px !important; }
+            .card { border-radius: 16px !important; }
+            .logo-box { padding: 8px 15px !important; }
+            .logo-img { height: 35px !important; }
+            .name-text { font-size: 20px !important; }
+            .greeting-text { font-size: 13px !important; }
+            .content-padding { padding: 25px 15px !important; }
+          }
+        </style>
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #f1f5f9;">
+        <div class="container" style="padding: 40px 20px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+          <div class="card" style="max-width: 550px; margin: 0 auto; background-color: #ffffff; border-radius: 28px; overflow: hidden; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.1); border: 1px solid #e2e8f0;">
+            
+            <!-- HEADER -->
+            <div style="background: linear-gradient(135deg, ${mainColor} 0%, ${secondaryColor} 100%); padding: 30px 20px; text-align: center;">
+              <div class="logo-box" style="background-color: rgba(255,255,255,0.95); display: inline-block; padding: 12px 25px; border-radius: 14px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <img src="cid:logo" class="logo-img" alt="SBH Logo" style="height: 50px; width: auto; display: block;" />
+              </div>
+            </div>
 
-        <div style="padding: 40px; text-align: center;">
-          <h1 style="color: #1e293b; margin: 0 0 10px 0; font-size: 32px; font-weight: 900; letter-spacing: -1px;">
-            DEAR <span style="color: ${mainColor};">${name.toUpperCase()}</span>,
-          </h1>
-          
-          <div style="width: 50px; height: 5px; background-color: ${mainColor}; margin: 0 auto 25px auto; border-radius: 5px;"></div>
+            <div class="content-padding" style="padding: 40px 30px; text-align: center;">
+              <h2 style="color: #94a3b8; margin: 0 0 8px 0; font-size: 11px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase;">Official SBH Greeting</h2>
+              <h1 class="name-text" style="color: #0f172a; margin: 0 0 15px 0; font-size: 26px; font-weight: 900; letter-spacing: -0.5px; line-height: 1.2;">
+                DEAR <span style="color: ${mainColor};">${name.toUpperCase()}</span>,
+              </h1>
+              
+              <div style="width: 40px; height: 4px; background-color: ${mainColor}; margin: 0 auto 25px auto; border-radius: 2px;"></div>
 
-          <p style="color: #475569; font-size: 18px; line-height: 1.6; margin: 0 0 35px 0; font-weight: 500; font-style: italic;">
-            "${greeting}"
-          </p>
-          
-          <div style="margin-bottom: 40px; padding: 10px; background: linear-gradient(45deg, #f8fafc, #ffffff); border-radius: 24px; border: 1px solid #f1f5f9;">
-            <img src="cid:celebration" alt="Celebration" style="width: 100%; max-width: 520px; height: auto; border-radius: 18px; display: block;" />
-          </div>
-          
-          <div style="background-color: #f8fafc; padding: 30px; border-radius: 24px; border: 1px dashed #e2e8f0;">
-            <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 800; margin-bottom: 12px;">Official Congratulations From</p>
-            <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase;">SAI BABA GROUP OF HOSPITALS</h2>
-            <p style="color: ${mainColor}; font-weight: 700; margin-top: 5px; font-size: 14px;">"Excellence In Healthcare"</p>
+              <p class="greeting-text" style="color: #475569; font-size: 15px; line-height: 1.7; margin: 0 0 35px 0; font-weight: 500; font-style: italic;">
+                "${greeting}"
+              </p>
+              
+              <div style="margin-bottom: 35px; padding: 8px; background-color: #f8fafc; border-radius: 24px; display: inline-block; border: 1px solid #f1f5f9;">
+                <img src="cid:celebration" alt="Celebration" style="width: 100%; max-width: 480px; height: auto; border-radius: 18px; display: block;" />
+              </div>
+              
+              <div style="padding: 25px; border-radius: 20px; border: 1px solid #f1f5f9; background-color: #fcfcfc;">
+                <p style="color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 800; margin-bottom: 10px;">With Sincere Best Wishes From</p>
+                <h3 style="color: #0f172a; margin: 0; font-size: 18px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase;">SBH GROUP OF HOSPITALS</h3>
+                <p style="color: ${mainColor}; font-weight: 800; margin-top: 5px; font-size: 12px; letter-spacing: 1px;">"EXCELLENCE IN HEALTHCARE"</p>
+              </div>
+            </div>
+
+            <!-- FOOTER -->
+            <div style="background-color: #0f172a; padding: 25px; text-align: center;">
+              <p style="color: #64748b; font-size: 10px; margin: 0; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase;">
+                © ${new Date().getFullYear()} ${HOSPITAL_NAME} | DME & IT System
+              </p>
+              <div style="margin-top: 12px; height: 2px; width: 40px; background-color: ${mainColor}; margin-left: auto; margin-right: auto; border-radius: 1px; opacity: 0.4;"></div>
+            </div>
           </div>
         </div>
-
-        <!-- FOOTER -->
-        <div style="background-color: #0f172a; padding: 30px; text-align: center;">
-          <p style="color: #94a3b8; font-size: 11px; margin: 0; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">
-            © ${new Date().getFullYear()} ${HOSPITAL_NAME} | DME & IT System
-          </p>
-          <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
-             <span style="width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; display: inline-block;"></span>
-             <span style="width: 8px; height: 8px; background-color: #3b82f6; border-radius: 50%; display: inline-block;"></span>
-             <span style="width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block;"></span>
-          </div>
-        </div>
-      </div>
-    </div>
+      </body>
+    </html>
   `;
 
   const inlineImages = {};
