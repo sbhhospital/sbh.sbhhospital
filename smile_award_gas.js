@@ -796,43 +796,37 @@ function dailyCheckEvents() {
     const dobS = dob ? dob.toString() : '';
     const dojS = doj ? doj.toString() : '';
 
-    // --- BIRTHDAY LOGIC ---
-    if(dobS.startsWith(todayStr)) {
-       // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
-       sendMetaWhatsApp(mobile, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
-       
-       // --- EMAIL FOR BIRTHDAY ---
-       sendProfessionalCelebrationEmail(data[i][3], 'BIRTHDAY', name); // data[i][3] is Email
-       
-       if (WHATSAPP_GROUP_ID) {
-         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
-         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
-       }
+    const isBirthday = (dob && dob.substring(0, 5) === todayStr);
+    const isAnniversary = (doj && doj.substring(0, 5) === todayStr);
+
+    if (isBirthday) {
+      const bdayMedia = "https://lh3.googleusercontent.com/d/1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly=s1000";
+      sendMetaWhatsApp(mobile, "staff_birthday_wish", [name, name], bdayMedia);
+      sendProfessionalCelebrationEmail(data[i][3], 'BIRTHDAY', name);
+      
+      if (WHATSAPP_GROUP_ID) {
+        const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
+        sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, bdayMedia);
+      }
     }
 
-    // --- ANNIVERSARY LOGIC ---
-    if(dojS.startsWith(todayStr)) {
-       let years = 0;
-       try {
-           const parts = dojS.split('-');
-           if (parts.length === 3) {
-             const joinYear = parseInt(parts[2]);
-             if (!isNaN(joinYear) && joinYear > 1900) years = todayYear - joinYear;
-           }
-       } catch(e) {}
-       
-       if(years >= 0) {
-           // --- META API FOR ANNIVERSARY ---
-           sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
+    if (isAnniversary) {
+      // Calculate years
+      let years = 1;
+      try {
+        const joinYear = parseInt(doj.substring(6, 10));
+        if (!isNaN(joinYear)) years = todayYear - joinYear;
+        if (years <= 0) years = 1;
+      } catch(e) {}
+      
+      const annivMedia = "https://lh3.googleusercontent.com/d/1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB=s1000";
+      sendMetaWhatsApp(mobile, "staff_anniversary_wish", [name, String(years)], annivMedia);
+      sendProfessionalCelebrationEmail(data[i][3], 'ANNIVERSARY', name, years);
 
-           // --- EMAIL FOR ANNIVERSARY ---
-           sendProfessionalCelebrationEmail(data[i][3], 'ANNIVERSARY', name, years);
-
-           if (WHATSAPP_GROUP_ID) {
-             const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
-             sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, ANNIVERSARY_IMAGE_URL);
-           }
-       }
+      if (WHATSAPP_GROUP_ID) {
+        const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
+        sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, annivMedia);
+      }
     }
   }
 }
