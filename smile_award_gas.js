@@ -15,7 +15,7 @@ const ANNIVERSARY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1f
 const WHATSAPP_GROUP_ID = "120363406464175673@g.us"; 
 
 // --- EMAIL CONFIGURATION ---
-const SENDER_EMAIL = "no-reply@sbhhospital.com"; // Ensure this is added as an alias in Gmail settings
+const SENDER_EMAIL = "dme@sbhhospital.com"; 
 const HR_BCC_EMAILS = "hr@sbhhospital.com, dme@sbhhospital.com, asst.managerhr@sbhhospital.com";
 const HOSPITAL_NAME = "SBH Group Of Hospitals";
 
