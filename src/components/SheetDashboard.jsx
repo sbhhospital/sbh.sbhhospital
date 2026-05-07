@@ -822,32 +822,36 @@ const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) 
                                         <p className={`text-[8px] font-black uppercase tracking-[0.2em] mb-1 ${ev.days === 0 ? 'text-orange-400' : 'text-slate-400'}`}>{ev.dept}</p>
                                         <h3 className={`text-base font-black uppercase tracking-tight mb-4 leading-tight ${ev.days === 0 ? 'text-white animate-slow-blink' : 'text-slate-800'}`}>{ev.name}</h3>
                                         
-                                        <div className={`flex items-center justify-between pt-6 border-t ${ev.days === 0 ? 'border-slate-800' : 'border-slate-50'}`}>
-                                            <div className="flex items-center gap-3">
-                                                <Calendar size={14} className={ev.days === 0 ? 'text-slate-500' : 'text-slate-300'} />
-                                                <span className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                    {ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                </span>
-                                            </div>
-                                            <button 
-                                                onClick={() => handleSendManual(ev)}
-                                                disabled={sending === (ev.staffId + ev.type)}
-                                                className={`p-3 rounded-xl transition-all flex items-center gap-2 group/btn ${
-                                                    ev.days === 0 
-                                                    ? 'bg-orange-500 text-white hover:bg-white hover:text-orange-600' 
-                                                    : 'bg-slate-50 text-slate-400 hover:bg-emerald-50 hover:text-emerald-600'
-                                                } disabled:opacity-50`}
-                                            >
-                                                {sending === (ev.staffId + ev.type) ? (
-                                                    <Loader2 className="animate-spin" size={14} />
+                                            <div className={`flex items-center justify-between pt-6 border-t ${ev.days === 0 ? 'border-slate-800' : 'border-slate-50'}`}>
+                                                <div className="flex items-center gap-3">
+                                                    <Calendar size={14} className={ev.days === 0 ? 'text-slate-500' : 'text-slate-300'} />
+                                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-slate-400' : 'text-slate-500'}`}>
+                                                        {ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                    </span>
+                                                </div>
+                                                
+                                                {ev.days === 0 ? (
+                                                    <button 
+                                                        onClick={() => handleSendManual(ev)}
+                                                        disabled={sending === (ev.staffId + ev.type)}
+                                                        className="px-5 py-3 rounded-xl bg-orange-500 text-white hover:bg-white hover:text-orange-600 transition-all flex items-center gap-2 group/btn shadow-lg shadow-orange-500/20 disabled:opacity-50"
+                                                    >
+                                                        {sending === (ev.staffId + ev.type) ? (
+                                                            <Loader2 className="animate-spin" size={14} />
+                                                        ) : (
+                                                            <Send size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                        )}
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">
+                                                            {sending === (ev.staffId + ev.type) ? 'Sending...' : 'Send Wishes'}
+                                                        </span>
+                                                    </button>
                                                 ) : (
-                                                    <Send size={14} className="group-hover/btn:translate-x-1 transition-transform" />
+                                                    <div className="px-5 py-3 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 flex items-center gap-2 select-none">
+                                                        <Clock size={12} />
+                                                        <span className="text-[9px] font-black uppercase tracking-widest">Upcoming</span>
+                                                    </div>
                                                 )}
-                                                <span className="text-[9px] font-black uppercase tracking-widest">
-                                                    {sending === (ev.staffId + ev.type) ? 'Sending...' : 'Send Wishes'}
-                                                </span>
-                                            </button>
-                                        </div>
+                                            </div>
                                     </div>
                                 </motion.div>
                             ))}
