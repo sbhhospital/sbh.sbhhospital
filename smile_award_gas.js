@@ -735,9 +735,9 @@ function sendWhatsApp(recipient, message, mediaUrl) {
 
   if (isGroup) {
     payload.groupId = recipientStr;
-    payload.receiverMobileNo = recipientStr; // Crucial: Some versions use this for Group ID too
+    payload.group_id = recipientStr; 
     payload.isGroup = "true";
-    payload.group_id = recipientStr;
+    // We REMOVE receiverMobileNo entirely so the API is forced to use groupId
   } else {
     payload.receiverMobileNo = recipientStr;
     payload.isGroup = "false";
