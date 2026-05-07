@@ -502,28 +502,23 @@ function sendManualReminder(data) {
     const name = data.name;
     
     if (type === 'BIRTHDAY') {
-       // --- META API FOR BIRTHDAY (Using 2 params as per your CURL) ---
-       sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], BIRTHDAY_IMAGE_URL);
-       
-       // --- EMAIL FOR BIRTHDAY ---
+       const bdayMedia = "https://lh3.googleusercontent.com/d/1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly=s1000";
+       sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], bdayMedia);
        sendProfessionalCelebrationEmail(data.email, 'BIRTHDAY', name);
        
        if (WHATSAPP_GROUP_ID) {
-         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\n*May you never feel lonely.*\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
-         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, BIRTHDAY_IMAGE_URL);
+         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
+         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, bdayMedia);
        }
     } else if (type === 'ANNIVERSARY') {
-       // --- META API FOR ANNIVERSARY ---
        const years = data.years || 1;
-       // Sending Name and Years as params. If your template has {{1}} and {{2}}
-       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], ANNIVERSARY_IMAGE_URL);
-
-       // --- EMAIL FOR ANNIVERSARY ---
+       const annivMedia = "https://lh3.googleusercontent.com/d/1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB=s1000";
+       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], annivMedia);
        sendProfessionalCelebrationEmail(data.email, 'ANNIVERSARY', name, years);
 
        if (WHATSAPP_GROUP_ID) {
          const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
-         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, ANNIVERSARY_IMAGE_URL);
+         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, annivMedia);
        }
     }
     
@@ -563,10 +558,10 @@ function sendMetaWhatsApp(recipient, campaignName, templateParams, mediaUrl) {
     destination: phone,
     userName: META_USER_NAME,
     templateParams: templateParams, 
-    source: "HR-System-Trigger-" + new Date().getTime(),
+    source: "Manual-Wish-" + new Date().getTime(),
     media: mediaUrl ? {
       url: mediaUrl,
-      filename: "celebration_image"
+      filename: "celebration"
     } : null,
     buttons: [],
     carouselCards: [],
