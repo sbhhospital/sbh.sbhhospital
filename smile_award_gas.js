@@ -562,8 +562,8 @@ function sendMetaWhatsApp(recipient, campaignName, templateParams, mediaUrl) {
     campaignName: campaignName,
     destination: phone,
     userName: META_USER_NAME,
-    templateParams: templateParams, // Array of strings
-    source: "Ai HR Automation",
+    templateParams: templateParams, 
+    source: "Ai HR Automation " + new Date().getTime(),
     media: mediaUrl ? {
       url: mediaUrl,
       filename: campaignName + "_media"
