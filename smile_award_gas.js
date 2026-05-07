@@ -563,10 +563,10 @@ function sendMetaWhatsApp(recipient, campaignName, templateParams, mediaUrl) {
     destination: phone,
     userName: META_USER_NAME,
     templateParams: templateParams, 
-    source: "Ai HR Automation " + new Date().getTime(),
+    source: "HR-System-Trigger-" + new Date().getTime(),
     media: mediaUrl ? {
       url: mediaUrl,
-      filename: campaignName + "_media"
+      filename: "celebration_image"
     } : null,
     buttons: [],
     carouselCards: [],
@@ -603,54 +603,71 @@ function sendProfessionalCelebrationEmail(recipientEmail, type, name, years) {
   if (!recipientEmail || recipientEmail === 'N/A' || !recipientEmail.includes('@')) return;
 
   const isBirthday = type.toUpperCase() === 'BIRTHDAY';
-  // Using very standard emojis to avoid diamond encoding issues
+  // Clean subject to avoid encoding issues
   const subject = isBirthday 
-    ? `🎁 Happy Birthday ${name}! - SBH Group Of Hospitals` 
-    : `🎉 Happy Work Anniversary ${name}! - SBH Group Of Hospitals`;
+    ? `HAPPY BIRTHDAY ${name.toUpperCase()} - SBH GROUP OF HOSPITALS` 
+    : `HAPPY WORK ANNIVERSARY ${name.toUpperCase()} - SBH GROUP OF HOSPITALS`;
   
-  // Using thumbnail URLs which are much more reliable for embedding in emails
+  // USING HIGH-AVAILABILITY DATA LINKS (Best for Gmail embedding)
+  const bdayId = "1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly";
+  const annivId = "1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB";
+  const logoId = "1XU2RzU-k8v2q9y7H4N2W0v-I_A9J0fKk";
+
   const imageUrl = isBirthday 
-    ? "https://drive.google.com/thumbnail?id=1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly&sz=w1000" 
-    : "https://drive.google.com/thumbnail?id=1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB&sz=w1000";
+    ? `https://lh3.googleusercontent.com/d/${bdayId}=s1000` 
+    : `https://lh3.googleusercontent.com/d/${annivId}=s1000`;
     
-  const logoUrl = "https://drive.google.com/thumbnail?id=1XU2RzU-k8v2q9y7H4N2W0v-I_A9J0fKk&sz=w1000";
+  const logoUrl = `https://lh3.googleusercontent.com/d/${logoId}=s1000`;
 
   const greeting = isBirthday 
-    ? `May your birthday be the start of a year filled with good luck, good health and much happiness.`
-    : `Congratulations on completing ${years} Year(s) of excellence with SBH Group! We are incredibly grateful for your dedication.`;
+    ? `Wishing you a day filled with laughter, joy, and all your favorite things! Your contribution to SBH is invaluable.`
+    : `Congratulations on completing ${years} incredible year(s) with SBH Group! Thank you for your unwavering dedication and excellence.`;
+
+  const mainColor = isBirthday ? "#f97316" : "#059669"; // Orange for Bday, Emerald for Anniversary
+  const secondaryColor = isBirthday ? "#fb923c" : "#10b981";
 
   const htmlBody = `
-    <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 0; border-radius: 24px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);">
-      <div style="background: linear-gradient(135deg, #059669 0%, #10b981 100%); height: 10px;"></div>
-      
-      <div style="padding: 40px; text-align: center;">
-        <div style="margin-bottom: 24px;">
-           <img src="${logoUrl}" alt="SBH Logo" style="height: 60px; width: auto;" />
+    <div style="background-color: #f1f5f9; padding: 40px 20px; font-family: 'Segoe UI', Arial, sans-serif;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 32px; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15);">
+        
+        <!-- HEADER GRADIENT -->
+        <div style="background: linear-gradient(135deg, ${mainColor} 0%, ${secondaryColor} 100%); padding: 40px 20px; text-align: center;">
+          <img src="${logoUrl}" alt="SBH Logo" style="height: 70px; width: auto; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));" />
         </div>
 
-        <h1 style="color: #064e3b; margin: 0 0 16px 0; font-size: 28px; font-weight: 800; letter-spacing: -0.025em; text-transform: uppercase;">
-          Dear ${name},
-        </h1>
-        
-        <p style="color: #4b5563; font-size: 16px; line-height: 1.6; margin: 0 0 32px 0; font-weight: 500;">
-          ${greeting}
-        </p>
-        
-        <div style="margin-bottom: 32px; padding: 12px; background-color: #f0fdf4; border-radius: 24px; display: inline-block;">
-          <img src="${imageUrl}" alt="Celebration" style="width: 100%; max-width: 500px; height: auto; border-radius: 16px; display: block; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);" />
-        </div>
-        
-        <div style="border-top: 2px dashed #f0fdf4; padding-top: 32px;">
-          <p style="color: #9ca3af; font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; font-weight: 800; margin-bottom: 8px;">Official Wishes From</p>
-          <h2 style="color: #059669; margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase;">SAI BABA GROUP OF HOSPITALS</h2>
-        </div>
-      </div>
+        <div style="padding: 40px; text-align: center;">
+          <h1 style="color: #1e293b; margin: 0 0 10px 0; font-size: 32px; font-weight: 900; letter-spacing: -1px;">
+            DEAR <span style="color: ${mainColor};">${name.toUpperCase()}</span>,
+          </h1>
+          
+          <div style="width: 50px; height: 5px; background-color: ${mainColor}; margin: 0 auto 25px auto; border-radius: 5px;"></div>
 
-      <div style="background: linear-gradient(to right, #f8fafc, #f1f5f9); padding: 30px; text-align: center; border-top: 1px solid #f1f5f9;">
-        <p style="color: #64748b; font-size: 11px; margin: 0; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">
-          © ${new Date().getFullYear()} ${HOSPITAL_NAME} | DME & IT System
-        </p>
-        <div style="margin-top: 12px; height: 3px; width: 40px; background-color: #10b981; margin-left: auto; margin-right: auto; border-radius: 2px;"></div>
+          <p style="color: #475569; font-size: 18px; line-height: 1.6; margin: 0 0 35px 0; font-weight: 500; font-style: italic;">
+            "${greeting}"
+          </p>
+          
+          <div style="margin-bottom: 40px; padding: 10px; background: linear-gradient(45deg, #f8fafc, #ffffff); border-radius: 24px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); border: 1px solid #f1f5f9;">
+            <img src="${imageUrl}" alt="Celebration" style="width: 100%; max-width: 520px; height: auto; border-radius: 18px; display: block;" />
+          </div>
+          
+          <div style="background-color: #f8fafc; padding: 30px; border-radius: 24px; border: 1px dashed #e2e8f0;">
+            <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.2em; font-weight: 800; margin-bottom: 12px;">Official Congratulations From</p>
+            <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 900; letter-spacing: 0.05em; text-transform: uppercase;">SAI BABA GROUP OF HOSPITALS</h2>
+            <p style="color: ${mainColor}; font-weight: 700; margin-top: 5px; font-size: 14px;">"Excellence In Healthcare"</p>
+          </div>
+        </div>
+
+        <!-- FOOTER -->
+        <div style="background-color: #0f172a; padding: 30px; text-align: center;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;">
+            © ${new Date().getFullYear()} ${HOSPITAL_NAME} | DME & IT System
+          </p>
+          <div style="margin-top: 15px; display: flex; justify-content: center; gap: 10px;">
+             <span style="width: 8px; height: 8px; background-color: #ef4444; border-radius: 50%; display: inline-block;"></span>
+             <span style="width: 8px; height: 8px; background-color: #3b82f6; border-radius: 50%; display: inline-block;"></span>
+             <span style="width: 8px; height: 8px; background-color: #10b981; border-radius: 50%; display: inline-block;"></span>
+          </div>
+        </div>
       </div>
     </div>
   `;
