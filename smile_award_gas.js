@@ -12,7 +12,7 @@ const META_USER_NAME = "SBH Women Hospital Private Limited";
 // --- CELEBRATION IMAGES (Direct Drive Download Links) ---
 const BIRTHDAY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly"; 
 const ANNIVERSARY_IMAGE_URL = "https://drive.google.com/uc?export=download&id=1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB";
-const WHATSAPP_GROUP_ID = "120363406464175673@g.us"; 
+const WHATSAPP_GROUP_ID = "919644492116-1583132590@g.us"; 
 
 // --- EMAIL CONFIGURATION ---
 const SENDER_EMAIL = "dme@sbhhospital.com"; 
