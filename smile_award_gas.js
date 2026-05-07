@@ -876,3 +876,31 @@ function testGroupMessage() {
   
   sendWhatsApp(WHATSAPP_GROUP_ID, testMsg);
 }
+
+/**
+ * Utility to find your WhatsApp Group IDs
+ * Run this function in Apps Script to see the IDs in the log
+ */
+function getWhatsAppGroups() {
+  const username = "SBH HOSPITAL";
+  const password = "123456789";
+  const url = `https://app.messageautosender.com/api/v1/groups?username=${username}&password=${password}`;
+  
+  try {
+    const response = UrlFetchApp.fetch(url);
+    const groupsText = response.getContentText();
+    const groups = JSON.parse(groupsText);
+    
+    console.log("--- YOUR WHATSAPP GROUPS ---");
+    if (groups && Array.isArray(groups)) {
+      groups.forEach(g => {
+        console.log(`Group Name: ${g.name} | Group ID: ${g.id}`);
+      });
+    } else {
+      console.log("No groups found or API error: " + groupsText);
+    }
+    console.log("----------------------------");
+  } catch (e) {
+    console.error("Error fetching groups: " + e.toString());
+  }
+}
