@@ -90,6 +90,20 @@ const formatDateStrict = (dateVal) => {
     } catch (e) { return s; }
 };
 
+const formatDateReadable = (dateStr) => {
+    if (!dateStr) return "-";
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) { return dateStr; }
+};
+
+const getVal = (obj, key) => {
+    if (!obj) return '';
+    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+    return foundKey ? obj[foundKey] : '';
+};
+
 // --- HELPER COMPONENTS ---
 
 const NavItem = ({ icon, label, active, onClick }) => (
@@ -411,12 +425,6 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRo
     const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
 
     const isAdmin = userRole === 'SBH';
-
-    const getVal = (obj, key) => {
-        if (!obj) return '';
-        const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
-        return foundKey ? obj[foundKey] : '';
-    };
 
     const filteredStaff = useMemo(() => {
         return (staffList || []).filter(s => {
@@ -1121,18 +1129,49 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'LASIK_DATA' && (
                             <div className="space-y-10 animate-in fade-in pb-20">
                                 <div className="flex items-center justify-between px-1">
-                                    <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div>
+                                    <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-1">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div>
                                     <RefreshButton onRefresh={fetchData} loading={loading} />
                                 </div>
-                                <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-sm shadow-slate-100">
+                                <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-xl">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left min-w-[1000px]">
-                                            <thead className="bg-slate-50/50">
-                                                <tr><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Patient Identity</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Age</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Visual Aids?</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Stability</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Life Impact</th><th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Date</th></tr>
+                                        <table className="w-full text-left min-w-[1000px] border-collapse">
+                                            <thead className="bg-slate-50/80 sticky top-0 z-10 border-b border-slate-100">
+                                                <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                                    <th className="px-6 py-4">Patient Identity</th>
+                                                    <th className="px-6 py-4">Age</th>
+                                                    <th className="px-6 py-4">Visual Aids?</th>
+                                                    <th className="px-6 py-4">Stability</th>
+                                                    <th className="px-6 py-4">Life Impact</th>
+                                                    <th className="px-6 py-4">Date</th>
+                                                </tr>
                                             </thead>
-                                            <tbody className="divide-y divide-slate-100">
+                                            <tbody className="divide-y divide-slate-50">
                                                 {paginatedLasik.map((row, idx) => (
-                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-all"><td className="px-8 py-5"><p className="font-black text-slate-800 text-xs uppercase mb-0.5">{row.name}</p><p className="text-[9px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p></td><td className="px-8 py-5 text-[10px] font-bold text-slate-700">{row.age}</td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['wear_glasses_contact_lens_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['is_power_stable_']}</span></td><td className="px-8 py-5"><span className="px-3 py-1 bg-slate-100 rounded-full text-[9px] font-black uppercase tracking-widest">{row['affecting_day_to_day_activity_']}</span></td><td className="px-8 py-5 text-[9px] font-black text-slate-400 uppercase tracking-widest">{formatDateReadable(row.timestamp)}</td></tr>
+                                                    <tr key={idx} className="hover:bg-slate-50/50 transition-all">
+                                                        <td className="px-6 py-4">
+                                                            <p className="font-black text-slate-800 text-[10px] uppercase mb-0.5">{row.name}</p>
+                                                            <p className="text-[8px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-[9px] font-bold text-slate-700">{row.age}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-black uppercase tracking-widest">
+                                                                {row['wear_glasses_contact_lens_']}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-black uppercase tracking-widest">
+                                                                {row['is_power_stable_']}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <span className="px-2 py-0.5 bg-slate-100 rounded text-[8px] font-black uppercase tracking-widest">
+                                                                {row['affecting_day_to_day_activity_']}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                                                            {formatDateReadable(row.timestamp)}
+                                                        </td>
+                                                    </tr>
                                                 ))}
                                             </tbody>
                                         </table>

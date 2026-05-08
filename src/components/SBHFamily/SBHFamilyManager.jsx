@@ -7,6 +7,20 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const getVal = (obj, key) => {
+    if (!obj) return '';
+    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+    return foundKey ? obj[foundKey] : '';
+};
+
+const formatDateReadable = (dateStr) => {
+    if (!dateStr) return "-";
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) { return dateStr; }
+};
+
 const SBHFamilyManager = ({ scriptUrl, user }) => {
     const [activeSubTab, setActiveSubTab] = useState(user === 'ACCOUNT' ? 'ACCOUNT_PANEL' : 'DASHBOARD'); 
     const [staff, setStaff] = useState([]);
@@ -203,9 +217,9 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                 <button 
                                     key={tab.id}
                                     onClick={() => setActiveSubTab(tab.id)}
-                                    className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                                 >
-                                    <tab.icon size={12} />
+                                    <tab.icon size={11} />
                                     {tab.label}
                                 </button>
                             );
@@ -243,7 +257,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         >
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
-                        <button onClick={fetchData} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-slate-400 hover:text-emerald-600 transition-all active:scale-95"><RefreshCw size={14} /></button>
+                        <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95"><RefreshCw size={12} /></button>
                     </div>
                 </div>
             </div>
@@ -263,8 +277,8 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
                         <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h2 className="text-xs font-black uppercase tracking-widest text-slate-800">Global Ledger: {selectedMonth} {selectedYear}</h2>
-                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Scope: {selectedUnit} • Status: {selectedStatus}</p>
+                                <h2 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Global Ledger: {selectedMonth} {selectedYear}</h2>
+                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Scope: {selectedUnit} • Status: {selectedStatus}</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-4">
                                 <div className="flex bg-slate-100 p-1 rounded-xl">
@@ -294,49 +308,49 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                             <table className="w-full text-left border-collapse">
                                 <thead className="bg-slate-50/50 border-b border-slate-50">
                                     <tr>
-                                        <th className="px-8 py-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Staff & Unit</th>
-                                        <th className="px-8 py-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Payroll Details</th>
-                                        <th className="px-8 py-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                                        <th className="px-8 py-6 text-[9px] font-black uppercase tracking-widest text-slate-400">Settlement</th>
+                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Staff & Unit</th>
+                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Payroll Details</th>
+                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Status</th>
+                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Settlement</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {paginatedLedger.map((row, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-8 py-6">
+                                            <td className="px-6 py-4">
                                                 <button 
                                                     onClick={() => setSelectedStaff(staff.find(s => s.Staff_ID === row.Staff_ID))}
-                                                    className="font-black text-slate-800 text-[11px] uppercase tracking-tighter hover:text-emerald-600 transition-colors block text-left"
+                                                    className="font-black text-slate-800 text-[10px] uppercase tracking-tighter hover:text-emerald-600 transition-colors block text-left"
                                                 >
                                                     {row.Staff_Name}
                                                 </button>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className="text-[9px] font-bold text-slate-400 tracking-widest uppercase">{row.Staff_ID}</span>
+                                                <div className="flex items-center gap-2 mt-0.5">
+                                                    <span className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">{row.Staff_ID}</span>
                                                     <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                                                    <span className="text-[9px] font-black text-emerald-500 uppercase tracking-widest">{row.Unit}</span>
+                                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{row.Unit}</span>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
-                                                <div className="flex items-center gap-10">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-8">
                                                     <div>
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Attendance</p>
-                                                        <p className="text-[11px] font-black text-slate-700">{row.Days_Worked} Days</p>
+                                                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Attendance</p>
+                                                        <p className="text-[10px] font-black text-slate-700">{row.Days_Worked} Days</p>
                                                     </div>
                                                     <div>
-                                                        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Gross</p>
-                                                        <p className="text-[11px] font-black text-slate-700">₹{parseFloat(row.Gross_Salary).toLocaleString()}</p>
+                                                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Gross</p>
+                                                        <p className="text-[10px] font-black text-slate-700">₹{parseFloat(row.Gross_Salary).toLocaleString()}</p>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-6">
-                                                <span className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest border ${row.Status === 'Settled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${row.Status === 'Settled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
                                                     {row.Status}
                                                 </span>
                                             </td>
-                                            <td className="px-8 py-6">
+                                            <td className="px-6 py-4">
                                                 <div className="flex flex-col">
-                                                    <p className="text-[12px] font-black text-slate-900 tracking-tighter">₹{parseFloat(row.Net_Salary).toLocaleString()}</p>
-                                                    <p className="text-[8px] font-bold text-slate-400 uppercase mt-0.5">{row.Account_Confirm_Date ? `Paid on ${row.Account_Confirm_Date.split(' ')[0]}` : 'Awaiting confirmation'}</p>
+                                                    <p className="text-[10px] font-black text-slate-900 tracking-tighter">₹{parseFloat(row.Net_Salary).toLocaleString()}</p>
+                                                    <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5">{row.Account_Confirm_Date ? `Paid on ${row.Account_Confirm_Date.split(' ')[0]}` : 'Awaiting confirmation'}</p>
                                                 </div>
                                             </td>
                                         </tr>

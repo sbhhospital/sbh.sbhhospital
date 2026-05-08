@@ -6,6 +6,20 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+const getVal = (obj, key) => {
+    if (!obj) return '';
+    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+    return foundKey ? obj[foundKey] : '';
+};
+
+const formatDateReadable = (dateStr) => {
+    if (!dateStr) return "-";
+    try {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (e) { return dateStr; }
+};
+
 const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
     const [activeSubTab, setActiveSubTab] = useState(user === 'ACCOUNT' ? 'ACCOUNT_PANEL' : 'HR_ENTRY'); // HR_ENTRY, REPORT, SETTLED, MASTER, ACCOUNT_PANEL
     const [doctors, setDoctors] = useState([]);
@@ -307,14 +321,14 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                         <button 
                             key={tab.id}
                             onClick={() => setActiveSubTab(tab.id)}
-                            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
                         >
-                            <tab.icon size={12} />
+                            <tab.icon size={11} />
                             {tab.label}
                         </button>
                     ))}
                     <div className="w-[1px] h-5 bg-slate-200 mx-2 hidden md:block"></div>
-                    <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={14} /></button>
+                    <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95 shadow-sm"><RefreshCw size={12} /></button>
                 </div>
 
                 {/* Global Search Bar */}
@@ -375,32 +389,32 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                 <div className="space-y-6">
                     {/* Compact Stat Matrix */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-orange-200 transition-all">
-                            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600"><Clock size={18} /></div>
+                        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3 hover:border-orange-200 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600"><Clock size={16} /></div>
                             <div>
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pending</p>
-                                <p className="text-lg font-bold text-slate-800 tracking-tight">{stats.pendingCount}</p>
+                                <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Pending</p>
+                                <p className="text-sm font-bold text-slate-800 tracking-tight">{stats.pendingCount}</p>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-emerald-200 transition-all">
-                            <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><IndianRupee size={18} /></div>
+                        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3 hover:border-emerald-200 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><IndianRupee size={16} /></div>
                             <div>
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Due Amt</p>
-                                <p className="text-lg font-bold text-slate-800 tracking-tight">₹{stats.totalPendingAmount.toLocaleString()}</p>
+                                <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Due Amt</p>
+                                <p className="text-sm font-bold text-slate-800 tracking-tight">₹{stats.totalPendingAmount.toLocaleString()}</p>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-blue-200 transition-all">
-                            <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><CheckCircle2 size={18} /></div>
+                        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3 hover:border-blue-200 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><CheckCircle2 size={16} /></div>
                             <div>
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Count)</p>
-                                <p className="text-lg font-bold text-slate-800 tracking-tight">{stats.paidCount}</p>
+                                <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Count)</p>
+                                <p className="text-sm font-bold text-slate-800 tracking-tight">{stats.paidCount}</p>
                             </div>
                         </div>
-                        <div className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex items-center gap-4 hover:border-indigo-200 transition-all">
-                            <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><TrendingUp size={18} /></div>
+                        <div className="bg-white rounded-xl p-3 border border-slate-100 shadow-sm flex items-center gap-3 hover:border-indigo-200 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><TrendingUp size={16} /></div>
                             <div>
-                                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Value)</p>
-                                <p className="text-lg font-bold text-slate-800 tracking-tight">₹{stats.totalPaidThisMonth.toLocaleString()}</p>
+                                <p className="text-[7px] font-black uppercase text-slate-400 tracking-widest mb-0.5">Paid (Value)</p>
+                                <p className="text-sm font-bold text-slate-800 tracking-tight">₹{stats.totalPaidThisMonth.toLocaleString()}</p>
                             </div>
                         </div>
                     </div>
@@ -432,24 +446,24 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                         return status === 'PENDING' || status === 'DUE';
                                     }).map((p, i) => (
                                         <tr key={i} className="hover:bg-slate-50/80 transition-all group">
-                                            <td className="px-8 py-4 text-[11px] font-black text-slate-400">{p.Payment_ID}</td>
-                                            <td className="px-8 py-4">
+                                            <td className="px-6 py-3 text-[10px] font-black text-slate-400">{p.Payment_ID}</td>
+                                            <td className="px-6 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors"><User size={14} /></div>
-                                                    <p className="font-black text-slate-800 uppercase text-[11px]">{p.Doctor_Name}</p>
+                                                    <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-white transition-colors"><User size={12} /></div>
+                                                    <p className="font-black text-slate-800 uppercase text-[10px]">{p.Doctor_Name}</p>
                                                 </div>
                                             </td>
-                                            <td className="px-8 py-4 text-center">
-                                                <span className="font-black text-slate-900 text-[11px]">₹{parseFloat(p.Amount_To_Pay).toLocaleString()}</span>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className="font-black text-slate-900 text-[10px]">₹{parseFloat(p.Amount_To_Pay).toLocaleString()}</span>
                                             </td>
-                                            <td className="px-8 py-4 text-center">
-                                                <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[150px] mx-auto">{p.Visit_Dates || p.Visit_Date || '—'}</div>
+                                            <td className="px-6 py-3 text-center">
+                                                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest truncate max-w-[150px] mx-auto">{p.Visit_Dates || p.Visit_Date || '—'}</div>
                                             </td>
-                                            <td className="px-8 py-4 text-center">
-                                                <span className="px-3 py-1 bg-slate-100 rounded-md text-[10px] font-black text-slate-600">{p.Visit_Count || (p.Visit_Dates ? p.Visit_Dates.toString().split(',').length : '0')}</span>
+                                            <td className="px-6 py-3 text-center">
+                                                <span className="px-2 py-0.5 bg-slate-100 rounded text-[9px] font-black text-slate-600">{p.Visit_Count || (p.Visit_Dates ? p.Visit_Dates.toString().split(',').length : '0')}</span>
                                             </td>
-                                            <td className="px-8 py-4 text-right">
-                                                <span className="px-3 py-1 bg-orange-50 text-orange-600 rounded-md text-[9px] font-black uppercase tracking-widest border border-orange-100">Pending</span>
+                                            <td className="px-6 py-3 text-right">
+                                                <span className="px-2 py-0.5 bg-orange-50 text-orange-600 rounded text-[8px] font-black uppercase tracking-widest border border-orange-100">Pending</span>
                                             </td>
                                         </tr>
                                     ))}
