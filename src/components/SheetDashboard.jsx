@@ -4,7 +4,7 @@ import {
     Search, Edit3, Loader2, RefreshCw, Filter, Plus, Users, Activity, Bed,
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight, ChevronLeft,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
-    Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile, Clock,
+    Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile, Clock, Trash,
     TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Cake, Gift, PartyPopper, Send, Link as LinkIcon
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
@@ -95,21 +95,21 @@ const formatDateStrict = (dateVal) => {
 const NavItem = ({ icon, label, active, onClick }) => (
     <button 
         onClick={onClick} 
-        className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl transition-all duration-300 group relative overflow-hidden mb-1
+        className={`w-full flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden mb-1
             ${active 
-                ? 'bg-orange-500 text-white shadow-xl shadow-orange-100 transform scale-[1.02]' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-orange-600 opacity-90 hover:opacity-100'}`}
+                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' 
+                : 'text-slate-600 hover:bg-slate-50 hover:text-orange-600 opacity-90'}`}
     >
         {icon && (
             <span className={`flex items-center justify-center shrink-0 transition-transform duration-300 ${active ? 'scale-110 text-white' : 'text-orange-500 group-hover:scale-110'}`}>
-                {React.cloneElement(icon, { size: 18, strokeWidth: active ? 2.5 : 2 })}
+                {React.cloneElement(icon, { size: 14, strokeWidth: 2.5 })}
             </span>
         )}
-        <span className={`uppercase tracking-[0.15em] text-[10px] font-black whitespace-nowrap leading-none ${active ? 'text-white' : 'text-slate-700 group-hover:text-orange-600'}`}>
+        <span className={`uppercase tracking-widest text-[9px] font-black whitespace-nowrap leading-none ${active ? 'text-white' : 'text-slate-700'}`}>
             {label}
         </span>
         {active && (
-            <motion.div layoutId="nav-pill" className="absolute left-0 w-1 h-6 bg-white rounded-r-full" />
+            <motion.div layoutId="nav-pill" className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />
         )}
     </button>
 );
@@ -211,12 +211,12 @@ const RefreshButton = ({ onRefresh, loading, className = "" }) => (
 );
 
 const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
-    <div className="mb-3">
-        <button onClick={onToggle} className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl transition-all duration-300 ${isOpen ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <div className="flex items-center gap-4"><span className={`flex items-center justify-center shrink-0 ${isOpen ? 'text-orange-500' : 'text-slate-400'}`}>{React.cloneElement(icon, { size: 18, strokeWidth: 2.5 })}</span><span className="uppercase tracking-[0.2em] text-[10px] font-black leading-none">{label}</span></div>
-            <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.3 }} className="flex items-center shrink-0"><ChevronRight size={14} className={isOpen ? 'text-white' : 'text-slate-300'} /></motion.div>
+    <div className="mb-2">
+        <button onClick={onToggle} className={`w-full flex items-center justify-between px-5 py-2.5 rounded-xl transition-all duration-300 ${isOpen ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-600 hover:bg-slate-50'}`}>
+            <div className="flex items-center gap-3"><span className={`flex items-center justify-center shrink-0 ${isOpen ? 'text-white' : 'text-slate-400'}`}>{React.cloneElement(icon, { size: 14, strokeWidth: 2.5 })}</span><span className="uppercase tracking-[0.2em] text-[9px] font-black leading-none">{label}</span></div>
+            <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.3 }} className="flex items-center shrink-0"><ChevronRight size={12} className={isOpen ? 'text-white' : 'text-slate-300'} /></motion.div>
         </button>
-        <AnimatePresence>{isOpen && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 rounded-2xl mt-1.5 p-1.5 space-y-1">{children}</motion.div>)}</AnimatePresence>
+        <AnimatePresence>{isOpen && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 rounded-xl mt-1 p-1 space-y-0.5">{children}</motion.div>)}</AnimatePresence>
     </div>
 );
 
@@ -402,23 +402,30 @@ const HRApprovalPanel = ({ stats, winners, onApprove, loading, onRefresh }) => {
     );
 };
 
-const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
+const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRole }) => {
     const [submitting, setSubmitting] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 15;
     const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
+
+    const isAdmin = userRole === 'SBH';
+
+    const getVal = (obj, key) => {
+        if (!obj) return '';
+        const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
+        return foundKey ? obj[foundKey] : '';
+    };
 
     const filteredStaff = useMemo(() => {
         return (staffList || []).filter(s => {
             const search = searchTerm.toLowerCase();
             return (
-                (s.Name || '').toLowerCase().includes(search) ||
-                (s.Staff_ID || '').toLowerCase().includes(search) ||
-                (s.Department || '').toLowerCase().includes(search) ||
-                (s.Mobile || '').toLowerCase().includes(search) ||
-                (s.Email || '').toLowerCase().includes(search)
+                (getVal(s, 'Name')).toLowerCase().includes(search) ||
+                (getVal(s, 'Staff_ID')).toLowerCase().includes(search) ||
+                (getVal(s, 'Mobile')).toLowerCase().includes(search) ||
+                (getVal(s, 'Email')).toLowerCase().includes(search)
             );
         });
     }, [staffList, searchTerm]);
@@ -431,27 +438,40 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
     useEffect(() => { setCurrentPage(1); }, [searchTerm]);
 
     const handleEdit = (s) => {
-        const toFormDate = (val) => {
-            if (!val) return '';
-            const sVal = String(val);
-            if (sVal.length === 10 && sVal.charAt(2) === '-') {
-                const parts = sVal.split('-');
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-            return sVal.substring(0, 10);
-        };
         setFormData({
-            staffId: s.Staff_ID,
-            name: s.Name,
-            mobile: s.Mobile,
-            email: s.Email,
-            birthday: toFormDate(s.Birthday),
-            anniversary: toFormDate(s.Anniversary),
-            department: s.Department,
-            role: s.Role,
-            dol: toFormDate(s.DOL)
+            staffId: getVal(s, 'Staff_ID') || getVal(s, 'staffId'),
+            name: getVal(s, 'Name') || getVal(s, 'name'),
+            mobile: getVal(s, 'Mobile') || getVal(s, 'mobile'),
+            email: getVal(s, 'Email') || getVal(s, 'email'),
+            birthday: toFormDate(getVal(s, 'Birthday') || getVal(s, 'birthday')),
+            anniversary: toFormDate(getVal(s, 'Anniversary') || getVal(s, 'anniversary')),
+            department: getVal(s, 'Department') || getVal(s, 'department'),
+            role: getVal(s, 'Role') || getVal(s, 'role'),
+            dol: toFormDate(getVal(s, 'DOL') || getVal(s, 'dol'))
         });
         setShowModal(true);
+    };
+
+    const handleDelete = async (staffId) => {
+        if (!staffId) return;
+        if (!window.confirm("ARE YOU SURE YOU WANT TO DELETE THIS STAFF MEMBER?")) return;
+        setSubmitting(true);
+        try {
+            await fetch(smileScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ action: 'delete_staff', staffId })
+            });
+            setTimeout(() => {
+                fetchStaff();
+                alert("Staff Deleted!");
+                setSubmitting(false);
+            }, 800);
+        } catch (e) {
+            alert("Delete failed.");
+            setSubmitting(false);
+        }
     };
 
     const handleNew = () => {
@@ -470,99 +490,116 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
                 body: JSON.stringify({ action: formData.staffId ? 'edit_staff' : 'add_staff', ...formData })
             });
             setShowModal(false);
-            fetchStaff();
-            alert("Roster Updated Successfully!");
+            setTimeout(() => {
+                fetchStaff();
+                alert("Roster Updated!");
+                setSubmitting(false);
+            }, 800);
         } catch (e) {
-            alert("Sync Failed. Please check connectivity.");
+            alert("Sync Failed.");
+            setSubmitting(false);
         }
-        setSubmitting(false);
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in pb-20">
+        <div className="space-y-4 animate-in fade-in pb-10">
             {/* HEADER & SEARCH */}
-            <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-center gap-6">
+            <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-center gap-4">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Staff <span className="text-emerald-600">Roster</span></h2>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Manage employee profiles and automated triggers</p>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Workforce <span className="text-emerald-600">Ledger</span></h2>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Manage employee records and automated alerts</p>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row items-center gap-4">
-                    {/* SEARCH BAR */}
-                    <div className="relative w-full sm:w-80 group">
-                        <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={18} />
+                <div className="flex flex-col sm:flex-row items-center gap-3">
+                    <div className="relative w-full sm:w-64 group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={14} />
                         <input 
                             type="text"
-                            placeholder="Search name, ID or dept..."
+                            placeholder="Search staff..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white border border-slate-100 pl-14 pr-6 py-4 rounded-2xl font-bold text-sm outline-none focus:border-emerald-500/20 focus:ring-4 focus:ring-emerald-500/5 transition-all shadow-sm"
+                            className="w-full bg-white border border-slate-100 pl-10 pr-4 py-2.5 rounded-xl font-bold text-[11px] outline-none focus:border-emerald-500/20 shadow-sm"
                         />
                     </div>
-
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
                         <RefreshButton onRefresh={fetchStaff} loading={loading} />
-                        <button onClick={handleNew} className="flex-1 sm:flex-none px-8 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-emerald-200 flex items-center justify-center gap-3 transition-all hover:bg-slate-900 active:scale-95">
-                            <Plus size={16}/> New Entry
+                        <button onClick={handleNew} className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 hover:bg-slate-900 transition-all">
+                            <Plus size={14}/> Add New
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* SCROLLABLE TABLE CONTAINER */}
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden relative">
-                <div className="max-h-[650px] overflow-y-auto custom-scrollbar overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-slate-50/80 backdrop-blur-md sticky top-0 z-10">
-                            <tr className="text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
-                                <th className="px-10 py-6">Identity</th>
-                                <th className="px-10 py-6">Dept & Role</th>
-                                <th className="px-10 py-6">WhatsApp</th>
-                                <th className="px-10 py-6">Dates & Milestones</th>
-                                <th className="px-10 py-6 text-right">Actions</th>
+            {/* TABLE CONTAINER */}
+            <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
+                <div className="max-h-[600px] overflow-y-auto custom-scrollbar overflow-x-auto">
+                    <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
+                        <thead className="bg-slate-50/80 sticky top-0 z-10 border-b border-slate-100">
+                            <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                <th className="px-6 py-4 w-[25%]">Employee Identity</th>
+                                <th className="px-6 py-4 w-[20%]">Department & Role</th>
+                                <th className="px-6 py-4 w-[20%]">Communication</th>
+                                <th className="px-6 py-4 w-[20%]">Key Milestones</th>
+                                <th className="px-6 py-4 w-[15%] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                              {paginatedStaff.map((s, i) => (
-                                <tr key={i} className={`hover:bg-slate-50/50 transition-all group ${s.DOL ? 'opacity-40 bg-slate-50/30' : ''}`}>
-                                    <td className="px-10 py-7">
-                                        <div className="flex items-center gap-3">
+                                <tr key={i} className={`hover:bg-slate-50/50 transition-all group ${getVal(s, 'DOL') ? 'opacity-40 bg-slate-50/20' : ''}`}>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-2">
                                             <div>
-                                                <p className="font-black text-slate-800 uppercase text-[11px] mb-1">{s.Name}</p>
-                                                <p className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">{s.Staff_ID}</p>
+                                                <p className="font-black text-slate-800 uppercase text-[10px] mb-0.5">{getVal(s, 'Name')}</p>
+                                                <p className="text-[8px] text-slate-400 font-bold tracking-widest uppercase">{getVal(s, 'Staff_ID')}</p>
                                             </div>
-                                            {s.DOL && <span className="px-3 py-1 bg-slate-200 text-slate-500 rounded-lg text-[8px] font-black uppercase tracking-widest">Left</span>}
+                                            {getVal(s, 'DOL') && <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[7px] font-black uppercase tracking-widest">Left</span>}
                                         </div>
                                     </td>
-                                    <td className="px-10 py-7">
-                                        <p className="text-[10px] font-black text-slate-700 uppercase leading-none mb-1.5">{s.Department}</p>
-                                        <p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest leading-none">{s.Role || 'Professional Staff'}</p>
+                                    <td className="px-6 py-4">
+                                        <p className="text-[9px] font-black text-slate-600 uppercase mb-0.5">{getVal(s, 'Department')}</p>
+                                        <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-widest">{getVal(s, 'Role') || 'Staff'}</p>
                                     </td>
-                                    <td className="px-10 py-7">
-                                        <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500">
-                                            <Phone size={12} className="text-slate-300"/> {s.Mobile}
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-7">
-                                        <div className="space-y-2">
-                                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                <Cake size={10} className="text-orange-400"/> {formatDateStrict(s.Birthday)}
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500">
+                                                <Phone size={10} className="text-slate-300"/> {getVal(s, 'Mobile') || '-'}
                                             </div>
-                                            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                <Award size={10} className="text-emerald-400"/> {formatDateStrict(s.Anniversary)}
+                                            <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 truncate max-w-[150px]">
+                                                <Mail size={10} className="text-slate-200"/> {getVal(s, 'Email') || '-'}
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-10 py-7 text-right">
-                                        <button onClick={() => handleEdit(s)} className="p-3 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-all">
-                                            <Edit3 size={16}/>
-                                        </button>
+                                    <td className="px-6 py-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                                <Cake size={10} className="text-orange-400/70"/> {formatDateStrict(getVal(s, 'Birthday'))}
+                                            </div>
+                                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
+                                                <Award size={10} className="text-emerald-400/70"/> {formatDateStrict(getVal(s, 'Anniversary'))}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex items-center justify-end gap-1">
+                                            <button onClick={() => handleEdit(s)} className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
+                                                <Edit3 size={12}/>
+                                            </button>
+                                            {isAdmin && (
+                                                <button 
+                                                    disabled={submitting} 
+                                                    onClick={() => handleDelete(getVal(s, 'Staff_ID') || getVal(s, 'staffId'))} 
+                                                    className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                >
+                                                    <Trash size={12}/>
+                                                </button>
+                                            )}
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
                             {paginatedStaff.length === 0 && (
                                 <tr>
-                                    <td colSpan="4" className="px-10 py-20 text-center">
+                                    <td colSpan="5" className="px-10 py-20 text-center">
                                         <div className="flex flex-col items-center gap-4 opacity-30">
                                             <Search size={48} />
                                             <p className="text-[10px] font-black uppercase tracking-widest">No staff members match your search</p>
@@ -996,13 +1033,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex font-sans overflow-x-hidden">
             {!isPublic && (
-                <aside className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'}`}>
-                    <div className="h-24 px-8 flex items-center gap-4 border-b border-slate-50 sticky top-0 bg-white z-20">
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-rose-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-orange-200 rotate-3"><Activity size={24} strokeWidth={2.5} /></div>
-                        <div><h2 className="text-xl font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Intel Hub</p></div>
-                        <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 text-slate-400 hover:text-slate-600"><X size={20}/></button>
+                <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'}`}>
+                    <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-50 sticky top-0 bg-white z-20">
+                        <div className="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><Activity size={16} strokeWidth={2.5} /></div>
+                        <div><h2 className="text-sm font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2><p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Intel Hub</p></div>
+                        <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 text-slate-400 hover:text-slate-600"><X size={16}/></button>
                     </div>
-                    <div className="p-6 flex-1 space-y-4 overflow-y-auto custom-scrollbar bg-slate-50/20">
+                    <div className="p-4 flex-1 space-y-2 overflow-y-auto custom-scrollbar">
                         <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => setOpenCategories(p => ({...p, smile: !p.smile}))}>
                             <NavItem icon={<Plus />} label="Cast Nomination" active={activeTab === 'SMILE_FORM'} onClick={() => handleNavClick('SMILE_FORM')} />
                             <NavItem icon={<ClipboardList />} label="Nomination Ledger" active={activeTab === 'SMILE_ENTRIES'} onClick={() => handleNavClick('SMILE_ENTRIES')} />
@@ -1026,33 +1063,33 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                             <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                         </CollapsibleCategory>
                         
-                        {/* MANAGEMENT CONTROLS */}
-                        <div className="pt-8 border-t border-slate-100">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest px-6 mb-4">Management Controls</p>
-                            <button onClick={onLogout} className="w-full flex items-center gap-4 px-6 py-4 text-rose-500 hover:bg-rose-50 rounded-2xl transition-all group">
-                                <div className="w-10 h-10 bg-rose-50 text-rose-500 rounded-xl flex items-center justify-center group-hover:bg-rose-500 group-hover:text-white transition-all">
-                                    <LogOut size={18}/>
-                                </div>
-                                <span className="text-[10px] font-black uppercase tracking-widest">Sign Out System</span>
+                        <div className="pt-6 border-t border-slate-100">
+                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest px-5 mb-3">Management Controls</p>
+                            <button onClick={onLogout} className="w-full flex items-center gap-3 px-5 py-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all group">
+                                <LogOut size={14} className="opacity-70 group-hover:opacity-100" />
+                                <span className="text-[9px] font-black uppercase tracking-widest">Sign Out System</span>
                             </button>
                         </div>
                     </div>
                 </aside>
             )}
-            <div className={`flex-1 flex flex-col pb-20 w-full ${isPublic ? 'min-h-screen py-10 bg-slate-50' : 'lg:pl-72'}`}>
+            <div className={`flex-1 flex flex-col pb-16 w-full ${isPublic ? 'min-h-screen py-10 bg-slate-50' : 'lg:pl-64'}`}>
                 {!isPublic && (
-                    <header className="h-20 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40 shadow-sm">
-                        <div className="flex items-center gap-5"><button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-3 bg-orange-500 text-white rounded-xl shadow-lg active:scale-90 transition-all"><Menu size={24} /></button><div><h1 className="text-lg font-black text-slate-900 uppercase tracking-tighter leading-none">{activeTab.replace(/_/g, ' ')}</h1><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Management Operations</p></div></div>
+                    <header className="h-16 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40">
                         <div className="flex items-center gap-4">
-                            <RefreshButton onRefresh={fetchData} loading={loading} className="hidden sm:flex border-none shadow-none hover:bg-slate-50" />
-                            <div className="flex items-center gap-3 px-4 py-2 bg-slate-50 border border-slate-100 rounded-2xl">
-                                <div className="w-8 h-8 rounded-xl bg-orange-500 flex items-center justify-center text-white"><User size={16} /></div>
-                                <p className="text-[11px] font-black text-slate-800 uppercase tracking-tighter hidden sm:block">{user}</p>
+                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 bg-slate-900 text-white rounded-lg shadow-md active:scale-90 transition-all"><Menu size={18} /></button>
+                            <div><h1 className="text-xs font-black text-slate-900 uppercase tracking-tight leading-none">{activeTab.replace(/_/g, ' ')}</h1></div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <RefreshButton onRefresh={fetchData} loading={loading} className="hidden sm:flex border-none shadow-none hover:bg-slate-100" />
+                            <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl">
+                                <div className="w-6 h-6 rounded-lg bg-orange-500 flex items-center justify-center text-white"><User size={12} /></div>
+                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter hidden sm:block">{user}</p>
                             </div>
                         </div>
                     </header>
                 )}
-                <main className={`flex-1 p-4 sm:p-6 lg:p-14 max-w-[1400px] mx-auto w-full ${isPublic ? 'flex flex-col items-center' : ''}`}>
+                <main className={`flex-1 p-4 sm:p-6 lg:p-10 max-w-[1400px] mx-auto w-full ${isPublic ? 'flex flex-col items-center' : ''}`}>
                     <AnimatePresence mode="wait">
                         {activeTab === 'SMILE_ENTRIES' && <SmileEntriesSection entries={smileEntriesList} onOpenForm={() => handleNavClick('SMILE_FORM')} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'SMILE_FORM' && <SmileAwardFormSection key="form" onSubmissionSuccess={() => { fetchData(); if(!isPublic) handleNavClick('SMILE_ENTRIES'); }} />}
@@ -1076,7 +1113,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 onRefresh={fetchData} 
                             />
                         )}
-                        {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} />}
+                        {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} userRole={user} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection onRefresh={fetchData} loading={loading} />}
                         {activeTab === 'CELEBRATIONS' && <CelebrationsSection staffList={staffList} loading={loading} onRefresh={fetchData} smileScriptUrl={smileScriptUrl} />}
                         {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}

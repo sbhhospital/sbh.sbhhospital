@@ -160,6 +160,7 @@ function doPost(e) {
     if (action === 'approve_winner') return approveWinner(data);
     if (action === 'add_staff') return addStaff(data);
     if (action === 'edit_staff') return editStaff(data);
+    if (action === 'delete_staff') return deleteStaff(data);
     if (action === 'sync_staff') return syncStaff(data.externalUrl);
     if (action === 'send_manual_reminder') return sendManualReminder(data);
   } catch (err) {
