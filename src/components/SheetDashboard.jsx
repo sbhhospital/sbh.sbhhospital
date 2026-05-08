@@ -4,7 +4,7 @@ import {
     Search, Edit3, Loader2, RefreshCw, Filter, Plus, Users, Activity, Bed,
     CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight, ChevronLeft,
     User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
-    Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile,
+    Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile, Clock,
     TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Cake, Gift, PartyPopper, Send, Link as LinkIcon
 } from 'lucide-react';
 import SmileAwardForm from './SmileAwardForm';
