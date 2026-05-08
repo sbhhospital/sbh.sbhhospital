@@ -19,36 +19,30 @@ import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
 const toFormDate = (str) => {
     if (!str || str === '-') return '';
     const s = String(str).trim();
+    const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
     
-    // Handle "DD MonthName YYYY" (e.g. 08 May 1998 or 22 December 1996)
-    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const parts = s.split(' ');
     if (parts.length === 3) {
         const day = parts[0].padStart(2, '0');
-        const monthName = parts[1];
+        const monthName = parts[1].toLowerCase();
         const year = parts[2];
-        const monthIdx = monthNames.findIndex(m => monthName.toLowerCase().startsWith(m.toLowerCase().substring(0,3)));
+        const monthIdx = monthNames.findIndex(m => monthName.startsWith(m.substring(0,3)));
         if (monthIdx !== -1) {
             const mm = String(monthIdx + 1).padStart(2, '0');
             return `${year}-${mm}-${day}`;
         }
     }
 
-    // Handle DD-MM-YYYY
     if (s.includes('-') && s.split('-')[0].length <= 2) {
         const [d, m, y] = s.split('-').map(p => p.padStart(2, '0'));
-        // If year is 2 digits, assume 20xx
         const fullYear = y.length === 2 ? '20' + y : y;
         return `${fullYear}-${m}-${d}`;
     }
 
     try {
         const d = new Date(s);
-        if (!isNaN(d.getTime())) {
-            return d.toISOString().split('T')[0];
-        }
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
     } catch (e) {}
-    
     return '';
 };
 
@@ -68,19 +62,32 @@ const formatTimeToAMPM = (timeStr) => {
 };
 
 const formatDateStrict = (dateVal) => {
-    if (!dateVal) return '-';
-    // If it's already a string in dd-mm-yyyy format, return as is
-    if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length <= 2) {
-        return dateVal;
+    if (!dateVal || dateVal === '-') return '-';
+    const s = String(dateVal).trim();
+    const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+
+    const parts = s.split(' ');
+    if (parts.length === 3) {
+        const day = parts[0].padStart(2, '0');
+        const monthName = parts[1].toLowerCase();
+        const year = parts[2];
+        const monthIdx = monthNames.findIndex(m => monthName.startsWith(m.substring(0,3)));
+        if (monthIdx !== -1) {
+            const mm = String(monthIdx + 1).padStart(2, '0');
+            return `${day}-${mm}-${year}`;
+        }
     }
+
+    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+
     try {
-        const d = new Date(dateVal);
-        if (isNaN(d.getTime())) return dateVal;
+        const d = new Date(s);
+        if (isNaN(d.getTime())) return s;
         const day = String(d.getDate()).padStart(2, '0');
         const month = String(d.getMonth() + 1).padStart(2, '0');
         const year = d.getFullYear();
         return `${day}-${month}-${year}`;
-    } catch (e) { return dateVal; }
+    } catch (e) { return s; }
 };
 
 // --- HELPER COMPONENTS ---
