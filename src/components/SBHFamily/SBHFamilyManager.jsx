@@ -5,7 +5,6 @@ import {
     Stethoscope, Briefcase, TrendingUp, BarChart3, Download, Activity, User, RefreshCw, ChevronRight,
     Building2, Wallet, FileText, Send, PieChart, LayoutGrid, CalendarDays, History, Umbrella, ChevronLeft
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 
 const getVal = (obj, key) => {
     if (!obj) return '';
@@ -158,24 +157,16 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center p-32 space-y-8 animate-in fade-in zoom-in duration-500">
+            <div className="flex flex-col items-center justify-center p-32 space-y-8">
                 <div className="relative">
-                    <div className="w-24 h-24 border-4 border-emerald-100 rounded-full animate-spin border-t-emerald-600"></div>
-                    <Building2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-emerald-600" size={36} />
+                    <div className="w-24 h-24 border-4 border-orange-100 rounded-full animate-spin border-t-orange-600"></div>
+                    <Building2 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-orange-600" size={36} />
                 </div>
                 <div className="text-center">
                     <p className="text-sm font-black uppercase tracking-[0.4em] text-slate-800 mb-2">SBH Family Cloud</p>
-                    <AnimatePresence mode="wait">
-                        <motion.p 
-                            key={msgIdx}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            className="text-[10px] font-bold text-slate-400 uppercase tracking-widest"
-                        >
-                            {loadingMessages[msgIdx]}
-                        </motion.p>
-                    </AnimatePresence>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        {loadingMessages[msgIdx]}
+                    </p>
                 </div>
             </div>
         );
@@ -199,7 +190,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500 pb-20 max-w-[1600px] mx-auto px-4">
+        <div className="space-y-6 pb-20 max-w-[1600px] mx-auto px-4">
             {/* Multi-Level Navigation Header */}
             <div className="bg-white rounded-[2rem] border border-slate-100 p-4 sticky top-0 z-40 shadow-sm space-y-4">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -217,10 +208,14 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                 <button 
                                     key={tab.id}
                                     onClick={() => setActiveSubTab(tab.id)}
-                                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${activeSubTab === tab.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-50'}`}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-none ${
+                                        activeSubTab === tab.id 
+                                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' 
+                                        : 'text-slate-500 hover:bg-slate-50'
+                                    }`}
                                 >
-                                    <tab.icon size={11} />
-                                    {tab.label}
+                                    <tab.icon size={12} strokeWidth={activeSubTab === tab.id ? 2.5 : 2} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">{tab.label}</span>
                                 </button>
                             );
                         })}
@@ -230,7 +225,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         <select 
                             value={selectedUnit} 
                             onChange={(e) => setSelectedUnit(e.target.value)}
-                            className="bg-emerald-50 text-emerald-700 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            className="bg-orange-50 text-orange-700 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-orange-500/20"
                         >
                             <option value="ALL">All Units</option>
                             {units.map(u => <option key={u} value={u}>{u}</option>)}
@@ -246,34 +241,31 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         <select 
                             value={selectedMonth} 
                             onChange={(e) => setSelectedMonth(e.target.value)}
-                            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-700 outline-none focus:ring-2 focus:ring-orange-500/20"
                         >
                             {months.map(m => <option key={m} value={m}>{m}</option>)}
                         </select>
                         <select 
                             value={selectedYear} 
                             onChange={(e) => setSelectedYear(e.target.value)}
-                            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500/20"
+                            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-[9px] font-black uppercase tracking-widest text-slate-700 outline-none focus:ring-2 focus:ring-orange-500/20"
                         >
                             {years.map(y => <option key={y} value={y}>{y}</option>)}
                         </select>
-                        <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-emerald-600 transition-all active:scale-95"><RefreshCw size={12} /></button>
+                        <button onClick={fetchData} className="p-2 bg-slate-50 border border-slate-100 rounded-lg text-slate-400 hover:text-orange-600 transition-all active:scale-95"><RefreshCw size={12} /></button>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content Areas */}
             {activeSubTab === 'DASHBOARD' && (
                 <div className="space-y-8 px-2">
-                    {/* Stats Highlights */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <StatCard icon={<IndianRupee />} label="Monthly Payroll" value={`₹${stats.totalMonthly.toLocaleString()}`} color="bg-emerald-600" count={`${stats.staffCount} Staff in ${selectedUnit === 'ALL' ? 'All Units' : selectedUnit}`} />
+                        <StatCard icon={<IndianRupee />} label="Monthly Payroll" value={`₹${stats.totalMonthly.toLocaleString()}`} color="bg-orange-600" count={`${stats.staffCount} Staff in ${selectedUnit === 'ALL' ? 'All Units' : selectedUnit}`} />
                         <StatCard icon={<TrendingUp />} label="Yearly Disbursement" value={`₹${stats.totalYearly.toLocaleString()}`} color="bg-blue-600" count={`Total for ${selectedYear}`} />
                         <StatCard icon={<Clock />} label="Pending Disbursement" value={`₹${stats.pendingMonthly.toLocaleString()}`} color="bg-orange-500" count="Awaiting Settlement" />
                         <StatCard icon={<Building2 />} label="Active Unit" value={selectedUnit === 'ALL' ? '6 Locations' : selectedUnit} color="bg-slate-900" count="Scope" />
                     </div>
 
-                    {/* Main Ledger Table */}
                     <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm">
                         <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
@@ -286,7 +278,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                         <button 
                                             key={s} 
                                             onClick={() => setSelectedStatus(s)}
-                                            className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${selectedStatus === s ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                                            className={`px-4 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all ${selectedStatus === s ? 'bg-orange-500 text-white shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
                                         >
                                             {s}
                                         </button>
@@ -299,72 +291,54 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                         placeholder="Search Staff..." 
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-10 pr-4 text-[10px] font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                                        className="w-full bg-slate-50 border-none rounded-2xl py-3 pl-10 pr-4 text-[10px] font-bold text-slate-700 outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/10 transition-all"
                                     />
                                 </div>
                             </div>
                         </div>
-                        <div className="overflow-x-auto no-scrollbar">
-                            <table className="w-full text-left border-collapse">
-                                <thead className="bg-slate-50/50 border-b border-slate-50">
-                                    <tr>
-                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Staff & Unit</th>
-                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Payroll Details</th>
-                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                                        <th className="px-6 py-4 text-[8px] font-black uppercase tracking-widest text-slate-400">Settlement</th>
+                        <div className="overflow-hidden bg-white border border-slate-100 rounded-2xl shadow-sm">
+                            <table className="w-full text-left">
+                                <thead>
+                                    <tr className="bg-slate-50/50 border-b border-slate-100 text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                        <th className="px-6 py-4">Employee Identity</th>
+                                        <th className="px-6 py-4">Unit & Dept</th>
+                                        <th className="px-6 py-4">Financials</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    {paginatedLedger.map((row, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <button 
-                                                    onClick={() => setSelectedStaff(staff.find(s => s.Staff_ID === row.Staff_ID))}
-                                                    className="font-black text-slate-800 text-[10px] uppercase tracking-tighter hover:text-emerald-600 transition-colors block text-left"
-                                                >
-                                                    {row.Staff_Name}
-                                                </button>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">{row.Staff_ID}</span>
-                                                    <span className="w-1 h-1 bg-slate-200 rounded-full" />
-                                                    <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">{row.Unit}</span>
-                                                </div>
+                                    {paginatedLedger.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50/50 transition-all group">
+                                            <td className="px-6 py-3">
+                                                <p className="text-[10px] font-black text-slate-800 uppercase leading-none">{item.Staff_Name}</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {item.Staff_ID}</p>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-8">
-                                                    <div>
-                                                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Attendance</p>
-                                                        <p className="text-[10px] font-black text-slate-700">{row.Days_Worked} Days</p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-[7px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Total Gross</p>
-                                                        <p className="text-[10px] font-black text-slate-700">₹{parseFloat(row.Gross_Salary).toLocaleString()}</p>
-                                                    </div>
-                                                </div>
+                                            <td className="px-6 py-3">
+                                                <p className="text-[9px] font-black text-slate-600 uppercase mb-0.5">{item.Unit}</p>
+                                                <p className="text-[8px] text-orange-600 font-bold uppercase tracking-widest">{item.Department}</p>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${row.Status === 'Settled' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-orange-50 text-orange-600 border-orange-100'}`}>
-                                                    {row.Status}
+                                            <td className="px-6 py-3">
+                                                <p className="text-[10px] font-black text-slate-900 leading-none">₹{parseFloat(item.Net_Salary).toLocaleString()}</p>
+                                                <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Net Payable</p>
+                                            </td>
+                                            <td className="px-6 py-3">
+                                                <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${item.Status === 'Settled' ? 'bg-orange-50 text-orange-600' : 'bg-orange-50 text-orange-600'}`}>
+                                                    {item.Status}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <p className="text-[10px] font-black text-slate-900 tracking-tighter">₹{parseFloat(row.Net_Salary).toLocaleString()}</p>
-                                                    <p className="text-[7px] font-bold text-slate-400 uppercase mt-0.5">{row.Account_Confirm_Date ? `Paid on ${row.Account_Confirm_Date.split(' ')[0]}` : 'Awaiting confirmation'}</p>
+                                            <td className="px-6 py-3 text-right">
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <button 
+                                                        onClick={() => setSelectedStaff(staff.find(s => s.Staff_ID === item.Staff_ID))}
+                                                        className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                                    >
+                                                        <FileText size={14} />
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
                                     ))}
-                                    {paginatedLedger.length === 0 && (
-                                        <tr>
-                                            <td colSpan="4" className="px-8 py-24 text-center">
-                                                <div className="w-20 h-20 bg-slate-50 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                                                    <PieChart className="text-slate-200" size={32} />
-                                                </div>
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">No records found</p>
-                                            </td>
-                                        </tr>
-                                    )}
                                 </tbody>
                             </table>
                         </div>
@@ -391,15 +365,15 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                         const pending = unitData.filter(i => i.Status === 'Pending').length;
                         
                         return (
-                            <div key={unit} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 hover:border-emerald-200 transition-all group overflow-hidden relative">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/10 transition-all" />
+                            <div key={unit} className="bg-white rounded-[2.5rem] border border-slate-100 p-8 hover:border-orange-200 transition-all group overflow-hidden relative">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-orange-500/10 transition-all" />
                                 <div className="flex items-center justify-between mb-8">
-                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-orange-50 group-hover:text-orange-600 transition-all">
                                         <Building2 size={24} />
                                     </div>
                                     <button 
                                         onClick={() => { setSelectedUnit(unit); setActiveSubTab('DASHBOARD'); }}
-                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-emerald-600 hover:text-white transition-all shadow-sm"
+                                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-orange-500 hover:text-white transition-all shadow-sm"
                                     >
                                         <ChevronRight size={16} />
                                     </button>
@@ -412,7 +386,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Net</p>
                                         <p className="text-lg font-black text-slate-900 tracking-tighter">₹{total.toLocaleString()}</p>
                                     </div>
-                                    <div className={`p-5 rounded-[2rem] border transition-all ${pending > 0 ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
+                                    <div className={`p-5 rounded-[2rem] border transition-all ${pending > 0 ? 'bg-orange-50 border-orange-100 text-orange-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}>
                                         <p className="text-[8px] font-black uppercase tracking-widest opacity-60 mb-1">Pending</p>
                                         <p className="text-lg font-black tracking-tighter">{pending} Staff</p>
                                     </div>
@@ -495,94 +469,83 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                 />
             )}
 
-            {/* Confirmation Modal for Account Team */}
-            <AnimatePresence>
-                {confirmModal && (
-                    <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[300] flex items-center justify-center p-6">
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0 }} 
-                            animate={{ scale: 1, opacity: 1 }} 
-                            exit={{ scale: 0.9, opacity: 0 }}
-                            className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl space-y-8"
-                        >
-                            <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
-                                <Wallet size={40} />
-                            </div>
-                            <div className="text-center space-y-2">
-                                <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Confirm Payment?</h3>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
-                                    You are about to settle the salary for <br/>
-                                    <span className="text-slate-800 font-black">{confirmModal.staffData.Staff_Name}</span> for <span className="text-emerald-600">{confirmModal.staffData.Month} {confirmModal.staffData.Year}</span>.
-                                </p>
-                            </div>
+            {confirmModal && (
+                <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[300] flex items-center justify-center p-6">
+                    <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl space-y-8">
+                        <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6">
+                            <Wallet size={40} />
+                        </div>
+                        <div className="text-center space-y-2">
+                            <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Confirm Payment?</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
+                                You are about to settle the salary for <br/>
+                                <span className="text-slate-800 font-black">{confirmModal.staffData.Staff_Name}</span> for <span className="text-orange-600">{confirmModal.staffData.Month} {confirmModal.staffData.Year}</span>.
+                            </p>
+                        </div>
 
-                            <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Net Amount</span>
-                                    <span className="text-lg font-black text-slate-900">₹{confirmModal.staffData.Net_Salary}</span>
+                        <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
+                            <div className="flex justify-between items-center">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Net Amount</span>
+                                <span className="text-lg font-black text-slate-900">₹{confirmModal.staffData.Net_Salary}</span>
+                            </div>
+                            <div className="space-y-4 pt-2 border-t border-slate-200/50">
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Credit Date</label>
+                                    <input 
+                                        type="date" 
+                                        value={confirmModal.paymentDate}
+                                        onChange={(e) => setConfirmModal({ ...confirmModal, paymentDate: e.target.value })}
+                                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-orange-500 transition-all"
+                                    />
                                 </div>
-                                <div className="space-y-4 pt-2 border-t border-slate-200/50">
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Credit Date</label>
-                                        <input 
-                                            type="date" 
-                                            value={confirmModal.paymentDate}
-                                            onChange={(e) => setConfirmModal({ ...confirmModal, paymentDate: e.target.value })}
-                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-emerald-500 transition-all"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Remarks</label>
-                                        <input 
-                                            type="text" 
-                                            value={confirmModal.remarks}
-                                            onChange={(e) => setConfirmModal({ ...confirmModal, remarks: e.target.value })}
-                                            placeholder="Add remarks..."
-                                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-emerald-500 transition-all"
-                                        />
-                                    </div>
+                                <div className="space-y-1">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Account Remarks</label>
+                                    <input 
+                                        type="text" 
+                                        value={confirmModal.remarks}
+                                        onChange={(e) => setConfirmModal({ ...confirmModal, remarks: e.target.value })}
+                                        placeholder="Add remarks..."
+                                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-[11px] font-black outline-none focus:border-orange-500 transition-all"
+                                    />
                                 </div>
                             </div>
+                        </div>
 
-                            <div className="flex gap-4">
-                                <button 
-                                    onClick={() => setConfirmModal(null)}
-                                    className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button 
-                                    disabled={submitting}
-                                    onClick={async () => {
-                                        const { salaryId, remarks, staffData, paymentDate } = confirmModal;
-                                        setConfirmModal(null);
-                                        await onSettle(salaryId, remarks, staffData, paymentDate);
-                                    }}
-                                    className="flex-1 py-4 bg-emerald-600 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50"
-                                >
-                                    {submitting ? (
-                                        <div className="flex items-center justify-center gap-2">
-                                            <Loader2 className="animate-spin" size={14} />
-                                            <span>Processing...</span>
-                                        </div>
-                                    ) : "Confirm & Pay"}
-                                </button>
-                            </div>
-                        </motion.div>
+                        <div className="flex gap-4">
+                            <button 
+                                onClick={() => setConfirmModal(null)}
+                                className="flex-1 py-4 bg-slate-50 text-slate-400 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                disabled={submitting}
+                                onClick={async () => {
+                                    const { salaryId, remarks, staffData, paymentDate } = confirmModal;
+                                    setConfirmModal(null);
+                                    await onSettle(salaryId, remarks, staffData, paymentDate);
+                                }}
+                                className="flex-1 py-4 bg-orange-500 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-600/20 active:scale-95 transition-all disabled:opacity-50"
+                            >
+                                {submitting ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <Loader2 className="animate-spin" size={14} />
+                                        <span>Processing...</span>
+                                    </div>
+                                ) : "Confirm & Pay"}
+                            </button>
+                        </div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
 
-            {/* Enhanced Staff Popup with History */}
-            <AnimatePresence>
-                {selectedStaff && (
-                    <StaffDetailPopup 
-                        staff={selectedStaff} 
-                        history={ledger.filter(l => l.Staff_ID === selectedStaff.Staff_ID)} 
-                        onClose={() => setSelectedStaff(null)} 
-                    />
-                )}
-            </AnimatePresence>
+            {selectedStaff && (
+                <StaffDetailPopup 
+                    staff={selectedStaff} 
+                    history={ledger.filter(l => l.Staff_ID === selectedStaff.Staff_ID)} 
+                    onClose={() => setSelectedStaff(null)} 
+                />
+            )}
         </div>
     );
 };
@@ -593,14 +556,10 @@ const StaffDetailPopup = ({ staff, history, onClose }) => {
 
     return (
         <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xl z-[250] flex items-center justify-center p-4 md:p-10">
-            <motion.div 
-                initial={{ scale: 0.95, opacity: 0, y: 20 }} 
-                animate={{ scale: 1, opacity: 1, y: 0 }} 
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            <div 
                 className="bg-white w-full max-w-4xl rounded-[3.5rem] overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
             >
-                {/* Header Section */}
-                <div className="bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900 p-10 md:p-14 text-white relative flex-shrink-0">
+                <div className="bg-gradient-to-br from-orange-600 via-amber-700 to-slate-900 p-10 md:p-14 text-white relative flex-shrink-0">
                     <button onClick={onClose} className="absolute top-8 right-8 p-3 bg-white/10 hover:bg-white/20 rounded-2xl transition-all"><X size={20} /></button>
                     <div className="flex flex-col md:flex-row md:items-center gap-10">
                         <div className="w-24 h-24 bg-white/20 rounded-[2.5rem] flex items-center justify-center backdrop-blur-2xl border border-white/30 shadow-2xl">
@@ -621,16 +580,13 @@ const StaffDetailPopup = ({ staff, history, onClose }) => {
                     </div>
                 </div>
 
-                {/* Content Section - Scrollable */}
                 <div className="flex-1 overflow-y-auto p-10 md:p-14 space-y-12 no-scrollbar">
-                    {/* Stats Row */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <PopupStat icon={<IndianRupee />} label="Lifetime Paid" value={`₹${totalLifetime.toLocaleString()}`} color="text-emerald-600" />
+                        <PopupStat icon={<IndianRupee />} label="Lifetime Paid" value={`₹${totalLifetime.toLocaleString()}`} color="text-orange-600" />
                         <PopupStat icon={<CalendarDays />} label="Payments" value={settledPayments.length} color="text-blue-600" />
                         <PopupStat icon={<Umbrella />} label="Leave Balance (CL/EL)" value={`${staff.CL_Total - (staff.CL_Used || 0)} / ${staff.EL_Total - (staff.EL_Used || 0)}`} color="text-orange-500" />
                     </div>
 
-                    {/* Salary History Table */}
                     <div className="space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400"><History size={16} /></div>
@@ -653,7 +609,7 @@ const StaffDetailPopup = ({ staff, history, onClose }) => {
                                             <td className="px-8 py-4 text-[10px] font-bold text-slate-500">{item.Days_Worked} Days</td>
                                             <td className="px-8 py-4 text-[11px] font-black text-slate-900 font-mono">₹{parseFloat(item.Net_Salary).toLocaleString()}</td>
                                             <td className="px-8 py-4">
-                                                <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${item.Status === 'Settled' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'}`}>
+                                                <span className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase ${item.Status === 'Settled' ? 'bg-orange-100 text-orange-700' : 'bg-orange-100 text-orange-700'}`}>
                                                     {item.Status}
                                                 </span>
                                             </td>
@@ -675,7 +631,7 @@ const StaffDetailPopup = ({ staff, history, onClose }) => {
                         <DetailItem label="Base Pay" value={`₹${parseFloat(staff.Base_Salary || 0).toLocaleString()}`} />
                     </div>
                 </div>
-            </motion.div>
+            </div>
         </div>
     );
 };
@@ -720,7 +676,7 @@ const SalaryEntryForm = ({ staff, onSubmit, submitting }) => {
     return (
         <div className="max-w-2xl mx-auto bg-white rounded-[3rem] border border-slate-100 p-10 shadow-sm">
             <div className="flex items-center gap-4 mb-10">
-                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100">
+                <div className="w-12 h-12 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center border border-orange-100">
                     <IndianRupee size={24} />
                 </div>
                 <div>
@@ -736,7 +692,7 @@ const SalaryEntryForm = ({ staff, onSubmit, submitting }) => {
                         <select 
                             value={formData.staffId} 
                             onChange={(e) => handleStaffSelect(e.target.value)}
-                            className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all"
+                            className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all"
                         >
                             <option value="">Select Employee...</option>
                             {staff.map(s => <option key={s.Staff_ID} value={s.Staff_ID}>{s.Name} ({s.Unit})</option>)}
@@ -744,22 +700,22 @@ const SalaryEntryForm = ({ staff, onSubmit, submitting }) => {
                     </div>
                     <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Days Worked</label>
-                        <input type="number" value={formData.daysWorked} onChange={(e) => setFormData({...formData, daysWorked: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" />
+                        <input type="number" value={formData.daysWorked} onChange={(e) => setFormData({...formData, daysWorked: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all" />
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Gross Salary</label>
-                        <input type="number" value={formData.grossSalary} onChange={(e) => setFormData({...formData, grossSalary: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" />
+                        <input type="number" value={formData.grossSalary} onChange={(e) => setFormData({...formData, grossSalary: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Incentives</label>
-                        <input type="number" value={formData.incentives} onChange={(e) => setFormData({...formData, incentives: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" />
+                        <input type="number" value={formData.incentives} onChange={(e) => setFormData({...formData, incentives: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Deductions</label>
-                        <input type="number" value={formData.deductions} onChange={(e) => setFormData({...formData, deductions: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" />
+                        <input type="number" value={formData.deductions} onChange={(e) => setFormData({...formData, deductions: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all" />
                     </div>
                 </div>
 
@@ -771,7 +727,7 @@ const SalaryEntryForm = ({ staff, onSubmit, submitting }) => {
                     <button 
                         onClick={() => onSubmit({ ...formData, netSalary })}
                         disabled={submitting || !formData.staffId}
-                        className="flex items-center gap-3 px-8 py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl disabled:opacity-50"
+                        className="flex items-center gap-3 px-8 py-4 bg-orange-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl disabled:opacity-50"
                     >
                         {submitting ? <Loader2 className="animate-spin" size={16} /> : <><Send size={16} /> Process & Notify</>}
                     </button>
@@ -795,7 +751,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
                 
                 {pending.length === 0 ? (
                     <div className="bg-white rounded-[3rem] p-24 text-center border border-slate-100">
-                        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
+                        <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-sm">
                             <CheckCircle2 size={32} />
                         </div>
                         <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Clearance Complete</h3>
@@ -831,7 +787,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
                                                     placeholder="Add Transaction ID / Remark..." 
                                                     value={remarks[item.Salary_ID] || ''} 
                                                     onChange={(e) => setRemarks({ ...remarks, [item.Salary_ID]: e.target.value })} 
-                                                    className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-[10px] font-bold outline-none focus:ring-2 focus:ring-emerald-500/10 transition-all" 
+                                                    className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-[10px] font-bold outline-none focus:ring-2 focus:ring-orange-500/10 transition-all" 
                                                 />
                                             </div>
                                         </div>
@@ -839,7 +795,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
                                     <button 
                                         onClick={() => onSettle(item.Salary_ID, remarks[item.Salary_ID], { ...item, ...s })} 
                                         disabled={submitting} 
-                                        className="px-10 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl hover:bg-emerald-600 active:scale-95 transition-all"
+                                        className="px-10 py-5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 shadow-xl hover:bg-orange-600 active:scale-95 transition-all"
                                     >
                                         {submitting ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle2 size={16} /> Confirm</>}
                                     </button>
@@ -854,7 +810,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
             {settled.length > 0 && (
                 <div className="space-y-6 pt-12 border-t border-slate-100/50">
                     <div className="flex items-center gap-3 ml-2">
-                        <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-100"><History size={16} /></div>
+                        <div className="w-8 h-8 bg-orange-50 text-orange-600 rounded-xl flex items-center justify-center border border-orange-100"><History size={16} /></div>
                         <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-800">Financial Settlement History</h4>
                     </div>
                     
@@ -862,7 +818,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
                         {settled.map((item, idx) => (
                             <div key={idx} className="bg-slate-50/50 rounded-[2.5rem] border border-slate-100 p-8 flex items-center justify-between group hover:bg-white transition-all">
                                 <div className="flex items-center gap-5">
-                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-50"><CheckCircle2 size={20} /></div>
+                                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-orange-600 shadow-sm border border-orange-50"><CheckCircle2 size={20} /></div>
                                     <div>
                                         <h5 className="text-[11px] font-black text-slate-800 uppercase tracking-tighter mb-0.5">{item.Staff_Name}</h5>
                                         <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Paid on {item.Account_Confirm_Date?.split(' ')[0]}</p>
@@ -870,7 +826,7 @@ const AccountSettlementPanel = ({ pending, settled = [], staff, onSettle, submit
                                 </div>
                                 <div className="text-right">
                                     <p className="text-lg font-black text-slate-900 tracking-tighter">₹{parseFloat(item.Net_Salary).toLocaleString()}</p>
-                                    <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest italic truncate max-w-[120px]">{item.Account_Remarks}</p>
+                                    <p className="text-[8px] font-black text-orange-600 uppercase tracking-widest italic truncate max-w-[120px]">{item.Account_Remarks}</p>
                                 </div>
                             </div>
                         ))}
@@ -911,56 +867,54 @@ const StaffMaster = ({ staff, units, departments, onAdd, submitting, searchQuery
                     <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Family Master</h2>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Employee Central Repository</p>
                 </div>
-                <button onClick={() => setShowForm(!showForm)} className="px-6 py-3 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl hover:bg-emerald-600 transition-all">
+                <button onClick={() => setShowForm(!showForm)} className="px-6 py-3 bg-orange-500 text-white rounded-2xl text-[10px] font-black uppercase shadow-xl hover:bg-orange-600 transition-all">
                     {showForm ? 'Close Form' : 'Register New Staff'}
                 </button>
             </div>
 
-            <AnimatePresence>
-                {showForm && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                        <div className="bg-white rounded-[3rem] border border-slate-100 p-10 mb-10 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <MasterInput label="Full Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
-                            <MasterInput label="Designation" value={formData.designation} onChange={(v) => setFormData({...formData, designation: v})} />
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Department</label>
-                                <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
-                                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Assigned Unit</label>
-                                <select value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
-                                    {units.map(u => <option key={u} value={u}>{u}</option>)}
-                                </select>
-                            </div>
-                            <MasterInput label="Mobile" value={formData.mobile} onChange={(v) => setFormData({...formData, mobile: v})} />
-                            <MasterInput label="Bank A/C" value={formData.accountNumber} onChange={(v) => setFormData({...formData, accountNumber: v})} />
-                            <MasterInput label="IFSC Code" value={formData.ifscCode} onChange={(v) => setFormData({...formData, ifscCode: v})} />
-                            <MasterInput label="Joining Date" value={formData.joiningDate} onChange={(v) => setFormData({...formData, joiningDate: v})} type="date" />
-                            <MasterInput label="Base Salary" value={formData.baseSalary} onChange={(v) => setFormData({...formData, baseSalary: v})} type="number" />
-                            <div className="grid grid-cols-2 gap-4">
-                                <MasterInput label="CL Total" value={formData.clTotal} onChange={(v) => setFormData({...formData, clTotal: v})} type="number" />
-                                <MasterInput label="EL Total" value={formData.elTotal} onChange={(v) => setFormData({...formData, elTotal: v})} type="number" />
-                            </div>
-                            <div className="md:col-span-2 flex items-end">
-                                <button onClick={() => { onAdd(formData); setShowForm(false); }} disabled={submitting || !formData.name} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase shadow-2xl disabled:opacity-50">
-                                    {submitting ? 'Saving...' : 'Confirm Registration'}
-                                </button>
-                            </div>
+            {showForm && (
+                <div className="overflow-hidden">
+                    <div className="bg-white rounded-[3rem] border border-slate-100 p-10 mb-10 shadow-sm grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <MasterInput label="Full Name" value={formData.name} onChange={(v) => setFormData({...formData, name: v})} />
+                        <MasterInput label="Designation" value={formData.designation} onChange={(v) => setFormData({...formData, designation: v})} />
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Department</label>
+                            <select value={formData.department} onChange={(e) => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
+                                {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                            </select>
                         </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                        <div className="space-y-2">
+                            <label className="text-[9px] font-black text-slate-400 uppercase ml-1">Assigned Unit</label>
+                            <select value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})} className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[10px] font-black outline-none uppercase">
+                                {units.map(u => <option key={u} value={u}>{u}</option>)}
+                            </select>
+                        </div>
+                        <MasterInput label="Mobile" value={formData.mobile} onChange={(v) => setFormData({...formData, mobile: v})} />
+                        <MasterInput label="Bank A/C" value={formData.accountNumber} onChange={(v) => setFormData({...formData, accountNumber: v})} />
+                        <MasterInput label="IFSC Code" value={formData.ifscCode} onChange={(v) => setFormData({...formData, ifscCode: v})} />
+                        <MasterInput label="Joining Date" value={formData.joiningDate} onChange={(v) => setFormData({...formData, joiningDate: v})} type="date" />
+                        <MasterInput label="Base Salary" value={formData.baseSalary} onChange={(v) => setFormData({...formData, baseSalary: v})} type="number" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <MasterInput label="CL Total" value={formData.clTotal} onChange={(v) => setFormData({...formData, clTotal: v})} type="number" />
+                            <MasterInput label="EL Total" value={formData.elTotal} onChange={(v) => setFormData({...formData, elTotal: v})} type="number" />
+                        </div>
+                        <div className="md:col-span-2 flex items-end">
+                            <button onClick={() => { onAdd(formData); setShowForm(false); }} disabled={submitting || !formData.name} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase shadow-2xl disabled:opacity-50">
+                                {submitting ? 'Saving...' : 'Confirm Registration'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredStaff.slice((masterPage-1)*9, masterPage*9).map((s, idx) => (
-                    <div key={idx} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 hover:border-emerald-200 transition-all group shadow-sm">
+                    <div key={idx} className="bg-white rounded-[2.5rem] p-8 border border-slate-100 hover:border-orange-200 transition-all group shadow-sm">
                         <div className="flex items-center gap-5 mb-6">
-                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all"><User size={24} /></div>
+                            <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-orange-50 group-hover:text-orange-600 transition-all"><User size={24} /></div>
                             <div>
                                 <h4 className="font-black text-slate-800 uppercase tracking-tighter leading-none mb-1">{s.Name}</h4>
-                                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{s.Unit}</p>
+                                <p className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{s.Unit}</p>
                             </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">

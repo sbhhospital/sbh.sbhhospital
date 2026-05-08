@@ -1,423 +1,978 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import LasikSurvey from './LasikSurvey';
-import {
-    Search, Edit3, Loader2, RefreshCw, Filter, Plus, Users, Activity, Bed,
-    CheckCircle2, AlertCircle, X, Save, LogOut, Hospital, ChevronRight, ChevronLeft,
-    User, ClipboardList, Stethoscope, Scan, TrendingUp, BarChart3,
-    Calendar, Layers, Download, Globe, Heart, Award, Trophy, Smile, Clock, Trash,
-    TrendingDown, Menu, MapPin, Sparkles, Briefcase, Mail, Phone, CalendarCheck, IndianRupee, Linkedin, ShieldCheck, RotateCcw, UserPlus, Cake, Gift, PartyPopper, Send, Link as LinkIcon
-} from 'lucide-react';
-import SmileAwardForm from './SmileAwardForm';
-import StaffRegistrationForm from './StaffRegistrationForm';
-import { QRCodeSVG } from 'qrcode.react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { 
+    Award, Plus, ClipboardList, TrendingUp, Trophy, 
+    CheckCircle2, Users, Scan, Cake, Edit3, BarChart3, 
+    IndianRupee, LogOut, Activity, ChevronRight, Search, 
+    Trash, Save, Phone, Mail, User, X, Loader2, RefreshCw, 
+    Calendar, Star, Download, QrCode, ArrowLeft, Filter,
+    ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Fingerprint,
+    Linkedin, ExternalLink, ChevronDown, MessageCircle,
+    Send, MessageSquare, Building2, CheckCircle, Check
+} from 'lucide-react';
 import VisitingManager from './Visiting/VisitingManager';
 import AccountUpdate from './Visiting/AccountUpdate';
 import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
+import LasikSurvey from './LasikSurvey';
 
-// --- UTILS ---
-const toFormDate = (str) => {
-    if (!str || str === '-') return '';
-    const s = String(str).trim();
-    const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-    
-    const parts = s.split(' ');
-    if (parts.length === 3) {
-        const day = parts[0].padStart(2, '0');
-        const monthName = parts[1].toLowerCase();
-        const year = parts[2];
-        const monthIdx = monthNames.findIndex(m => monthName.startsWith(m.substring(0,3)));
-        if (monthIdx !== -1) {
-            const mm = String(monthIdx + 1).padStart(2, '0');
-            return `${year}-${mm}-${day}`;
-        }
-    }
-
-    if (s.includes('-') && s.split('-')[0].length <= 2) {
-        const [d, m, y] = s.split('-').map(p => p.padStart(2, '0'));
-        const fullYear = y.length === 2 ? '20' + y : y;
-        return `${fullYear}-${m}-${d}`;
-    }
-
-    try {
-        const d = new Date(s);
-        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
-    } catch (e) {}
-    return '';
+// --- UTILITIES ---
+const getVal = (obj, key) => {
+    if (!obj) return '';
+    const foundKey = Object.keys(obj).find(k => k.toLowerCase().replace(/_/g, '') === key.toLowerCase().replace(/_/g, ''));
+    return foundKey ? obj[foundKey] : (obj[key] || '');
 };
 
-const formatTimeToAMPM = (timeStr) => {
-    if (!timeStr) return '';
-    if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
+const parseDateLocal = (dateStr) => {
+    if (!dateStr) return null;
     try {
-        const parts = timeStr.split(':');
-        let h = parseInt(parts[0]);
-        let m = parts.length > 1 ? parts[1].substring(0, 2) : '00';
-        if (isNaN(h)) return timeStr;
-        const ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12 || 12;
-        m = m.toString().padStart(2, '0');
-        return `${h}:${m} ${ampm}`;
-    } catch (e) { return timeStr; }
+        const d = new Date(dateStr);
+        if (isNaN(d.getTime())) return null;
+        
+        // If it's a string, try to parse parts directly to avoid UTC shift
+        if (typeof dateStr === 'string') {
+            const clean = dateStr.split('T')[0];
+            const parts = clean.split(/[-/]/);
+            if (parts.length === 3) {
+                // Handle YYYY-MM-DD
+                if (parts[0].length === 4) return new Date(parts[0], parts[1] - 1, parts[2]);
+                // Handle DD-MM-YYYY
+                if (parts[2].length === 4) return new Date(parts[2], parts[1] - 1, parts[0]);
+            }
+        }
+        // If it was already a date object or other format, use it but zero out time
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    } catch (e) { return null; }
 };
 
-const formatDateStrict = (dateVal) => {
-    if (!dateVal || dateVal === '-') return '-';
-    const s = String(dateVal).trim();
-    const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
-
-    const parts = s.split(' ');
-    if (parts.length === 3) {
-        const day = parts[0].padStart(2, '0');
-        const monthName = parts[1].toLowerCase();
-        const year = parts[2];
-        const monthIdx = monthNames.findIndex(m => monthName.startsWith(m.substring(0,3)));
-        if (monthIdx !== -1) {
-            const mm = String(monthIdx + 1).padStart(2, '0');
-            return `${day}-${mm}-${year}`;
-        }
-    }
-
-    if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
-
-    try {
-        const d = new Date(s);
-        if (isNaN(d.getTime())) return s;
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
-    } catch (e) { return s; }
+const formatDateStrict = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const d = parseDateLocal(dateStr);
+    if (!d) return dateStr;
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }).toUpperCase();
 };
 
 const formatDateReadable = (dateStr) => {
-    if (!dateStr) return "-";
-    try {
-        const d = new Date(dateStr);
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch (e) { return dateStr; }
+    if (!dateStr) return 'N/A';
+    const d = parseDateLocal(dateStr);
+    if (!d) return dateStr;
+    return d.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' });
 };
 
-const getVal = (obj, key) => {
-    if (!obj) return '';
-    const foundKey = Object.keys(obj).find(k => k.toLowerCase() === key.toLowerCase());
-    return foundKey ? obj[foundKey] : '';
+const toFormDate = (dateStr) => {
+    if (!dateStr) return '';
+    const d = parseDateLocal(dateStr);
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 };
 
-// --- HELPER COMPONENTS ---
+// --- MINI COMPONENTS ---
 
-const NavItem = ({ icon, label, active, onClick }) => (
+const RefreshButton = ({ onRefresh, loading }) => (
     <button 
-        onClick={onClick} 
-        className={`w-full flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all duration-300 group relative overflow-hidden mb-1
-            ${active 
-                ? 'bg-slate-900 text-white shadow-lg shadow-slate-200' 
-                : 'text-slate-600 hover:bg-slate-50 hover:text-orange-600 opacity-90'}`}
+        onClick={onRefresh} 
+        disabled={loading}
+        className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-xl transition-all shadow-sm group"
     >
-        {icon && (
-            <span className={`flex items-center justify-center shrink-0 transition-transform duration-300 ${active ? 'scale-110 text-white' : 'text-orange-500 group-hover:scale-110'}`}>
-                {React.cloneElement(icon, { size: 14, strokeWidth: 2.5 })}
-            </span>
-        )}
-        <span className={`uppercase tracking-widest text-[9px] font-black whitespace-nowrap leading-none ${active ? 'text-white' : 'text-slate-700'}`}>
-            {label}
-        </span>
-        {active && (
-            <motion.div layoutId="nav-pill" className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />
-        )}
+        <RefreshCw size={14} className={`${loading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
     </button>
 );
-
-const SectionLoader = ({ message = "Syncing with cloud...", messages = [] }) => {
-    const [msgIdx, setMsgIdx] = useState(0);
-    useEffect(() => {
-        if (messages.length > 0) {
-            const t = setInterval(() => setMsgIdx(p => (p + 1) % messages.length), 2000);
-            return () => clearInterval(t);
-        }
-    }, [messages]);
-    return (
-        <div className="flex flex-col items-center justify-center p-20 space-y-8 animate-in fade-in zoom-in duration-700">
-            <div className="relative">
-                <div className="w-20 h-20 border-4 border-emerald-100 rounded-full animate-spin border-t-emerald-600 shadow-xl shadow-emerald-500/10"></div>
-                <div className="absolute inset-0 flex items-center justify-center"><Sparkles className="text-emerald-500 animate-pulse" size={24} /></div>
-            </div>
-            <div className="text-center space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-800 animate-pulse">SBH INTEL ENGINE</p>
-                <AnimatePresence mode="wait"><motion.p key={msgIdx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest min-h-[1.5em]">{messages.length > 0 ? messages[msgIdx] : message}</motion.p></AnimatePresence>
-            </div>
-        </div>
-    );
-};
-
-const Footer = () => {
-    return (
-        <footer className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-[#f59e0b] via-[#10b981] to-[#2e7d32] py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10">
-            <div className="absolute inset-0 opacity-10 pointer-events-none bg-white/5"></div>
-            <div className="max-w-full mx-auto px-4 md:px-10 relative z-10">
-                <div className="flex flex-col items-center justify-center md:hidden py-0.5">
-                    <a href="https://www.sbhhospital.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 no-underline"><ShieldCheck size={11} className="text-white" /><span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">SBH Group Of Hospitals</span></a>
-                    <a href="https://www.linkedin.com/in/ignamanmishra" target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 no-underline mt-0.5 opacity-90"><span className="text-[8px] font-bold text-white uppercase tracking-widest italic leading-none">Architected by <span className="ml-2 text-[9px] font-black text-white uppercase tracking-widest not-italic">Naman Mishra</span></span><Linkedin size={8} className="text-[#0077b5] bg-white rounded-[1px] p-[0.5px]" /></a>
-                </div>
-                <div className="hidden md:flex items-center justify-between gap-6 h-8">
-                    <div className="flex items-center gap-3"><div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-md shadow-sm"><Activity size={14} className="text-white" /></div><div className="flex flex-col"><span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">SBH INTEL</span><span className="text-[8px] font-extrabold text-white/80 tracking-wider mt-0.5">SYSTEM OPERATIONAL</span></div></div>
-                    <a href="https://www.sbhhospital.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 py-1 px-4 bg-white/10 hover:bg-white/20 rounded-full border border-white/20 backdrop-blur-lg transition-all transform hover:scale-105 group no-underline shadow-sm"><ShieldCheck size={12} className="text-white" /><span className="text-[10px] font-black text-white uppercase tracking-[0.2em] leading-none">SBH Group Of Hospitals</span></a>
-                    <a href="https://www.linkedin.com/in/ignamanmishra" target="_blank" rel="noopener noreferrer" className="flex flex-col text-right group no-underline"><span className="text-[8px] font-bold text-white/80 uppercase tracking-widest italic leading-none mb-1">Architected by</span><span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1.5 leading-none">Naman Mishra <Linkedin size={10} className="text-[#0077b5] bg-white rounded-[2px] p-[1px] opacity-100" /></span></a>
-                </div>
-            </div>
-        </footer>
-    );
-};
 
 const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange }) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     if (totalPages <= 1) return null;
 
     return (
-        <div className="flex items-center justify-center gap-2 mt-8">
-            <button 
-                disabled={currentPage === 1}
-                onClick={() => onPageChange(currentPage - 1)}
-                className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all shadow-sm"
-            >
-                <ChevronLeft size={18} />
-            </button>
+        <div className="flex items-center justify-between px-6 py-4 bg-white border-t border-slate-50">
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Showing <span className="text-slate-800">{Math.min(totalItems, (currentPage-1)*itemsPerPage + 1)}</span> to <span className="text-slate-800">{Math.min(totalItems, currentPage*itemsPerPage)}</span> of <span className="text-slate-800">{totalItems}</span> Records
+            </p>
             <div className="flex items-center gap-1">
-                {[...Array(totalPages)].map((_, i) => {
-                    const page = i + 1;
-                    // Show first, last, and pages around current
-                    if (page === 1 || page === totalPages || (page >= currentPage - 1 && page <= currentPage + 1)) {
+                <button 
+                    disabled={currentPage === 1}
+                    onClick={() => onPageChange(currentPage - 1)}
+                    className="p-2 text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all"
+                >
+                    <ChevronLeft size={16} />
+                </button>
+                <div className="flex items-center gap-1 px-2">
+                    {[...Array(totalPages)].map((_, i) => {
+                        const page = i + 1;
+                        if (totalPages > 5 && Math.abs(page - currentPage) > 1 && page !== 1 && page !== totalPages) {
+                            if (page === 2 || page === totalPages - 1) return <span key={page} className="text-slate-300 text-[10px]">...</span>;
+                            return null;
+                        }
                         return (
                             <button
                                 key={page}
                                 onClick={() => onPageChange(page)}
-                                className={`w-10 h-10 rounded-xl font-black text-[10px] transition-all shadow-sm border ${currentPage === page ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-100 hover:border-orange-200'}`}
+                                className={`w-7 h-7 rounded-lg text-[9px] font-black transition-all ${currentPage === page ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
                             >
                                 {page}
                             </button>
                         );
-                    } else if (page === currentPage - 2 || page === currentPage + 2) {
-                        return <span key={page} className="text-slate-300 px-1 font-black">...</span>;
-                    }
-                    return null;
-                })}
+                    })}
+                </div>
+                <button 
+                    disabled={currentPage === totalPages}
+                    onClick={() => onPageChange(currentPage + 1)}
+                    className="p-2 text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all"
+                >
+                    <ChevronRight size={16} />
+                </button>
             </div>
-            <button 
-                disabled={currentPage === totalPages}
-                onClick={() => onPageChange(currentPage + 1)}
-                className="p-3 bg-white border border-slate-100 rounded-xl text-slate-400 hover:text-orange-600 disabled:opacity-30 transition-all shadow-sm"
-            >
-                <ChevronRight size={18} />
-            </button>
         </div>
     );
 };
 
-const RefreshButton = ({ onRefresh, loading, className = "" }) => (
+const NavItem = ({ icon, label, active, onClick }) => (
     <button 
-        onClick={onRefresh} 
-        disabled={loading}
-        className={`p-3 bg-white border border-slate-100 rounded-2xl text-slate-400 hover:text-orange-600 transition-all shadow-sm active:scale-95 disabled:opacity-50 ${className}`}
-        title="Refresh Data"
+        onClick={onClick}
+        className={`w-full flex items-center gap-3 px-5 py-2.5 rounded-xl transition-all group relative mb-1 ${
+            active 
+            ? 'bg-orange-500 text-white shadow-lg shadow-orange-200/50 transform scale-[1.02]' 
+            : 'text-emerald-950/80 hover:bg-orange-50 hover:text-orange-950 opacity-90'
+        }`}
     >
-        <RotateCcw size={18} className={loading ? "animate-spin text-orange-500" : ""} />
+        <span className={`flex items-center justify-center shrink-0 ${active ? 'text-white' : 'text-orange-500'}`}>
+            {React.cloneElement(icon, { size: 14, strokeWidth: active ? 2.5 : 2 })}
+        </span>
+        <span className="text-[10px] font-bold tracking-wide transition-opacity duration-200">
+            {label}
+        </span>
+        {active && (
+            <div className="absolute right-3 w-1.5 h-1.5 rounded-full bg-white shadow-sm" />
+        )}
     </button>
 );
 
 const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
     <div className="mb-2">
-        <button onClick={onToggle} className={`w-full flex items-center justify-between px-5 py-2.5 rounded-xl transition-all duration-300 ${isOpen ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-600 hover:bg-slate-50'}`}>
-            <div className="flex items-center gap-3"><span className={`flex items-center justify-center shrink-0 ${isOpen ? 'text-white' : 'text-slate-400'}`}>{React.cloneElement(icon, { size: 14, strokeWidth: 2.5 })}</span><span className="uppercase tracking-[0.2em] text-[9px] font-black leading-none">{label}</span></div>
-            <motion.div animate={{ rotate: isOpen ? 90 : 0 }} transition={{ duration: 0.3 }} className="flex items-center shrink-0"><ChevronRight size={12} className={isOpen ? 'text-white' : 'text-slate-300'} /></motion.div>
+        <button 
+            onClick={onToggle} 
+            className={`w-full flex items-center justify-between px-5 py-3 rounded-xl transition-all duration-200 font-bold tracking-wide text-[11px] ${
+                isOpen 
+                ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200/50' 
+                : 'text-emerald-950/80 hover:bg-emerald-50 hover:text-emerald-950'
+            }`}
+        >
+            <div className="flex items-center gap-3">
+                <span className={`flex items-center justify-center shrink-0 ${isOpen ? 'text-white' : 'text-orange-500'}`}>
+                    {React.cloneElement(icon, { size: 16, strokeWidth: 2.5 })}
+                </span>
+                <span>{label}</span>
+            </div>
+            <motion.div animate={{ rotate: isOpen ? 180 : 0 }}>
+                <ChevronDown size={14} className={isOpen ? 'text-white' : 'text-emerald-950/40'} />
+            </motion.div>
         </button>
-        <AnimatePresence>{isOpen && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden bg-slate-50/50 rounded-xl mt-1 p-1 space-y-0.5">{children}</motion.div>)}</AnimatePresence>
-    </div>
-);
-
-// --- SMILE AWARD MODULES ---
-
-const SmileEntriesSection = ({ entries, onOpenForm, loading, onRefresh }) => {
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 10;
-    
-    const paginatedEntries = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage;
-        return entries.slice(start, start + itemsPerPage);
-    }, [entries, currentPage]);
-
-    if (loading) return <SectionLoader messages = {["Retrieving nomination history...", "Loading staff recognitions...", "Syncing award records..."]} />;
-    
-    return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-end gap-6">
-                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">Nomination <span className="text-orange-600">Ledger</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Recent recognitions from our team members</p></div>
-                <div className="flex items-center gap-3">
-                    <RefreshButton onRefresh={onRefresh} loading={loading} />
-                    <button onClick={onOpenForm} className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-orange-600 transition-all shadow-xl shadow-slate-200 flex items-center justify-center gap-3 whitespace-nowrap"><Edit3 size={16}/> Cast Your Vote</button>
-                </div>
-            </div>
-            <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100">
-                <div className="overflow-x-auto"><table className="w-full text-left min-w-[800px] lg:min-w-full">
-                    <thead><tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-slate-50/80 border-b border-slate-100"><th className="px-10 py-6">Timestamp</th><th className="px-10 py-6">Nominated Professional</th><th className="px-10 py-6">Acknowledged By</th><th className="px-10 py-6">Recognition Remarks</th></tr></thead>
-                    <tbody className="divide-y divide-slate-50">
-                        {paginatedEntries.map((e, i) => (
-                            <tr key={i} className="hover:bg-slate-50/50 transition-all group">
-                                <td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-[10px] mb-1">{e.month}</p><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{e.timestamp.split(' ')[0]}</p></div></td>
-                                <td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-[11px] mb-1">{e.employee_name}</p><p className="text-[9px] text-emerald-600 font-bold uppercase tracking-widest">{e.department}</p></div></td>
-                                <td className="px-10 py-7"><div className="flex items-center gap-2 text-[9px] font-bold text-slate-500 uppercase tracking-widest"><User size={12} className="text-slate-400"/> {e.voter_name}</div></td>
-                                <td className="px-10 py-7 max-w-[300px]"><p className="text-[10px] font-bold text-slate-500 italic leading-relaxed group-hover:text-slate-800 transition-colors">"{e.remarks || 'No specific remarks provided'}"</p></td>
-                            </tr>
-                        ))}
-                        {entries.length === 0 && <tr><td colSpan="4" className="text-center py-24 text-[10px] font-black uppercase text-slate-300 tracking-widest">No nominations found in the ledger</td></tr>}
-                    </tbody>
-                </table></div>
-            </div>
-            <Pagination totalItems={entries.length} itemsPerPage={itemsPerPage} currentPage={currentPage} onPageChange={setCurrentPage} />
-        </div>
-    );
-};
-
-const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange, loading, onRefresh }) => {
-    const [departmentFilter, setDepartmentFilter] = useState('ALL');
-    const filteredStats = useMemo(() => {
-        const target = (selectedMonth || "").trim().toLowerCase();
-        let list = (stats.all || []).filter(s => { const m = (s.month || "").trim().toLowerCase(); return m === target || m.includes(target); });
-        if (departmentFilter !== 'ALL') list = list.filter(s => (s.dept || "").toLowerCase() === departmentFilter.toLowerCase());
-        return list;
-    }, [stats.all, selectedMonth, departmentFilter]);
-
-    const approvedWinner = useMemo(() => {
-        const target = (selectedMonth || "").trim().toLowerCase();
-        return (winners || []).find(w => (w.month || "").trim().toLowerCase().includes(target));
-    }, [winners, selectedMonth]);
-
-    const departments = useMemo(() => { const set = new Set((stats.all || []).map(s => s.dept || "General")); return Array.from(set).filter(Boolean).sort(); }, [stats.all]);
-    const months = useMemo(() => { const set = new Set((stats.all || []).map(s => (s.month || "").trim())); set.add(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })); return Array.from(set).filter(Boolean).sort((a,b) => new Date(b) - new Date(a)); }, [stats.all]);
-    
-    if (loading) return <SectionLoader message="Compiling live standings..." />;
-    
-    return (
-        <div className="space-y-10 animate-in fade-in duration-700 pb-20">
-            <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 px-1">
-                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter mb-2">Leader <span className="text-emerald-600">Board</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Real-time voting scoreboard & champion highlight</p></div>
-                <div className="flex flex-col md:flex-row items-center gap-4">
-                    <RefreshButton onRefresh={onRefresh} loading={loading} />
-                    <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center text-orange-600"><Briefcase size={20} /></div><select value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer"><option value="ALL">All Depts</option>{departments.map(d => <option key={d} value={d}>{d}</option>)}</select></div>
-                    <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><Calendar size={20} /></div><select value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer">{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                </div>
-            </div>
-
-            {approvedWinner && (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-[3rem] p-10 relative overflow-hidden shadow-2xl border border-white/10 group mb-14">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:scale-150 transition-transform duration-1000" />
-                    <Sparkles className="absolute -left-6 -top-6 text-orange-400/20 rotate-12" size={150} />
-                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
-                        <div className="w-32 h-32 rounded-[2.5rem] bg-gradient-to-br from-orange-500 to-rose-600 flex items-center justify-center text-white shadow-2xl shadow-orange-500/30 shrink-0"><Trophy size={60} strokeWidth={2.5} /></div>
-                        <div className="text-center md:text-left flex-1">
-                            <span className="px-5 py-2 bg-orange-500/10 text-orange-500 rounded-full text-[9px] font-black uppercase tracking-[0.3em] border border-orange-500/20 inline-block mb-4 animate-pulse">Official Champion of {selectedMonth}</span>
-                            <h3 className="text-5xl font-black text-white uppercase tracking-tighter leading-none mb-3">{approvedWinner.employee_name}</h3>
-                            <p className="text-[12px] font-black text-slate-400 uppercase tracking-[0.3em]">{approvedWinner.department} Department • {approvedWinner.votes} Total Votes</p>
-                        </div>
-                    </div>
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden bg-emerald-50/30 rounded-xl mt-1 py-1"
+                >
+                    {children}
                 </motion.div>
             )}
-
-            <div className="bg-white rounded-[3rem] border border-slate-100 overflow-hidden shadow-2xl shadow-slate-100">
-                <div className="px-6 md:px-10 py-8 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="text-xs font-black text-slate-800 uppercase tracking-[0.3em] flex items-center gap-4">
-                        <Activity className="text-emerald-600" size={18} /> Detailed Standings
-                    </h3>
-                </div>
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left min-w-[600px] md:min-w-full">
-                        <thead>
-                            <tr className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 bg-white">
-                                <th className="px-10 py-6">Rank</th>
-                                <th className="px-10 py-6 font-bold">Staff Member</th>
-                                <th className="px-10 py-6">Department</th>
-                                <th className="px-10 py-6 text-right">Votes</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredStats.map((entry, i) => (
-                                <tr key={i} className={`hover:bg-slate-50 transition-all group ${approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() ? 'bg-orange-50/30' : ''}`}>
-                                    <td className="px-10 py-7">
-                                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm transition-all ${i === 0 ? 'bg-orange-100 text-orange-700 shadow-lg' : 'bg-slate-100 text-slate-400'}`}>
-                                            {i+1}
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-7">
-                                        <div>
-                                            <p className="font-black text-slate-800 uppercase text-[11px] leading-tight mb-1">{entry.name} {approvedWinner?.employee_name.toLowerCase() === entry.name.toLowerCase() && '🏆'}</p>
-                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest leading-none">Nominated Professional</p>
-                                        </div>
-                                    </td>
-                                    <td className="px-10 py-7 text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">{entry.dept}</td>
-                                    <td className="px-10 py-7 text-right">
-                                        <span className={`inline-block px-5 py-2.5 rounded-2xl text-[11px] font-black transition-all ${i === 0 ? 'bg-orange-600 text-white shadow-xl' : 'bg-slate-100 text-slate-600'}`}>
-                                            {entry.votes} <span className="text-[8px] opacity-60 ml-0.5">VOTES</span>
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    );
-};
-
-const SmileWinnersSection = ({ winners, selectedMonth, onMonthChange, loading, onRefresh }) => {
-    const months = useMemo(() => { const set = new Set((winners || []).map(w => (w.month || "").trim())); set.add(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })); return Array.from(set).filter(Boolean).sort((a,b) => new Date(b) - new Date(a)); }, [winners]);
-    const approvedWinners = useMemo(() => { const target = (selectedMonth || "").trim().toLowerCase(); return (winners || []).filter(w => (w.month || "").trim().toLowerCase().includes(target)); }, [winners, selectedMonth]);
-    if (loading) return <SectionLoader message="Fetching champion gallery..." />;
-    return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
-                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Champion <span className="text-orange-500">Hall of Fame</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Honoring our approved excellence stars</p></div>
-                <div className="flex items-center gap-3">
-                    <RefreshButton onRefresh={onRefresh} loading={loading} />
-                    <div className="flex items-center gap-3 bg-white p-2.5 rounded-2xl shadow-xl border border-slate-100 min-w-[200px]"><div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600"><Calendar size={20} /></div><select value={selectedMonth} onChange={(e) => onMonthChange(e.target.value)} className="flex-1 bg-transparent border-none outline-none font-black text-[11px] uppercase tracking-widest text-slate-700 cursor-pointer">{months.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
-                </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{approvedWinners.map((winner, idx) => (<motion.div key={idx} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.1 }} className="bg-slate-900 rounded-[3rem] p-9 relative overflow-hidden group shadow-2xl shadow-slate-200"><div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-bl-full group-hover:scale-125 transition-transform duration-700" /><Sparkles className="absolute -left-4 -top-4 text-orange-400/20 group-hover:rotate-12 transition-transform" size={100} /><div className="relative z-10"><div className="flex items-center gap-2 mb-6"><span className="px-3 py-1 bg-gradient-to-r from-orange-600 to-amber-500 text-white rounded-full text-[8px] font-black uppercase tracking-[0.2em] shadow-lg shadow-orange-500/30">Official Champion</span></div><p className="text-[10px] font-black text-orange-400 uppercase tracking-[0.2em] mb-1">{winner.department}</p><h3 className="text-2xl font-black text-white uppercase tracking-tight mb-6 leading-tight">{winner.employee_name}</h3><div className="flex items-center justify-between items-end border-t border-slate-800 pt-6"><div><p className="text-3xl font-black text-white leading-none mb-1">{winner.votes}</p><p className="text-[8px] font-black uppercase text-slate-500 tracking-widest">Approved Votes</p></div><div className="text-right text-[9px] font-bold text-slate-500 uppercase tracking-widest italic">{winner.month}</div></div></div></motion.div>))}{approvedWinners.length === 0 && (<div className="col-span-full py-20 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 text-center"><Trophy size={48} className="mx-auto text-slate-200 mb-4" /><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">No champions have been finalized for this month yet</p></div>)}</div>
-        </div>
-    );
-};
-
-const SmileAwardFormSection = ({ onSubmissionSuccess }) => (
-    <div className="animate-in fade-in slide-in-from-bottom-5 duration-700 max-w-4xl mx-auto w-full">
-        <div className="mb-10 text-center"><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-3">Award <span className="text-orange-500">Form</span></h2><p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Acknowledge excellence in our SBH family</p></div>
-        <SmileAwardForm onSubmissionSuccess={onSubmissionSuccess} />
+        </AnimatePresence>
     </div>
 );
 
-// --- REMAINING COMPONENTS (Simplified) ---
-const HRApprovalPanel = ({ stats, winners, onApprove, loading, onRefresh }) => {
-    const [submitting, setSubmitting] = useState(false);
-    const monthsArr = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-    const now = new Date();
-    const currentMonthLabel = monthsArr[now.getMonth()].toLowerCase();
-    const currentYearLabel = now.getFullYear().toString();
-    if (loading) return <SectionLoader message="Loading nominations for review..." />;
-    const groupedData = (stats.all || []).filter(c => { let m = (c.month || "").trim(); if (m.includes('T') && m.endsWith('Z')) { try { const d = new Date(m); m = monthsArr[d.getUTCMonth()] + " " + d.getUTCFullYear(); } catch(e) {} } const matchesMonth = m.toLowerCase().includes(currentMonthLabel) && m.toLowerCase().includes(currentYearLabel); const isApprovedAlready = (winners || []).some(w => (w.employee_name || "").toLowerCase() === (c.name || "").toLowerCase() && (w.department || "").toLowerCase() === (c.dept || "").toLowerCase() && (w.month || "").toLowerCase().includes(currentMonthLabel)); return matchesMonth && !isApprovedAlready; }).reduce((acc, curr) => { const dept = curr.dept || 'General'; if (!acc[dept]) acc[dept] = []; acc[dept].push(curr); return acc; }, {});
-    const handleApproved = async (candidate) => { setSubmitting(candidate.name); try { await onApprove(candidate); alert(`Approved ${candidate.name}!`); } catch(e) { alert("Approval failed."); } setSubmitting(false); };
+const Footer = () => {
     return (
-        <div className="space-y-12 animate-in fade-in pb-20">
-            <div className="px-1 flex items-center justify-between">
-                <div><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">Approval <span className="text-orange-600">Hub</span></h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Designate monthly champions from top nominees</p></div>
-                <RefreshButton onRefresh={onRefresh} loading={loading} />
+        <footer className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-[#f59e0b] via-[#10b981] to-[#2e7d32] py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10">
+            {/* Subtle Overlay */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none bg-white/5"></div>
+
+            <div className="max-w-full mx-auto px-4 md:px-10 relative z-10">
+
+                {/* 📱 MOBILE VIEW (Simple 2-line stack - Even Smaller Height) */}
+                <div className="flex flex-col items-center justify-center md:hidden py-0.5">
+                    <a
+                        href="https://www.sbhhospital.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 no-underline"
+                    >
+                        <ShieldCheck size={11} className="text-white" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
+                            SBH Group Of Hospitals
+                        </span>
+                    </a>
+                    <a
+                        href="https://www.linkedin.com/in/ignamanmishra"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 no-underline mt-0.5 opacity-90"
+                    >
+                        <span className="text-[8px] font-bold text-white uppercase tracking-widest italic leading-none">
+                            Architected by
+                            <span className="ml-2 text-[9px] font-black text-white uppercase tracking-widest not-italic">Naman Mishra</span>
+                        </span>
+                        <Linkedin size={8} className="text-[#0077b5] bg-white rounded-[1px] p-[0.5px]" />
+                    </a>
+                </div>
+
+                {/* 💻 DESKTOP VIEW (Tight Layout) */}
+                <div className="hidden md:flex items-center justify-between gap-6 h-8">
+                    {/* 🏷️ BRANDING */}
+                    <div className="flex items-center gap-3">
+                        <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-md shadow-sm">
+                            <Activity size={14} className="text-white" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">SBH INTEL</span>
+                            <span className="text-[8px] font-extrabold text-white/80 tracking-wider mt-0.5">SYSTEM OPERATIONAL</span>
+                        </div>
+                    </div>
+
+                    {/* 🏢 CENTER */}
+                    <a
+                        href="https://www.sbhhospital.com"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 py-1 px-4 bg-white/10 hover:bg-white/20 rounded-full border border-white/20 backdrop-blur-lg transition-all transform hover:scale-105 group no-underline shadow-sm"
+                    >
+                        <ShieldCheck size={12} className="text-white" />
+                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-1.5 leading-none">
+                            SBH Group Of Hospitals
+                        </span>
+                    </a>
+
+                    {/* 👤 ARCHITECT */}
+                    <a
+                        href="https://www.linkedin.com/in/ignamanmishra"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex flex-col text-right group no-underline"
+                    >
+                        <span className="text-[8px] font-bold text-white/80 uppercase tracking-widest italic leading-none mb-1">Architected by</span>
+                        <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1.5 leading-none">
+                            Naman Mishra
+                            <Linkedin size={10} className="text-[#0077b5] bg-white rounded-[2px] p-[1px] opacity-100" />
+                        </span>
+                    </a>
+                </div>
             </div>
-            {Object.keys(groupedData).length === 0 ? (<div className="bg-white rounded-[3rem] p-24 text-center border-2 border-dashed border-slate-100"><p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">No pending nominations for this month</p></div>) : Object.entries(groupedData).map(([dept, candidates]) => (
-                <div key={dept} className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden mb-8"><div className="px-6 md:px-10 py-6 bg-slate-50/80 border-b border-slate-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"><div className="flex items-center gap-4"><div className="w-12 h-12 bg-orange-600 text-white rounded-2xl flex items-center justify-center shadow-lg"><Briefcase size={20} /></div><div><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-0.5">Department</p><p className="text-xl font-black text-slate-800 uppercase tracking-tight">{dept}</p></div></div><div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-[9px] font-black uppercase tracking-widest">{candidates.length} Nominees</div></div><div className="overflow-x-auto"><table className="w-full text-left min-w-[500px] md:min-w-full"><tbody className="divide-y divide-slate-50">{candidates.map((c, i) => (<tr key={i} className="group hover:bg-slate-50/50 transition-all"><td className="px-10 py-7"><div><p className="font-black text-slate-800 uppercase text-xs leading-none mb-1">{c.name}</p><p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest italic">{c.votes} Overall Votes</p></div></td><td className="px-10 py-7 text-right"><button disabled={submitting === c.name} onClick={() => handleApproved(c)} className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50">{submitting === c.name ? "Processing..." : "Approve as Star"}</button></td></tr>))}</tbody></table></div></div>
-            ))}
+        </footer>
+    );
+};
+
+
+const SuccessModal = ({ isOpen, onClose, title = "Thank You!", subtitle = "Entry Registered", message = "Your submission has been logged into our system." }) => {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-white rounded-[2.5rem] p-10 max-w-sm w-full text-center shadow-2xl border border-slate-100 relative overflow-hidden"
+            >
+                <div className="absolute top-0 inset-x-0 h-2 bg-emerald-500"></div>
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 border-4 border-white shadow-lg">
+                    <CheckCircle strokeWidth={3} size={40} />
+                </div>
+                <h3 className="text-xl font-black text-slate-900 mb-1 tracking-tight uppercase">{title}</h3>
+                <p className="text-[9px] font-bold text-slate-400 mb-6 uppercase tracking-[0.2em]">{subtitle}</p>
+
+                <p className="text-[11px] font-medium text-slate-500 mb-8 leading-relaxed px-2">
+                    {message}
+                </p>
+
+                <button
+                    onClick={onClose}
+                    className="w-full bg-slate-900 hover:bg-emerald-600 text-white text-[10px] font-black py-4 rounded-2xl transition-all active:scale-[0.98] tracking-widest uppercase shadow-xl"
+                >
+                    Dismiss Protocol
+                </button>
+            </motion.div>
         </div>
     );
 };
+
+const MathCaptcha = ({ onVerify }) => {
+    const [nums, setNums] = useState(() => ({ a: Math.floor(Math.random() * 10), b: Math.floor(Math.random() * 10) }));
+    const [input, setInput] = useState('');
+    const [verified, setVerified] = useState(false);
+
+    const check = (val) => {
+        setInput(val);
+        if (parseInt(val) === (nums.a + nums.b)) {
+            setVerified(true);
+            onVerify(true);
+        } else {
+            setVerified(false);
+            onVerify(false);
+        }
+    };
+
+    return (
+        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-sm">
+                    <Fingerprint size={14} className="text-slate-400" />
+                </div>
+                <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest">
+                    Verification: {nums.a} + {nums.b} = ?
+                </p>
+            </div>
+            <input 
+                type="number"
+                value={input}
+                onChange={(e) => check(e.target.value)}
+                placeholder="?"
+                className={`w-16 px-3 py-2 rounded-xl font-black text-xs outline-none transition-all border-2 ${verified ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-transparent bg-white text-slate-900 focus:border-orange-500/20'}`}
+            />
+        </div>
+    );
+};
+
+// --- SMILE COMPONENTS ---
+
+const SmileAwardFormSection = ({ staffList, smileScriptUrl, onSubmissionSuccess }) => {
+    const [formData, setFormData] = useState({ 
+        employeeName: '', 
+        employeeId: '',
+        department: '', 
+        role: '',
+        remarks: '',
+        voterName: '',
+        voterId: '',
+        voterDept: ''
+    });
+    const [searchNominee, setSearchNominee] = useState('');
+    const [searchNominator, setSearchNominator] = useState('');
+    const [showNomineeResults, setShowNomineeResults] = useState(false);
+    const [showNominatorResults, setShowNominatorResults] = useState(false);
+    const [isVerified, setIsVerified] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const filteredNominees = useMemo(() => {
+        if (!searchNominee || searchNominee.length < 2) return [];
+        return staffList.filter(s => 
+            getVal(s, 'Name').toLowerCase().includes(searchNominee.toLowerCase()) ||
+            getVal(s, 'Staff_ID').toLowerCase().includes(searchNominee.toLowerCase())
+        ).slice(0, 5);
+    }, [staffList, searchNominee]);
+
+    const filteredNominators = useMemo(() => {
+        if (!searchNominator || searchNominator.length < 2) return [];
+        return staffList.filter(s => 
+            getVal(s, 'Name').toLowerCase().includes(searchNominator.toLowerCase()) ||
+            getVal(s, 'Staff_ID').toLowerCase().includes(searchNominator.toLowerCase())
+        ).slice(0, 5);
+    }, [staffList, searchNominator]);
+
+    const handleSelectNominee = (s) => {
+        setFormData({
+            ...formData,
+            employeeName: getVal(s, 'Name'),
+            employeeId: getVal(s, 'Staff_ID'),
+            department: getVal(s, 'Department'),
+            role: getVal(s, 'Role') || 'Staff'
+        });
+        setSearchNominee(getVal(s, 'Name'));
+        setShowNomineeResults(false);
+    };
+
+    const handleSelectNominator = (s) => {
+        setFormData({
+            ...formData,
+            voterName: getVal(s, 'Name'),
+            voterId: getVal(s, 'Staff_ID'),
+            voterDept: getVal(s, 'Department')
+        });
+        setSearchNominator(getVal(s, 'Name'));
+        setShowNominatorResults(false);
+    };
+
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!isVerified) return alert("Security Verification Failed!");
+        if (!formData.employeeName || !formData.voterName) return alert("Please select both Nominee and Nominator.");
+        
+        setIsSubmitting(true);
+        try {
+            await fetch(smileScriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({ 
+                    action: 'save_vote', 
+                    ...formData 
+                })
+            });
+            setShowSuccess(true);
+        } catch (err) {
+            alert("Roster connection failed.");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="max-w-xl mx-auto py-10">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden relative">
+                <div className="p-10 md:p-14">
+                    <div className="flex flex-col items-center text-center mb-10">
+                        <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-xl shadow-emerald-50">
+                            <Award size={36} />
+                        </div>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Smile <span className="text-emerald-600">Nomination</span></h1>
+                        <p className="text-[10px] font-bold text-slate-400 mt-2 uppercase tracking-[0.3em] bg-emerald-50 px-4 py-1.5 rounded-full inline-block">Active Cycle: {new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-8">
+                        {/* NOMINEE SELECTION */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Search Nominee</label>
+                            <div className="relative">
+                                <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                <input 
+                                    value={searchNominee}
+                                    onChange={(e) => { setSearchNominee(e.target.value); setShowNomineeResults(true); }}
+                                    onFocus={() => setShowNomineeResults(true)}
+                                    placeholder="Type Employee Name or ID..."
+                                    className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white rounded-[2rem] font-bold text-slate-800 outline-none transition-all text-sm shadow-sm"
+                                />
+                                <AnimatePresence>
+                                    {showNomineeResults && filteredNominees.length > 0 && (
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute z-50 left-0 right-0 mt-3 bg-white border border-slate-100 rounded-[2rem] shadow-2xl overflow-hidden">
+                                            {filteredNominees.map((s, i) => (
+                                                <button key={i} type="button" onClick={() => handleSelectNominee(s)} className="w-full p-5 text-left hover:bg-emerald-50 flex items-center justify-between border-b border-slate-50 last:border-0 group">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-emerald-600 transition-colors">{getVal(s, 'Name')?.[0]}</div>
+                                                        <div>
+                                                            <p className="font-black text-slate-800 uppercase text-xs mb-0.5">{getVal(s, 'Name')}</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{getVal(s, 'Department')}</p>
+                                                        </div>
+                                                    </div>
+                                                    <ChevronRight size={14} className="text-slate-200 group-hover:text-emerald-500" />
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                            {formData.employeeName && (
+                                <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="p-5 bg-emerald-50/50 rounded-2xl border border-emerald-100/50 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm"><CheckCircle size={18}/></div>
+                                        <div>
+                                            <p className="text-[10px] font-black text-slate-800 uppercase leading-none mb-1">{formData.employeeName}</p>
+                                            <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest">{formData.department}</p>
+                                        </div>
+                                    </div>
+                                    <CheckCircle2 className="text-emerald-500" size={20} />
+                                </motion.div>
+                            )}
+                        </div>
+
+                        {/* REMARKS */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Achievement Context</label>
+                            <textarea 
+                                required
+                                value={formData.remarks}
+                                onChange={(e) => setFormData({...formData, remarks: e.target.value})}
+                                placeholder="Why does this candidate deserve the Smile Award?"
+                                className="w-full p-8 bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white rounded-[2rem] font-bold text-slate-800 outline-none transition-all text-sm min-h-[120px] shadow-sm"
+                            />
+                        </div>
+
+                        {/* NOMINATOR IDENTITY */}
+                        <div className="space-y-4">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Your Identity (Nominator)</label>
+                            <div className="relative">
+                                <Scan className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                                <input 
+                                    value={searchNominator}
+                                    onChange={(e) => { setSearchNominator(e.target.value); setShowNominatorResults(true); }}
+                                    onFocus={() => setShowNominatorResults(true)}
+                                    placeholder="Select your name..."
+                                    className="w-full pl-16 pr-6 py-5 bg-slate-50 border-2 border-transparent focus:border-emerald-500/20 focus:bg-white rounded-[2rem] font-bold text-slate-800 outline-none transition-all text-sm shadow-sm"
+                                />
+                                <AnimatePresence>
+                                    {showNominatorResults && filteredNominators.length > 0 && (
+                                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} className="absolute z-50 left-0 right-0 mt-3 bg-white border border-slate-100 rounded-[2rem] shadow-2xl overflow-hidden">
+                                            {filteredNominators.map((s, i) => (
+                                                <button key={i} type="button" onClick={() => handleSelectNominator(s)} className="w-full p-5 text-left hover:bg-emerald-50 flex items-center justify-between border-b border-slate-50 last:border-0 group">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 bg-slate-100 text-slate-400 rounded-xl flex items-center justify-center font-black text-xs group-hover:bg-emerald-600 group-hover:text-white transition-colors">{getVal(s, 'Name')?.[0]}</div>
+                                                        <div>
+                                                            <p className="font-black text-slate-800 uppercase text-xs mb-0.5">{getVal(s, 'Name')}</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{getVal(s, 'Department')}</p>
+                                                        </div>
+                                                    </div>
+                                                    <Check size={14} className="text-slate-200 group-hover:text-emerald-500" />
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                        </div>
+
+                        <MathCaptcha onVerify={setIsVerified} />
+
+                        <button 
+                            disabled={isSubmitting || !isVerified || !formData.employeeName || !formData.voterName}
+                            type="submit"
+                            className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-2xl hover:bg-emerald-600 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                        >
+                            {isSubmitting ? <Loader2 size={18} className="animate-spin" /> : <><Send size={18} /> Cast Nomination</>}
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <SuccessModal 
+                isOpen={showSuccess} 
+                onClose={() => { setShowSuccess(false); if(onSubmissionSuccess) onSubmissionSuccess(); }}
+                title="Nomination Recorded"
+                subtitle="Cycle Synchronized"
+                message={`Your nomination for ${formData.employeeName} has been recorded. Winners are announced at the end of each cycle.`}
+            />
+        </div>
+    );
+};
+
+
+
+const MonthSelector = ({ selectedMonth, onMonthChange, availableMonths }) => (
+    <div className="flex items-center gap-2 bg-white/50 p-1 rounded-2xl border border-slate-100 shadow-sm backdrop-blur-sm">
+        <div className="flex items-center gap-2 px-3 border-r border-slate-100">
+            <Calendar size={12} className="text-emerald-600" />
+            <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Select Cycle</span>
+        </div>
+        <select 
+            value={selectedMonth} 
+            onChange={(e) => onMonthChange(e.target.value)}
+            className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-800 outline-none px-4 py-1.5 cursor-pointer appearance-none"
+        >
+            {availableMonths?.length > 0 ? (
+                availableMonths.map(m => <option key={m} value={m}>{m}</option>)
+            ) : (
+                <option value={selectedMonth}>{selectedMonth}</option>
+            )}
+        </select>
+        <div className="pr-3 pointer-events-none">
+            <ChevronDown size={10} className="text-slate-400" />
+        </div>
+    </div>
+);
+
+const SmileEntriesSection = ({ entries, loading, onRefresh, selectedMonth, onMonthChange, availableMonths }) => {
+    const filtered = useMemo(() => {
+        const seen = new Set();
+        return entries.filter(en => {
+            const m = en.month?.toString().trim();
+            if (m !== selectedMonth) return false;
+            // Key based on voter, nominee, and reason to catch exact duplicates
+            const key = `${en.voter_name}-${en.employee_name}-${en.remarks}-${m}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [entries, selectedMonth]);
+    
+    return (
+        <div className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Nomination <span className="text-emerald-500">Ledger</span></h2>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Live Feed of Recognition</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <MonthSelector selectedMonth={selectedMonth} onMonthChange={onMonthChange} availableMonths={availableMonths} />
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                </div>
+            </div>
+
+            {filtered.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filtered.map((en, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            key={i} 
+                            className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-full -mr-12 -mt-12 opacity-50" />
+                            <div className="flex items-center justify-between mb-6 relative z-10">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shadow-emerald-200">{en.employee_name?.[0]}</div>
+                                    <div>
+                                        <p className="text-[11px] font-black text-slate-800 uppercase leading-none">{en.employee_name}</p>
+                                        <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest mt-1.5 px-2 py-0.5 bg-emerald-50 rounded-full inline-block">{en.department}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[8px] font-black text-slate-300 uppercase block">{formatDateStrict(en.timestamp)}</span>
+                                </div>
+                            </div>
+                            <div className="bg-slate-50 p-5 rounded-2xl mb-6 border border-slate-100 relative">
+                                <MessageCircle size={12} className="absolute -top-1.5 -left-1.5 text-emerald-500" />
+                                <p className="text-[11px] font-bold text-slate-600 leading-relaxed italic">"{en.remarks}"</p>
+                            </div>
+                            <div className="flex items-center justify-between relative z-10 px-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center text-[8px] text-white font-black">{en.voter_name?.[0]}</div>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Nominated by <span className="text-slate-900">{en.voter_name}</span></p>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white rounded-3xl p-20 text-center border border-slate-100 border-dashed">
+                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300">
+                        <ClipboardList size={32} />
+                    </div>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">No Nominations Found for {selectedMonth}</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange, loading, onRefresh, availableMonths }) => {
+    const filteredStats = stats.all?.filter(s => s.month === selectedMonth) || [];
+    const filteredWinners = winners?.filter(w => w.month === selectedMonth) || [];
+
+    const deptStats = useMemo(() => {
+        const counts = {};
+        filteredStats.forEach(s => {
+            const d = s.dept || 'General';
+            counts[d] = (counts[d] || 0) + (parseInt(s.votes) || 0);
+        });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }, [filteredStats]);
+
+    return (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div>
+                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Leader <span className="text-emerald-600">Board</span></h2>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Real-time Performance Metrics</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <MonthSelector selectedMonth={selectedMonth} onMonthChange={onMonthChange} availableMonths={availableMonths} />
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-3 space-y-2">
+                    {filteredStats.length > 0 ? (
+                        filteredStats.slice(0, 10).map((st, i) => (
+                            <motion.div 
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.05 }}
+                                key={i} 
+                                className="bg-white px-6 py-3.5 rounded-2xl flex items-center justify-between border border-slate-100 shadow-sm hover:shadow-lg transition-all group cursor-default"
+                            >
+                                <div className="flex items-center gap-5">
+                                    <div className="w-8 flex justify-center">
+                                        {i < 3 ? (
+                                            <Trophy size={16} className={i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-400' : 'text-amber-700'} />
+                                        ) : (
+                                            <span className="text-xs font-black text-slate-200">#{i+1}</span>
+                                        )}
+                                    </div>
+                                    <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-md group-hover:bg-emerald-600 transition-colors">{st.name?.[0]}</div>
+                                    <div>
+                                        <p className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1.5">{st.name}</p>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest px-2 py-0.5 bg-emerald-50 rounded-md">{st.dept}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-6">
+                                    <div className="text-right">
+                                        <p className="text-lg font-black text-slate-900 leading-none">{st.votes}</p>
+                                        <p className="text-[7px] font-black text-slate-300 uppercase tracking-widest mt-1">Total Votes</p>
+                                    </div>
+                                    <div className="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner"><Star size={14} fill="currentColor" className="animate-pulse" /></div>
+                                </div>
+                            </motion.div>
+                        ))
+                    ) : (
+                        <div className="bg-white rounded-3xl p-16 text-center border border-slate-100">
+                            <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">No Activity Recorded in {selectedMonth}</p>
+                        </div>
+                    )}
+                </div>
+
+                <div className="space-y-6">
+                    {/* DEPARTMENTAL RANKING */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-xl">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-8 h-8 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center shadow-sm"><Building2 size={16} /></div>
+                            <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Departmental Power</h3>
+                        </div>
+                        <div className="space-y-4">
+                            {deptStats.map(([dept, count], idx) => (
+                                <div key={dept} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[9px] font-black text-slate-300 w-4">#{idx+1}</span>
+                                        <p className="text-[10px] font-black text-slate-700 uppercase tracking-tight">{dept}</p>
+                                    </div>
+                                    <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">{count} v</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl relative overflow-hidden flex flex-col"
+                    >
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 blur-[100px] rounded-full -mr-20 -mt-20" />
+                        <div className="flex items-center justify-between mb-8 relative">
+                            <h3 className="text-xs font-black uppercase tracking-widest">Monthly <span className="text-emerald-500">Titans</span></h3>
+                            <Award size={18} className="text-emerald-500" />
+                        </div>
+                        
+                        <div className="space-y-4 relative flex-1">
+                            {filteredWinners.length > 0 ? (
+                                filteredWinners.slice(0, 3).map((w, i) => (
+                                    <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all group">
+                                        <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center font-black text-xs text-white group-hover:bg-emerald-600 transition-colors">{w.employee_name?.[0]}</div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase leading-none mb-1.5">{w.employee_name}</p>
+                                            <div className="flex items-center gap-1.5">
+                                                <Trophy size={8} className="text-emerald-500" />
+                                                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{w.month}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 opacity-30">
+                                    <p className="text-[9px] font-black uppercase tracking-widest">No Winners Yet</p>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="mt-8 pt-6 border-t border-white/10 relative text-center">
+                            <p className="text-[7px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Status Report</p>
+                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">All Nodes Operational</p>
+                        </div>
+                    </motion.div>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+const SmileWinnersSection = ({ winners, loading, onRefresh, selectedMonth, onMonthChange, availableMonths }) => {
+    // Deduplicate winners by name for the same month just in case of data sync issues
+    const filtered = useMemo(() => {
+        const seen = new Set();
+        return (winners || []).filter(w => {
+            const m = w.month?.toString().trim();
+            if (m !== selectedMonth) return false;
+            // Deduplicate same person in same month
+            const key = `${w.employee_name}-${m}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+    }, [winners, selectedMonth]);
+
+    return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Honor <span className="text-emerald-600">Roll</span></h2>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Official Hall of Fame: Monthly Excellence</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <MonthSelector selectedMonth={selectedMonth} onMonthChange={onMonthChange} availableMonths={availableMonths} />
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                </div>
+            </div>
+
+            {filtered.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {filtered.map((w, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: i * 0.1 }}
+                            key={i} 
+                            className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm text-center relative group hover:shadow-2xl transition-all overflow-hidden border-b-4 border-b-emerald-500"
+                        >
+                            {/* Decorative background elements */}
+                            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-all duration-700" />
+                            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-emerald-50 rounded-full blur-2xl group-hover:bg-emerald-100 transition-all duration-700" />
+
+                            <div className="absolute -top-4 -right-4 text-emerald-50/30 group-hover:text-emerald-100 transition-colors -rotate-12 transform group-hover:scale-125 duration-700">
+                                <Trophy size={120} strokeWidth={1} />
+                            </div>
+                            
+                            <div className="relative z-10">
+                                <div className="relative w-24 h-24 mx-auto mb-6">
+                                    <div className="absolute inset-0 bg-emerald-500 rounded-[2.5rem] rotate-6 group-hover:rotate-12 transition-transform duration-500 shadow-lg shadow-emerald-100" />
+                                    <div className="absolute inset-0 bg-slate-900 text-white rounded-[2.5rem] flex items-center justify-center text-3xl font-black shadow-2xl group-hover:bg-emerald-600 transition-all duration-500 transform group-hover:-rotate-3">
+                                        {w.employee_name?.[0]}
+                                    </div>
+                                    <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                                        <Star size={14} fill="currentColor" />
+                                    </div>
+                                </div>
+
+                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2 px-2">{w.employee_name}</h3>
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full mb-4 border border-emerald-100/50">
+                                    <Award size={10} fill="currentColor" />
+                                    <span className="text-[9px] font-black uppercase tracking-widest">Smile Laureate</span>
+                                </div>
+                                <div className="pt-4 border-t border-slate-50">
+                                    <div className="flex flex-col items-center">
+                                        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest mb-1">{w.department || w.dept}</span>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-0.5 w-4 bg-emerald-200" />
+                                            <p className="text-[8px] font-black text-emerald-500 uppercase tracking-[0.2em]">{w.month}</p>
+                                            <div className="h-0.5 w-4 bg-emerald-200" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white rounded-[3rem] p-32 text-center border border-slate-100 shadow-inner relative overflow-hidden">
+                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.03)_0%,transparent_70%)]" />
+                    <div className="relative z-10">
+                        <div className="w-20 h-20 bg-emerald-50 text-emerald-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <Trophy size={40} />
+                        </div>
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-widest mb-2">Cycle Ongoing</h4>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">The Hall of Fame for {selectedMonth} is awaiting its champion.</p>
+                    </div>
+                </div>
+            )}
+        </motion.div>
+    );
+};
+
+const HRApprovalPanel = ({ stats, onApprove, winners, loading, onRefresh, selectedMonth, onMonthChange, availableMonths }) => {
+    const groupedByDept = useMemo(() => {
+        const currentStats = stats.all?.filter(s => s.month === selectedMonth) || [];
+        const currentWinners = winners?.filter(w => w.month === selectedMonth) || [];
+        
+        const approvedDepts = new Set(currentWinners.map(w => (w.department || w.dept || '').toLowerCase().trim()));
+        
+        const groups = {};
+        currentStats.forEach(s => {
+            const d = s.dept || 'General';
+            if (!groups[d]) groups[d] = [];
+            groups[d].push({ ...s, isAlreadyApproved: approvedDepts.has(d.toLowerCase().trim()) });
+        });
+        
+        // Sort candidates within each dept by votes
+        Object.keys(groups).forEach(d => {
+            groups[d].sort((a, b) => (parseInt(b.votes) || 0) - (parseInt(a.votes) || 0));
+        });
+        
+        return Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0]));
+    }, [stats.all, winners, selectedMonth]);
+
+    return (
+        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-1">
+                <div>
+                    <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Approval <span className="text-emerald-600">Desk</span></h2>
+                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mt-1">Audit Protocol: Votes Ranked by Impact</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <MonthSelector selectedMonth={selectedMonth} onMonthChange={onMonthChange} availableMonths={availableMonths} />
+                    <RefreshButton onRefresh={onRefresh} loading={loading} />
+                </div>
+            </div>
+
+            <div className="space-y-8">
+                {groupedByDept.length > 0 ? (
+                    groupedByDept.map(([dept, candidates]) => {
+                        const isFinalized = candidates[0].isAlreadyApproved;
+                        return (
+                            <div key={dept} className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
+                                <div className={`px-8 py-5 border-b border-slate-50 flex items-center justify-between ${isFinalized ? 'bg-emerald-50/30' : 'bg-slate-50/50'}`}>
+                                    <div className="flex items-center gap-3">
+                                        <Building2 size={16} className={isFinalized ? 'text-emerald-600' : 'text-slate-400'} />
+                                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest">{dept}</h3>
+                                    </div>
+                                    {isFinalized && (
+                                        <span className="text-[8px] font-black bg-emerald-600 text-white px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg shadow-emerald-100">Finalized for {selectedMonth}</span>
+                                    )}
+                                </div>
+                                <table className="w-full text-left">
+                                    <tbody className="divide-y divide-slate-50">
+                                        {candidates.map((w, i) => (
+                                            <tr key={i} className={`hover:bg-emerald-50/30 transition-all group ${i === 0 && !isFinalized ? 'bg-emerald-50/10' : ''} ${isFinalized ? 'opacity-60' : ''}`}>
+                                                <td className="px-8 py-4">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-10 h-10 ${i === 0 ? 'bg-emerald-600' : 'bg-slate-900'} text-white rounded-xl flex items-center justify-center font-black text-[11px] shadow-md group-hover:scale-110 transition-transform`}>
+                                                            {i === 0 ? <Star size={14} fill="currentColor" /> : w.name?.[0]}
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1">{w.name}</p>
+                                                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Candidate #{i+1} {i === 0 && '• LEADER'}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-4 text-center">
+                                                    <span className={`text-xs font-black ${i === 0 ? 'text-emerald-600 bg-emerald-50' : 'text-slate-600 bg-slate-50'} px-4 py-1.5 rounded-full shadow-inner border border-black/5`}>{w.votes} votes</span>
+                                                </td>
+                                                <td className="px-8 py-4 text-right">
+                                                    {!isFinalized && (
+                                                        <motion.button 
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                if(window.confirm(`Approve ${w.name} as Smile Award Winner for ${w.month} in ${dept}?`)) {
+                                                                    onApprove(w);
+                                                                }
+                                                            }}
+                                                            className={`px-6 py-2.5 ${i === 0 ? 'bg-emerald-600' : 'bg-slate-900'} text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg hover:brightness-110`}
+                                                        >
+                                                            Authorize Award
+                                                        </motion.button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        );
+                    })
+                ) : (
+                    <div className="bg-white rounded-[3rem] p-24 text-center border border-slate-100 shadow-inner">
+                        <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest leading-relaxed">No candidates have been nominated<br/>for the {selectedMonth} cycle yet.</p>
+                    </div>
+                )}
+            </div>
+        </motion.div>
+    );
+};
+
+// --- EMPLOYEE ROSTER (STRUCTURALLY FIXED) ---
 
 const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRole }) => {
     const [submitting, setSubmitting] = useState(false);
+    const [showDeleteSuccess, setShowDeleteSuccess] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -473,8 +1028,8 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRo
             });
             setTimeout(() => {
                 fetchStaff();
-                alert("Staff Deleted!");
                 setSubmitting(false);
+                setShowDeleteSuccess(true);
             }, 800);
         } catch (e) {
             alert("Delete failed.");
@@ -510,117 +1065,106 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRo
     };
 
     return (
-        <div className="space-y-4 animate-in fade-in pb-10">
-            {/* HEADER & SEARCH */}
+        <div className="space-y-4 pb-10">
             <div className="px-1 flex flex-col xl:flex-row justify-between xl:items-center gap-4">
                 <div>
-                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Workforce <span className="text-emerald-600">Ledger</span></h2>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Workforce <span className="text-orange-600">Ledger</span></h2>
                     <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Manage employee records and automated alerts</p>
                 </div>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-3">
                     <div className="relative w-full sm:w-64 group">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={14} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-orange-600 transition-colors" size={14} />
                         <input 
                             type="text"
                             placeholder="Search staff..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-white border border-slate-100 pl-10 pr-4 py-2.5 rounded-xl font-bold text-[11px] outline-none focus:border-emerald-500/20 shadow-sm"
+                            className="w-full bg-white border border-slate-100 pl-10 pr-4 py-2.5 rounded-xl font-bold text-[11px] outline-none focus:border-orange-500/20 shadow-sm"
                         />
                     </div>
                     <div className="flex items-center gap-2 w-full sm:w-auto">
                         <RefreshButton onRefresh={fetchStaff} loading={loading} />
-                        <button onClick={handleNew} className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 hover:bg-slate-900 transition-all">
+                        <button onClick={handleNew} className="px-6 py-2.5 bg-orange-600 text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg shadow-orange-100 flex items-center justify-center gap-2 hover:bg-slate-900 transition-all">
                             <Plus size={14}/> Add New
                         </button>
                     </div>
                 </div>
             </div>
 
-            {/* TABLE CONTAINER */}
             <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
-                <div className="max-h-[600px] overflow-y-auto custom-scrollbar overflow-x-auto">
+                <div className="max-h-[600px] overflow-y-auto custom-scrollbar">
                     <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
                         <thead className="bg-slate-50/80 sticky top-0 z-10 border-b border-slate-100">
                             <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                                 <th className="px-6 py-4 w-[25%]">Employee Identity</th>
-                                <th className="px-6 py-4 w-[20%]">Department & Role</th>
+                                <th className="px-6 py-4 w-[15%]">Dept & Role</th>
+                                <th className="px-6 py-4 w-[20%]">DOB & Joining</th>
                                 <th className="px-6 py-4 w-[20%]">Communication</th>
-                                <th className="px-6 py-4 w-[20%]">Key Milestones</th>
-                                <th className="px-6 py-4 w-[15%] text-right">Actions</th>
+                                <th className="px-6 py-4 w-[10%] text-center">Status</th>
+                                <th className="px-6 py-4 w-[10%] text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                              {paginatedStaff.map((s, i) => (
                                 <tr key={i} className={`hover:bg-slate-50/50 transition-all group ${getVal(s, 'DOL') ? 'opacity-40 bg-slate-50/20' : ''}`}>
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-2">
+                                    <td className="px-6 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-orange-500 group-hover:text-white transition-all"><User size={14} /></div>
                                             <div>
-                                                <p className="font-black text-slate-800 uppercase text-[10px] mb-0.5">{getVal(s, 'Name')}</p>
-                                                <p className="text-[8px] text-slate-400 font-bold tracking-widest uppercase">{getVal(s, 'Staff_ID')}</p>
+                                                <p className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1">{getVal(s, 'Name')}</p>
+                                                <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{getVal(s, 'Staff_ID')}</p>
                                             </div>
-                                            {getVal(s, 'DOL') && <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded text-[7px] font-black uppercase tracking-widest">Left</span>}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
+                                    <td className="px-6 py-3">
                                         <p className="text-[9px] font-black text-slate-600 uppercase mb-0.5">{getVal(s, 'Department')}</p>
-                                        <p className="text-[8px] text-emerald-600 font-bold uppercase tracking-widest">{getVal(s, 'Role') || 'Staff'}</p>
+                                        <p className="text-[8px] text-orange-600 font-bold uppercase tracking-widest">{getVal(s, 'Role') || 'Staff'}</p>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500">
-                                                <Phone size={10} className="text-slate-300"/> {getVal(s, 'Mobile') || '-'}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[8px] font-bold text-slate-400 truncate max-w-[150px]">
-                                                <Mail size={10} className="text-slate-200"/> {getVal(s, 'Email') || '-'}
-                                            </div>
+                                    <td className="px-6 py-3">
+                                        <div className="space-y-0.5">
+                                            <p className="text-[9px] font-black text-slate-800 uppercase flex items-center gap-1.5"><Cake size={10} className="text-orange-500" /> {formatDateStrict(getVal(s, 'Birthday'))}</p>
+                                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={10} className="text-slate-300" /> Joined {formatDateStrict(getVal(s, 'Anniversary'))}</p>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="space-y-1">
-                                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
-                                                <Cake size={10} className="text-orange-400/70"/> {formatDateStrict(getVal(s, 'Birthday'))}
-                                            </div>
-                                            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest text-slate-400">
-                                                <Award size={10} className="text-emerald-400/70"/> {formatDateStrict(getVal(s, 'Anniversary'))}
-                                            </div>
+                                    <td className="px-6 py-3">
+                                        <div className="space-y-0.5">
+                                            <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-600"><Phone size={10} className="text-slate-300" /> {getVal(s, 'Mobile')}</div>
+                                            <div className="flex items-center gap-1.5 text-[8px] font-medium text-slate-400"><Mail size={10} className="text-slate-300" /> {getVal(s, 'Email')}</div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
+                                    <td className="px-6 py-3 text-center">
+                                        {getVal(s, 'DOL') ? (
+                                            <span className="px-2 py-0.5 bg-rose-50 text-rose-600 rounded text-[7px] font-black uppercase tracking-widest">Relieved</span>
+                                        ) : (
+                                            <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[7px] font-black uppercase tracking-widest">Active</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-3 text-right">
                                         <div className="flex items-center justify-end gap-1">
-                                            <button onClick={() => handleEdit(s)} className="p-2 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all">
-                                                <Edit3 size={12}/>
+                                            <button 
+                                                onClick={() => handleEdit(s)}
+                                                className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all"
+                                            >
+                                                <Edit3 size={14} />
                                             </button>
                                             {isAdmin && (
                                                 <button 
-                                                    disabled={submitting} 
-                                                    onClick={() => handleDelete(getVal(s, 'Staff_ID') || getVal(s, 'staffId'))} 
-                                                    className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                                                    onClick={() => handleDelete(getVal(s, 'Staff_ID'))}
+                                                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
                                                 >
-                                                    <Trash size={12}/>
+                                                    <Trash size={14} />
                                                 </button>
                                             )}
                                         </div>
                                     </td>
                                 </tr>
                             ))}
-                            {paginatedStaff.length === 0 && (
-                                <tr>
-                                    <td colSpan="5" className="px-10 py-20 text-center">
-                                        <div className="flex flex-col items-center gap-4 opacity-30">
-                                            <Search size={48} />
-                                            <p className="text-[10px] font-black uppercase tracking-widest">No staff members match your search</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            {/* PAGINATION */}
             <Pagination 
                 totalItems={filteredStaff.length} 
                 itemsPerPage={itemsPerPage} 
@@ -628,349 +1172,431 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRo
                 onPageChange={setCurrentPage} 
             />
 
-            {/* POPUP MODAL FOR ADD/EDIT */}
-            <AnimatePresence>
-                {showModal && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 sm:p-6">
-                        <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div 
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]"
-                        >
-                            <div className="px-10 py-8 border-b border-slate-50 flex items-center justify-between shrink-0">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-100">
-                                        {formData.staffId ? <Edit3 size={20} /> : <Plus size={20} />}
+            {showModal && (
+                <div className="fixed inset-0 z-[500] flex items-center justify-center p-4">
+                    <div 
+                        onClick={() => setShowModal(false)}
+                        className="absolute inset-0 bg-slate-900/60"
+                    />
+                    <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl relative overflow-hidden flex flex-col max-h-[85vh]">
+                            <div className="px-6 py-4 border-b border-slate-50 flex items-center justify-between shrink-0 bg-white">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 bg-orange-600 text-white rounded-lg flex items-center justify-center shadow-lg">
+                                        {formData.staffId ? <Edit3 size={14} /> : <Plus size={14} />}
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none">{formData.staffId ? 'Modify Profile' : 'New Specialist'}</h3>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1.5">{formData.staffId ? `Updating ID: ${formData.staffId}` : 'Entering system roster'}</p>
+                                        <h3 className="text-[11px] font-black text-slate-800 uppercase tracking-tighter leading-none">{formData.staffId ? 'Edit Profile' : 'Add Staff'}</h3>
+                                        <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{formData.staffId ? `ID: ${formData.staffId}` : 'New Roster Entry'}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => setShowModal(false)} className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-100 transition-all"><X size={20}/></button>
+                                <button onClick={() => setShowModal(false)} className="p-2 bg-slate-50 text-slate-400 rounded-lg hover:bg-slate-100"><X size={16}/></button>
                             </div>
 
-                            <div className="p-10 overflow-y-auto custom-scrollbar">
-                                <form id="staff-form" onSubmit={handleSubmit} className="space-y-8">
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Full Name</label>
-                                            <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Enter name"/>
+                            <div className="p-6 overflow-y-auto custom-scrollbar bg-white">
+                                <form id="staff-form" onSubmit={handleSubmit} className="space-y-5">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Full Name</label>
+                                            <input required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white" placeholder="Name"/>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">WhatsApp Number</label>
-                                            <input required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="Phone No."/>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Department</label>
-                                            <input required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="e.g. Nursing"/>
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Official Role</label>
-                                            <input required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="e.g. Senior Nurse"/>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">WhatsApp No.</label>
+                                            <input required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white" placeholder="Phone"/>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Birth Date</label>
-                                            <input type="date" value={formData.birthday} onChange={e => setFormData({...formData, birthday: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all"/>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Department</label>
+                                            <input required value={formData.department} onChange={e => setFormData({...formData, department: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white" placeholder="Dept"/>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Joining Date</label>
-                                            <input type="date" value={formData.anniversary} onChange={e => setFormData({...formData, anniversary: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all"/>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Role</label>
+                                            <input required value={formData.role} onChange={e => setFormData({...formData, role: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white" placeholder="Role"/>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2">Email (Optional)</label>
-                                            <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500/20 focus:bg-white transition-all" placeholder="email@sbh.com"/>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Birthday</label>
+                                            <input type="date" value={formData.birthday} onChange={e => setFormData({...formData, birthday: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white"/>
                                         </div>
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black uppercase text-rose-400 ml-2">Date of Leaving (DOL)</label>
-                                            <input type="date" value={formData.dol} onChange={e => setFormData({...formData, dol: e.target.value})} className="w-full bg-rose-50/50 p-5 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-rose-500/20 focus:bg-white transition-all"/>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Joining Date</label>
+                                            <input type="date" value={formData.anniversary} onChange={e => setFormData({...formData, anniversary: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white"/>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-slate-400 ml-1">Email</label>
+                                            <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-slate-50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-orange-500/10 focus:bg-white" placeholder="Email"/>
+                                        </div>
+                                        <div className="space-y-1.5">
+                                            <label className="text-[8px] font-black uppercase text-rose-400 ml-1">Exit Date</label>
+                                            <input type="date" value={formData.dol} onChange={e => setFormData({...formData, dol: e.target.value})} className="w-full bg-rose-50/50 p-3.5 rounded-xl font-bold text-[10px] outline-none border-2 border-transparent focus:border-rose-500/10 focus:bg-white"/>
                                         </div>
                                     </div>
                                 </form>
                             </div>
 
-                            <div className="p-10 border-t border-slate-50 flex items-center justify-end gap-4 shrink-0 bg-slate-50/50">
-                                <button onClick={() => setShowModal(false)} className="px-8 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Discard</button>
-                                <button form="staff-form" type="submit" disabled={submitting} className="px-10 py-5 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl hover:bg-emerald-600 transition-all flex items-center gap-3 disabled:opacity-50">
-                                    {submitting ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
-                                    {submitting ? 'Processing...' : 'Finalize Profile'}
+                            <div className="p-6 border-t border-slate-50 flex items-center justify-end gap-3 shrink-0 bg-slate-50/50">
+                                <button onClick={() => setShowModal(false)} className="px-4 py-2 text-[8px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600">Discard</button>
+                                <button form="staff-form" type="submit" disabled={submitting} className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-[8px] uppercase tracking-widest shadow-lg hover:bg-orange-600 flex items-center gap-2 disabled:opacity-50">
+                                    {submitting ? <Loader2 className="animate-spin" size={12} /> : <Save size={12} />}
+                                    {submitting ? 'Syncing...' : 'Save Profile'}
                                 </button>
                             </div>
-                        </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
+
+            <SuccessModal 
+                isOpen={showDeleteSuccess} 
+                onClose={() => setShowDeleteSuccess(false)}
+                title="Staff Deleted"
+                subtitle="Roster Pruned"
+                message="The employee record has been permanently removed from the SBH Central Roster."
+            />
         </div>
     );
 };
 
 const PrintQRSection = () => {
-    const PUBLIC_URL = "https://lasik-feedback.vercel.app";
-    const urls = [
-        { label: "Smile Award Form", url: `${PUBLIC_URL}?type=smile_award`, color: "from-orange-500 to-amber-500", icon: <Award size={20} className="text-white" /> },
-        { label: "Staff Self-Registration", url: `${PUBLIC_URL}?type=register`, color: "from-blue-500 to-indigo-600", icon: <UserPlus size={20} className="text-white" /> },
-        { label: "Lasik Feedback", url: `${PUBLIC_URL}?type=lasik`, color: "from-emerald-500 to-teal-500", icon: <CheckCircle2 size={20} className="text-white" /> }
+    const PUBLIC_URL = "https://lasik-feedback.vercel.app/public"; // Adjust this to your actual production domain
+    
+    const qrData = [
+        { id: 'smile', label: 'Smile Award', sub: 'Nomination Portal', type: 'smile_award', color: 'bg-emerald-600' },
+        { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'bg-orange-600' },
+        { id: 'staff', label: 'Staff Roster', sub: 'Onboarding Portal', type: 'register', color: 'bg-slate-900' }
     ];
-    const printItem = (item) => { const win = window.open('', '', 'width=800,height=800'); win.document.write(`<html><head><title>Print</title><style>body{display:flex;justify-content:center;align-items:center;height:100vh;margin:0;font-family:sans-serif;}.card{text-align:center;border:2px solid #eee;border-radius:2rem;padding:3rem;}.title{font-size:2rem;font-weight:900;text-transform:uppercase;margin-bottom:2rem;}.url{font-size:0.8rem;margin-top:2rem;color:#666;word-break:break-all;}</style></head><body><div class="card"><div class="title">${item.label}</div><div id="qr-target" style="display:flex;justify-content:center;"></div><div class="url">${item.url}</div></div><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script><script>new QRCode(document.getElementById("qr-target"), {text: "${item.url}", width: 300, height: 300}); setTimeout(()=>{window.print();window.close();},800);</script></body></html>`); };
-    const copyLink = (link) => { navigator.clipboard.writeText(link); alert("Link Copied!"); };
+
+    const downloadQR = (url, label) => {
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(url)}`;
+        fetch(qrUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `SBH_QR_${label.replace(/\s+/g, '_')}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+    };
 
     return (
-        <div className="space-y-12 animate-in fade-in pb-20">
-            <div className="px-1"><h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter">QR <span className="text-emerald-600">Station</span></h2><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-2">Physical touchpoints for patient feedback & staff onboarding</p></div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {urls.map((item, idx) => (
-                    <div key={idx} className="bg-white rounded-[3rem] p-10 border border-slate-100 shadow-xl text-center relative overflow-hidden group">
-                        <div className={`absolute top-0 inset-x-0 h-2 bg-gradient-to-r ${item.color}`} />
-                        <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-8 shadow-xl bg-gradient-to-br ${item.color}`}>{item.icon}</div>
-                        <h3 className="text-lg font-black text-slate-800 uppercase mb-8">{item.label}</h3>
-                        <div className="bg-slate-50 p-6 rounded-3xl inline-block mb-8 border border-slate-100 shadow-inner"><QRCodeSVG value={item.url} size={200} level="H" includeMargin={true} /></div>
-                        
-                        <div className="mb-8 px-4 py-3 bg-slate-50 rounded-xl border border-slate-100 overflow-hidden">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest break-all leading-relaxed select-all">{item.url}</p>
-                        </div>
+        <div className="space-y-10 pb-20">
+            <div className="px-1">
+                <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">QR <span className="text-orange-600">Manager</span></h2>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Central Distribution Hub for Public Access</p>
+            </div>
 
-                        <div className="flex flex-col gap-3">
-                            <button onClick={() => printItem(item)} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-2 transition-all hover:bg-emerald-600"><Download size={14}/> Print QR Code</button>
-                            <button onClick={() => copyLink(item.url)} className="w-full py-4 bg-slate-50 text-slate-400 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-white transition-all flex items-center justify-center gap-2 border border-slate-100"><LinkIcon size={12}/> Copy Link</button>
-                        </div>
-                    </div>
-                ))}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                {qrData.map(qr => {
+                    const finalUrl = `${PUBLIC_URL}?type=${qr.type}`;
+                    return (
+                        <motion.div 
+                            key={qr.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl text-center group hover:shadow-2xl transition-all"
+                        >
+                            <div className="relative mb-8">
+                                <div className="absolute inset-0 bg-slate-50 rounded-[2.5rem] transform rotate-3 group-hover:rotate-6 transition-transform" />
+                                <div className="relative bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col items-center gap-4">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(finalUrl)}`}
+                                        alt={qr.label}
+                                        className="w-40 h-40 object-contain"
+                                    />
+                                </div>
+                            </div>
+                            
+                            <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight mb-1">{qr.label}</h3>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-6">{qr.sub}</p>
+                            
+                            <div className="space-y-3">
+                                <button 
+                                    onClick={() => downloadQR(finalUrl, qr.label)}
+                                    className={`w-full py-4 ${qr.color} text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:brightness-110 flex items-center justify-center gap-3 transition-all active:scale-95`}
+                                >
+                                    <Download size={14} /> Download HQ
+                                </button>
+                                <a 
+                                    href={finalUrl} 
+                                    target="_blank" 
+                                    rel="noreferrer"
+                                    className="block text-[8px] font-black text-slate-400 uppercase tracking-widest hover:text-orange-600 transition-colors"
+                                >
+                                    Preview Link
+                                </a>
+                            </div>
+                        </motion.div>
+                    );
+                })}
             </div>
         </div>
     );
 };
 
-const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) => {
-    const [sending, setSending] = useState(null);
+const CelebrationsSection = ({ staffList, smileScriptUrl, loading, onRefresh }) => {
+    const events = useMemo(() => {
+        if (!staffList) return [];
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        
+        const rawEvents = staffList.flatMap(s => {
+            const bRaw = getVal(s, 'Birthday');
+            const aRaw = getVal(s, 'Anniversary');
+            const items = [];
+            
+            if (bRaw) {
+                const b = parseDateLocal(bRaw);
+                if (b) {
+                    b.setFullYear(today.getFullYear());
+                    let diff = Math.ceil((b - today) / (1000 * 60 * 60 * 24));
+                    if (diff < 0 && diff > -330) b.setFullYear(today.getFullYear() + 1);
+                    diff = Math.ceil((b - today) / (1000 * 60 * 60 * 24));
+                    if (diff >= 0 && diff <= 30) {
+                        items.push({ 
+                            type: 'BIRTHDAY', 
+                            name: getVal(s, 'Name'), 
+                            mobile: getVal(s, 'Mobile'),
+                            email: getVal(s, 'Email'),
+                            days: diff, 
+                            date: bRaw 
+                        });
+                    }
+                }
+            }
 
-    const handleSendManual = async (ev) => {
-        const sendKey = ev.staffId + ev.type;
-        setSending(sendKey);
+            if (aRaw) {
+                const a = parseDateLocal(aRaw);
+                if (a) {
+                    a.setFullYear(today.getFullYear());
+                    let diff = Math.ceil((a - today) / (1000 * 60 * 60 * 24));
+                    if (diff < 0 && diff > -330) a.setFullYear(today.getFullYear() + 1);
+                    diff = Math.ceil((a - today) / (1000 * 60 * 60 * 24));
+                    if (diff >= 0 && diff <= 30) {
+                        items.push({ 
+                            type: 'ANNIVERSARY', 
+                            name: getVal(s, 'Name'), 
+                            mobile: getVal(s, 'Mobile'),
+                            email: getVal(s, 'Email'),
+                            days: diff, 
+                            date: aRaw 
+                        });
+                    }
+                }
+            }
+            return items;
+        });
+
+        return rawEvents.sort((a, b) => a.days - b.days);
+    }, [staffList]);
+
+    const [sendingWish, setSendingWish] = useState({});
+
+    const handleWish = async (ev, channel) => {
+        const wishKey = `${ev.name}_${channel}`;
+        setSendingWish(prev => ({ ...prev, [wishKey]: true }));
+        
         try {
             await fetch(smileScriptUrl, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain' },
-                body: JSON.stringify({ 
-                    action: 'send_manual_reminder', 
-                    type: ev.type, 
-                    name: ev.name, 
+                body: JSON.stringify({
+                    action: 'send_manual_reminder',
+                    channel: channel.toUpperCase(),
+                    type: ev.type,
+                    name: ev.name,
                     mobile: ev.mobile,
                     email: ev.email,
-                    years: ev.type === 'ANNIVERSARY' ? (new Date().getFullYear() - ev.date.getFullYear()) : 0
+                    years: ev.years || 1
                 })
             });
-            // We use a small delay because no-cors doesn't give us the response body
-            await new Promise(r => setTimeout(r, 1500));
-            alert(`Wishes sent to ${ev.name}!`);
-        } catch (e) {
-            alert("Failed to send wishes.");
+            alert(`Official ${channel.toUpperCase()} Protocol finalized for ${ev.name}.`);
+        } catch (err) {
+            alert("Communication node failed.");
+        } finally {
+            setSendingWish(prev => ({ ...prev, [wishKey]: false }));
         }
-        setSending(null);
     };
-
-    const parseDate = (val) => {
-        if (!val) return null;
-        const sVal = String(val).trim();
-        
-        // 1. Handle "22 December 1996" style
-        if (sVal.match(/^\d{1,2} [A-Za-z]+ \d{4}$/)) {
-            const d = new Date(sVal);
-            return isNaN(d.getTime()) ? null : d;
-        }
-
-        // 2. Handle DD-MM-YYYY or D-M-YYYY (Strict priority)
-        if (sVal.includes('-')) {
-            const parts = sVal.split('-');
-            if (parts.length === 3) {
-                // If it looks like YYYY-MM-DD
-                if (parts[0].length === 4) {
-                    const [y, m, d] = parts.map(Number);
-                    return new Date(y, m - 1, d);
-                }
-                // Assume DD-MM-YYYY
-                const [d, m, y] = parts.map(Number);
-                return new Date(y, m - 1, d);
-            }
-        }
-        
-        const d = new Date(val);
-        return isNaN(d.getTime()) ? null : d;
-    };
-
-    const getDaysUntil = (date) => {
-        if (!date) return 999;
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-        const event = new Date(now.getFullYear(), date.getMonth(), date.getDate());
-        if (event < now) {
-            event.setFullYear(now.getFullYear() + 1);
-        }
-        const diffTime = event - now;
-        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    };
-
-    const events = useMemo(() => {
-        const list = [];
-        (staffList || []).forEach(s => {
-            // SKIP IF LEFT (DOL is present)
-            if (s.DOL || s.dol) return;
-
-            const bday = parseDate(s.Birthday);
-            if (bday) {
-                const days = getDaysUntil(bday);
-                if (days <= 60) { // Show events in next 60 days
-                    list.push({ type: 'BIRTHDAY', name: s.Name, date: bday, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile, email: s.Email });
-                }
-            }
-            const anniv = parseDate(s.Anniversary);
-            if (anniv) {
-                const days = getDaysUntil(anniv);
-                if (days <= 60) { // Show events in next 60 days
-                    list.push({ type: 'ANNIVERSARY', name: s.Name, date: anniv, days, dept: s.Department, staffId: s.Staff_ID, mobile: s.Mobile, email: s.Email });
-                }
-            }
-        });
-        return list.sort((a, b) => a.days - b.days);
-    }, [staffList]);
-
-    if (loading) return <SectionLoader message="Syncing celebrations calendar..." />;
 
     return (
-        <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-            <style>{`
-                @keyframes slow-blink {
-                    0%, 100% { opacity: 1; transform: scale(1); }
-                    50% { opacity: 0.7; transform: scale(0.98); }
-                }
-                .animate-slow-blink {
-                    animation: slow-blink 3s infinite ease-in-out;
-                }
-            `}</style>
-            <div className="px-1 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-8">
+            <div className="flex items-center justify-between px-1">
                 <div>
-                    <h2 className="text-4xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-3">Event <span className="text-orange-500">Radar</span></h2>
-                    <p className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase">Upcoming birthdays and work anniversaries</p>
+                    <h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter">Event <span className="text-orange-600">Horizon</span></h2>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Upcoming Milestone Protocol</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <RefreshButton onRefresh={onRefresh} loading={loading} />
-                    {events.some(e => e.days === 0) && (
-                        <button 
-                            disabled={sending === 'ALL_TODAY'}
-                            onClick={async () => {
-                                const todayEvents = events.filter(e => e.days === 0);
-                                if (window.confirm(`Send wishes to all ${todayEvents.length} staff members celebrating today?`)) {
-                                    setSending('ALL_TODAY');
-                                    for (const ev of todayEvents) {
-                                        await handleSendManual(ev);
-                                    }
-                                    setSending(null);
-                                    alert("All today's wishes dispatched!");
-                                }
-                            }}
-                            className="px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center gap-2 hover:bg-orange-600 transition-all disabled:opacity-50"
+                <RefreshButton onRefresh={onRefresh} loading={loading} />
+            </div>
+            {events.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {events.map((ev, i) => (
+                        <motion.div 
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            key={i} 
+                            className={`p-8 rounded-[2.5rem] border relative overflow-hidden transition-all group ${ev.days === 0 ? 'bg-orange-500 border-orange-400 shadow-2xl shadow-orange-200' : 'bg-white border-slate-100 shadow-sm hover:shadow-xl'}`}
                         >
-                            {sending === 'ALL_TODAY' ? <Loader2 className="animate-spin" size={14}/> : <Send size={14}/>}
-                            {sending === 'ALL_TODAY' ? 'Dispatching...' : "Dispatch Today's Wishes"}
-                        </button>
-                    )}
-                </div>
-            </div>
+                            {ev.days === 0 && <div className="absolute top-0 right-0 p-4"><Star className="text-white animate-spin-slow" size={20} fill="currentColor" /></div>}
+                            
+                            <div className="relative z-10">
+                                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-6 shadow-lg ${ev.days === 0 ? 'bg-white text-orange-600' : 'bg-orange-50 text-orange-600'}`}>
+                                    {ev.type === 'BIRTHDAY' ? <Cake size={24} /> : <Trophy size={24} />}
+                                </div>
 
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden">
-                <div className="max-h-[800px] overflow-y-auto custom-scrollbar p-8 md:p-12 bg-slate-50/30">
-                    {events.length === 0 ? (
-                        <div className="py-32 text-center">
-                            <PartyPopper size={48} className="mx-auto text-slate-200 mb-6" />
-                            <p className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em]">No upcoming celebrations found in next 60 days</p>
-                        </div>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {events.map((ev, i) => (
-                                <motion.div 
-                                    key={`${ev.staffId}-${ev.type}`}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: i * 0.05 }}
-                                    className={`p-8 rounded-[2.5rem] relative overflow-hidden group transition-all duration-500 border ${
-                                        ev.days === 0 
-                                        ? 'bg-slate-900 border-slate-900 shadow-2xl shadow-orange-100 scale-[1.02] z-10' 
-                                        : 'bg-white border-slate-50 hover:border-orange-200 shadow-sm hover:shadow-xl'
-                                    }`}
-                                >
-                                    <div className="relative z-10">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <span className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-[0.2em] border ${
-                                                ev.days === 0 
-                                                ? 'bg-orange-500 text-white border-orange-400 animate-pulse' 
-                                                : 'bg-slate-50 text-slate-400 border-slate-100'
-                                            }`}>
-                                                {ev.type === 'BIRTHDAY' ? 'Birthday' : 'Work Anniversary'}
-                                            </span>
-                                            {ev.days === 0 && (
-                                                <span className="text-[8px] font-black text-orange-400 uppercase tracking-widest animate-bounce">Today!</span>
-                                            )}
-                                            {ev.days === 1 && (
-                                                <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Tomorrow</span>
-                                            )}
-                                        </div>
+                                <div className="space-y-1 mb-6">
+                                    <h3 className={`text-sm font-black uppercase tracking-tight ${ev.days === 0 ? 'text-white' : 'text-slate-900'}`}>{ev.name}</h3>
+                                    <p className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-white/80' : 'text-orange-600'}`}>
+                                        {ev.type === 'BIRTHDAY' ? 'Birthday' : 'Work Anniversary'}
+                                    </p>
+                                </div>
 
-                                        <p className={`text-[8px] font-black uppercase tracking-[0.2em] mb-1 ${ev.days === 0 ? 'text-orange-400' : 'text-slate-400'}`}>{ev.dept}</p>
-                                        <h3 className={`text-base font-black uppercase tracking-tight mb-4 leading-tight ${ev.days === 0 ? 'text-white animate-slow-blink' : 'text-slate-800'}`}>{ev.name}</h3>
-                                        
-                                            <div className={`flex items-center justify-between pt-6 border-t ${ev.days === 0 ? 'border-slate-800' : 'border-slate-50'}`}>
-                                                <div className="flex items-center gap-3">
-                                                    <Calendar size={14} className={ev.days === 0 ? 'text-slate-500' : 'text-slate-300'} />
-                                                    <span className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-slate-400' : 'text-slate-500'}`}>
-                                                        {ev.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
-                                                    </span>
-                                                </div>
-                                                
-                                                {ev.days === 0 ? (
-                                                    <button 
-                                                        onClick={() => handleSendManual(ev)}
-                                                        disabled={sending === (ev.staffId + ev.type)}
-                                                        className="px-5 py-3 rounded-xl bg-orange-500 text-white hover:bg-white hover:text-orange-600 transition-all flex items-center gap-2 group/btn shadow-lg shadow-orange-500/20 disabled:opacity-50"
-                                                    >
-                                                        {sending === (ev.staffId + ev.type) ? (
-                                                            <Loader2 className="animate-spin" size={14} />
-                                                        ) : (
-                                                            <Send size={14} className="group-hover/btn:translate-x-1 transition-transform" />
-                                                        )}
-                                                        <span className="text-[9px] font-black uppercase tracking-widest">
-                                                            {sending === (ev.staffId + ev.type) ? 'Sending...' : 'Send Wishes'}
-                                                        </span>
-                                                    </button>
-                                                ) : (
-                                                    <div className="px-5 py-3 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 flex items-center gap-2 select-none">
-                                                        <Clock size={12} />
-                                                        <span className="text-[9px] font-black uppercase tracking-widest">Upcoming</span>
-                                                    </div>
-                                                )}
-                                            </div>
+                                <div className={`p-4 rounded-2xl mb-6 flex items-center justify-between ${ev.days === 0 ? 'bg-white/10 border border-white/20' : 'bg-slate-50 border border-slate-100'}`}>
+                                    <div>
+                                        <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${ev.days === 0 ? 'text-white/60' : 'text-slate-400'}`}>Event Date</p>
+                                        <p className={`text-[10px] font-black uppercase ${ev.days === 0 ? 'text-white' : 'text-slate-800'}`}>{formatDateStrict(ev.date)}</p>
                                     </div>
-                                </motion.div>
-                            ))}
+                                    <div className="text-right">
+                                        <p className={`text-[8px] font-black uppercase tracking-widest mb-1 ${ev.days === 0 ? 'text-white/60' : 'text-slate-400'}`}>Timeline</p>
+                                        <p className={`text-[10px] font-black uppercase ${ev.days === 0 ? 'text-white' : 'text-orange-600'}`}>
+                                            {ev.days === 0 ? 'Happening Now' : `${ev.days} Days Away`}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button 
+                                        disabled={sendingWish[`${ev.name}_whatsapp`]}
+                                        onClick={() => handleWish(ev, 'whatsapp')}
+                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white text-orange-600 hover:bg-slate-900 hover:text-white' : 'bg-emerald-600 text-white hover:bg-slate-900'} disabled:opacity-50`}
+                                    >
+                                        {sendingWish[`${ev.name}_whatsapp`] ? <Loader2 size={14} className="animate-spin" /> : <><MessageCircle size={14} /> WhatsApp</>}
+                                    </button>
+                                    <button 
+                                        disabled={sendingWish[`${ev.name}_email`]}
+                                        onClick={() => handleWish(ev, 'email')}
+                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white/20 text-white border border-white/30 hover:bg-white/40' : 'bg-slate-900 text-white hover:bg-orange-600'} disabled:opacity-50`}
+                                    >
+                                        {sendingWish[`${ev.name}_email`] ? <Loader2 size={14} className="animate-spin" /> : <><Mail size={14} /> Email</>}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    ))}
+                </div>
+            ) : (
+                <div className="bg-white rounded-[3rem] p-24 text-center border border-slate-100 shadow-inner relative overflow-hidden">
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.03)_0%,transparent_70%)]" />
+                    <div className="relative z-10">
+                        <div className="w-20 h-20 bg-orange-50 text-orange-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <Calendar size={40} />
                         </div>
-                    )}
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-2">No Imminent Milestones</h4>
+                        <p className="text-[11px] font-bold text-slate-300 uppercase tracking-widest">Horizon clear for the next 30 days.</p>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const StaffRegistrationForm = ({ onComplete }) => {
+    const [formData, setFormData] = useState({ name: '', mobile: '', email: '', dob: '', doj: '' });
+    const [isVerified, setIsVerified] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const handleSubmit = async (e) => {
+        if (e) e.preventDefault();
+        if (!isVerified) return alert("Security Verification Failed!");
+        setLoading(true);
+        try {
+            await fetch('https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec', {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'add_staff',
+                    ...formData,
+                    birthday: formData.dob,
+                    anniversary: formData.doj
+                })
+            });
+            setShowSuccess(true);
+        } catch (err) {
+            alert("Roster connection failed.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="max-w-xl mx-auto py-10">
+            <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl overflow-hidden relative">
+                <div className="p-10 md:p-12">
+                    <div className="flex flex-col items-center text-center mb-10">
+                        <div className="w-16 h-16 bg-white p-3 rounded-2xl shadow-xl border border-slate-50 mb-6">
+                            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                        </div>
+                        <h1 className="text-2xl font-black text-slate-900 tracking-tight uppercase">Staff <span className="text-orange-600">Onboarding</span></h1>
+                        <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-[0.2em]">Official Specialist Roster Protocol</p>
+                    </div>
+
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label>
+                                <input required value={formData.name} onChange={e=>setFormData({...formData, name:e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" placeholder="Naman Mishra" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp No.</label>
+                                <input required value={formData.mobile} onChange={e=>setFormData({...formData, mobile:e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" placeholder="10 Digits" />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Internal Email</label>
+                            <input type="email" value={formData.email} onChange={e=>setFormData({...formData, email:e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" placeholder="name@sbh.com" />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Date of Birth</label>
+                                <input required type="date" value={formData.dob} onChange={e=>setFormData({...formData, dob:e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Joining Date</label>
+                                <input required type="date" value={formData.doj} onChange={e=>setFormData({...formData, doj:e.target.value})} className="w-full px-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" />
+                            </div>
+                        </div>
+
+                        <MathCaptcha onVerify={setIsVerified} />
+
+                        <button 
+                            disabled={loading || !isVerified} 
+                            type="submit"
+                            className="w-full py-5 bg-slate-900 text-white text-[10px] font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50"
+                        >
+                            {loading ? <Loader2 size={16} className="animate-spin" /> : <><Send size={14}/> Finalize Registration</>}
+                        </button>
+                    </form>
                 </div>
             </div>
+
+            <SuccessModal 
+                isOpen={showSuccess} 
+                onClose={() => { setShowSuccess(false); if(onComplete) onComplete(); }}
+                title="Protocol Active"
+                subtitle="Central Roster Updated"
+                message="Welcome to the SBH Specialist Roster. Your credentials have been synchronized across all hospital nodes."
+            />
         </div>
     );
 };
@@ -998,7 +1624,15 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [lasikData, setLasikData] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [openCategories, setOpenCategories] = useState({ smile: true, results: true, lasik: false, accounting: user === 'ACCOUNT', employees: false });
+    const [openCategories, setOpenCategories] = useState({ smile: true, employees: false, lasik: false, accounting: user === 'ACCOUNT' });
+
+    const toggleCategory = (cat) => {
+        setOpenCategories(prev => {
+            const newState = { smile: false, employees: false, lasik: false, accounting: false };
+            newState[cat] = !prev[cat];
+            return newState;
+        });
+    };
 
     const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
     const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
@@ -1038,17 +1672,36 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
         return lasikData.slice(start, start + lasikItemsPerPage);
     }, [lasikData, lasikPage]);
 
+    const availableMonths = useMemo(() => {
+        const months = new Set();
+        smileWinnersList.forEach(w => w.month && months.add(w.month.toString().trim()));
+        smileStats.all.forEach(s => s.month && months.add(s.month.toString().trim()));
+        smileEntriesList.forEach(e => e.month && months.add(e.month.toString().trim()));
+        const sorted = Array.from(months).sort((a, b) => {
+            const d1 = new Date(a);
+            const d2 = new Date(b);
+            return d2 - d1;
+        });
+        return sorted;
+    }, [smileWinnersList, smileStats.all, smileEntriesList]);
+
     return (
         <div className="min-h-screen bg-[#F8FAFC] flex font-sans overflow-x-hidden">
             {!isPublic && (
-                <aside className={`fixed top-0 left-0 h-full w-64 bg-white border-r border-slate-100 z-[110] flex flex-col transition-transform duration-500 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'}`}>
-                    <div className="h-16 px-6 flex items-center gap-3 border-b border-slate-50 sticky top-0 bg-white z-20">
-                        <div className="w-8 h-8 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg"><Activity size={16} strokeWidth={2.5} /></div>
-                        <div><h2 className="text-sm font-black text-slate-900 uppercase tracking-tighter leading-none">SBH <span className="text-orange-600">CORE</span></h2><p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Hospital Intel Hub</p></div>
-                        <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-2 text-slate-400 hover:text-slate-600"><X size={16}/></button>
+                <aside className={`fixed top-0 left-0 h-full w-60 bg-slate-50 border-r border-slate-200 z-[110] flex flex-col lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'} transition-transform duration-300 ease-in-out`}>
+                    <div className="h-20 flex items-center justify-between px-6 border-b border-violet-50 mb-4 bg-white/30 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-sm">
+                                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                            </div>
+                            <span className="font-bold text-lg text-emerald-950 tracking-tight uppercase">
+                                SBH <span className="text-orange-600">CORE</span>
+                            </span>
+                        </div>
+                        <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-1.5 text-emerald-500 hover:text-white transition-none"><X size={14}/></button>
                     </div>
-                    <div className="p-4 flex-1 space-y-2 overflow-y-auto custom-scrollbar">
-                        <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => setOpenCategories(p => ({...p, smile: !p.smile}))}>
+                    <div className="p-3 flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+                        <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => toggleCategory('smile')}>
                             <NavItem icon={<Plus />} label="Cast Nomination" active={activeTab === 'SMILE_FORM'} onClick={() => handleNavClick('SMILE_FORM')} />
                             <NavItem icon={<ClipboardList />} label="Nomination Ledger" active={activeTab === 'SMILE_ENTRIES'} onClick={() => handleNavClick('SMILE_ENTRIES')} />
                             <NavItem icon={<TrendingUp />} label="Leader Board" active={activeTab === 'SMILE_LEADERBOARD'} onClick={() => handleNavClick('SMILE_LEADERBOARD')} />
@@ -1057,57 +1710,60 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 <NavItem icon={<CheckCircle2 />} label="Approval Desk" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
                             )}
                         </CollapsibleCategory>
-                        <CollapsibleCategory icon={<Users />} label="Workforce" isOpen={openCategories.employees} onToggle={() => setOpenCategories(p => ({...p, employees: !p.employees}))}>
+                        <CollapsibleCategory icon={<Users />} label="Workforce" isOpen={openCategories.employees} onToggle={() => toggleCategory('employees')}>
                             <NavItem icon={<Users />} label="Staff Roster" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
                             <NavItem icon={<Scan />} label="QR Manager" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
                             <NavItem icon={<Cake />} label="Celebrations" active={activeTab === 'CELEBRATIONS'} onClick={() => handleNavClick('CELEBRATIONS')} />
                         </CollapsibleCategory>
-                        <CollapsibleCategory icon={<ClipboardList />} label="Lasik Section" isOpen={openCategories.lasik} onToggle={() => setOpenCategories(p => ({...p, lasik: !p.lasik}))}>
+                        <CollapsibleCategory icon={<ClipboardList />} label="Lasik Section" isOpen={openCategories.lasik} onToggle={() => toggleCategory('lasik')}>
                             <NavItem icon={<Edit3 />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
                             <NavItem icon={<BarChart3 />} label="Feedback Data" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
                         </CollapsibleCategory>
-                        <CollapsibleCategory icon={<IndianRupee />} label="Accounting" isOpen={openCategories.accounting} onToggle={() => setOpenCategories(p => ({...p, accounting: !p.accounting}))}>
+                        <CollapsibleCategory icon={<IndianRupee />} label="Accounting" isOpen={openCategories.accounting} onToggle={() => toggleCategory('accounting')}>
                             <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
                             <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
                         </CollapsibleCategory>
                         
-                        <div className="pt-6 border-t border-slate-100">
-                            <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest px-5 mb-3">Management Controls</p>
-                            <button onClick={onLogout} className="w-full flex items-center gap-3 px-5 py-3 text-rose-500 hover:bg-rose-50 rounded-xl transition-all group">
-                                <LogOut size={14} className="opacity-70 group-hover:opacity-100" />
-                                <span className="text-[9px] font-black uppercase tracking-widest">Sign Out System</span>
+                        <div className="pt-4 border-t border-white/5">
+                            <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest px-5 mb-2">Management</p>
+                            <button onClick={onLogout} className="w-full flex items-center gap-3 px-5 py-2.5 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all group">
+                                <LogOut size={13} className="opacity-70 group-hover:opacity-100" />
+                                <span className="text-[8px] font-black uppercase tracking-widest leading-none">Sign Out System</span>
                             </button>
                         </div>
                     </div>
                 </aside>
             )}
-            <div className={`flex-1 flex flex-col pb-16 w-full ${isPublic ? 'min-h-screen py-10 bg-slate-50' : 'lg:pl-64'}`}>
-                {!isPublic && (
-                    <header className="h-16 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-40">
-                        <div className="flex items-center gap-4">
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="lg:hidden p-2 bg-slate-900 text-white rounded-lg shadow-md active:scale-90 transition-all"><Menu size={18} /></button>
-                            <div><h1 className="text-xs font-black text-slate-900 uppercase tracking-tight leading-none">{activeTab.replace(/_/g, ' ')}</h1></div>
+
+            <div className={`flex-1 flex flex-col min-w-0 transition-none ${!isPublic ? 'lg:ml-60' : ''}`}>
+                <header className="h-14 bg-white/80 backdrop-blur-md border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-[100]">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 text-slate-500 hover:bg-slate-50 rounded-xl transition-all"><Activity size={20}/></button>
+                        <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-100">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Core Engine Active</span>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <RefreshButton onRefresh={fetchData} loading={loading} className="hidden sm:flex border-none shadow-none hover:bg-slate-100" />
-                            <div className="flex items-center gap-3 px-3 py-1.5 bg-slate-50 border border-slate-100 rounded-xl">
-                                <div className="w-6 h-6 rounded-lg bg-orange-500 flex items-center justify-center text-white"><User size={12} /></div>
-                                <p className="text-[10px] font-black text-slate-800 uppercase tracking-tighter hidden sm:block">{user}</p>
-                            </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="text-right hidden sm:block">
+                            <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{user}</p>
+                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Node</p>
                         </div>
-                    </header>
-                )}
-                <main className={`flex-1 p-4 sm:p-6 lg:p-10 max-w-[1400px] mx-auto w-full ${isPublic ? 'flex flex-col items-center' : ''}`}>
-                    <AnimatePresence mode="wait">
-                        {activeTab === 'SMILE_ENTRIES' && <SmileEntriesSection entries={smileEntriesList} onOpenForm={() => handleNavClick('SMILE_FORM')} loading={loading} onRefresh={fetchData} />}
-                        {activeTab === 'SMILE_FORM' && <SmileAwardFormSection key="form" onSubmissionSuccess={() => { fetchData(); if(!isPublic) handleNavClick('SMILE_ENTRIES'); }} />}
-                        {activeTab === 'SMILE_LEADERBOARD' && <SmileLeaderboardSection key="stats" stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
-                        {activeTab === 'SMILE_WINNERS' && <SmileWinnersSection key="winners" winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} />}
+                        <div className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center text-xs font-black shadow-lg shadow-slate-200">{user?.[0]}</div>
+                    </div>
+                </header>
+
+                <main className="flex-1 p-4 lg:p-8">
+                    <div className="w-full">
+                        {activeTab === 'SMILE_ENTRIES' && <SmileEntriesSection entries={smileEntriesList} onOpenForm={() => handleNavClick('SMILE_FORM')} loading={loading} onRefresh={fetchData} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} availableMonths={availableMonths} />}
+                        {activeTab === 'SMILE_FORM' && <SmileAwardFormSection key="form" staffList={staffList} smileScriptUrl={smileScriptUrl} onSubmissionSuccess={() => { fetchData(); if(!isPublic) handleNavClick('SMILE_ENTRIES'); }} />}
+                        {activeTab === 'SMILE_LEADERBOARD' && <SmileLeaderboardSection key="stats" stats={smileStats} winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} availableMonths={availableMonths} />}
+                        {activeTab === 'SMILE_WINNERS' && <SmileWinnersSection key="winners" winners={smileWinnersList} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} loading={loading} onRefresh={fetchData} availableMonths={availableMonths} />}
                         {activeTab === 'HR_PANEL' && (
                             <HRApprovalPanel 
                                 key="hr" 
                                 stats={smileStats} 
-                                winners={smileWinnersList} 
+                                winners={smileWinnersList}
                                 onApprove={async(d)=> { 
                                     await fetch(smileScriptUrl, {
                                         method:'POST',
@@ -1119,17 +1775,20 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 }} 
                                 loading={loading} 
                                 onRefresh={fetchData} 
+                                selectedMonth={selectedMonth}
+                                onMonthChange={setSelectedMonth}
+                                availableMonths={availableMonths}
                             />
                         )}
                         {activeTab === 'EMPLOYEE_ROSTER' && <EmployeeRoster staffList={staffList} fetchStaff={fetchData} smileScriptUrl={smileScriptUrl} loading={loading} userRole={user} />}
                         {activeTab === 'PRINT_QR' && <PrintQRSection onRefresh={fetchData} loading={loading} />}
                         {activeTab === 'CELEBRATIONS' && <CelebrationsSection staffList={staffList} loading={loading} onRefresh={fetchData} smileScriptUrl={smileScriptUrl} />}
-                        {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm />}
+                        {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm onComplete={() => { fetchData(); if(!isPublic) handleNavClick('EMPLOYEE_ROSTER'); }} />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
                         {activeTab === 'LASIK_DATA' && (
-                            <div className="space-y-10 animate-in fade-in pb-20">
+                            <div className="space-y-10 pb-20">
                                 <div className="flex items-center justify-between px-1">
-                                    <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-1">Lasik <span className="text-emerald-600">Analytics</span></h2><p className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div>
+                                    <div><h2 className="text-2xl font-black text-slate-800 uppercase tracking-tighter mb-1">Lasik <span className="text-orange-600">Analytics</span></h2><p className="text-[9px] font-black tracking-[0.2em] text-slate-400 uppercase">Patient feedback and life impact data</p></div>
                                     <RefreshButton onRefresh={fetchData} loading={loading} />
                                 </div>
                                 <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-xl">
@@ -1183,10 +1842,10 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
                         {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} onRefresh={fetchData} loading={loading} />}
-                    </AnimatePresence>
+                    </div>
                 </main>
+                <Footer />
             </div>
-            <Footer />
         </div>
     );
 };

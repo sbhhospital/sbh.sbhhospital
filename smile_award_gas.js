@@ -47,20 +47,23 @@ function setupSheets() {
     }
   }
 
-  // 2. Smile Entries
+  // 2. Smile Entries (FORCE 9-COLUMN ARCHITECTURE)
   let entriesSheet = ss.getSheetByName('Smile_Entries');
   if (!entriesSheet) {
     entriesSheet = ss.insertSheet('Smile_Entries');
-    entriesSheet.appendRow(['Timestamp', 'Month', 'Voter_ID', 'Voter_Name', 'Employee_ID', 'Employee_Name', 'Department', 'Remarks']);
-    entriesSheet.getRange("A1:H1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
+    entriesSheet.appendRow(['Timestamp', 'Month', 'Voter_ID', 'Voter_Name', 'Voter_Department', 'Employee_ID', 'Employee_Name', 'Employee_Department', 'Remarks']);
   }
+  
+  // FORCE SYNC HEADERS (Crucial for alignment)
+  entriesSheet.getRange(1, 1, 1, 9).setValues([['Timestamp', 'Month', 'Voter_ID', 'Voter_Name', 'Voter_Department', 'Employee_ID', 'Employee_Name', 'Employee_Department', 'Remarks']]);
+  entriesSheet.getRange("A1:I1").setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
 
   // 3. Master Summary (QUERY based leaderboard)
   let summarySheet = ss.getSheetByName('Master_Summary');
   if (!summarySheet) {
     summarySheet = ss.insertSheet('Master_Summary');
   }
-  summarySheet.getRange("A1").setFormula('=QUERY(Smile_Entries!A:H, "SELECT B, F, G, COUNT(F) WHERE F IS NOT NULL GROUP BY B, F, G ORDER BY COUNT(F) DESC LABEL COUNT(F) \'Votes\'", 1)');
+  summarySheet.getRange("A1").setFormula('=QUERY(Smile_Entries!A:I, "SELECT B, G, H, COUNT(G) WHERE G IS NOT NULL GROUP BY B, G, H ORDER BY COUNT(G) DESC LABEL COUNT(G) \'Votes\'", 1)');
   
   // FORCE PLAIN TEXT for Month Columns to prevent ISO Timestamp conversion
   entriesSheet.getRange("B:B").setNumberFormat("@");
@@ -374,9 +377,10 @@ function saveVote(res) {
     month,
     res.voterId || 'N/A',
     res.voterName || 'Anonymous',
+    res.voterDept || 'N/A',
     res.employeeId || 'N/A',
     res.employeeName,
-    res.department,
+    res.department, // Nominee's department
     res.remarks
   ]);
   
@@ -501,6 +505,23 @@ function editStaff(data) {
   return createJsonResponse({ success: false, message: "Staff not found" });
 }
 
+function deleteStaff(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const staffSheet = ss.getSheetByName('Staff_Master');
+  const staffData = staffSheet.getDataRange().getValues();
+  
+  const targetId = String(data.staffId || "").trim().toUpperCase();
+  
+  for (let i = 1; i < staffData.length; i++) {
+    const rowId = String(staffData[i][0] || "").trim().toUpperCase();
+    if (rowId === targetId) {
+       staffSheet.deleteRow(i + 1);
+       return createJsonResponse({ success: true, message: "Staff deleted successfully" });
+    }
+  }
+  return createJsonResponse({ success: false, message: "Staff record not found" });
+}
+
 function getFinalWinners() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheet = ss.getSheetByName('Final_Winner');
@@ -516,36 +537,44 @@ function getFinalWinners() {
     });
     return createJsonResponse(winners);
 }
-
 function sendManualReminder(data) {
     const mobileStr = String(data.mobile || "").trim();
-    if (!mobileStr || mobileStr === 'N/A') return createJsonResponse({ success: false, message: "No mobile" });
-    
+    const email = String(data.email || "").trim();
+    const channel = (data.channel || "BOTH").toUpperCase();
     const type = (data.type || "").toUpperCase();
     const name = data.name;
+    const years = data.years || 1;
     
-    if (type === 'BIRTHDAY') {
-       const bdayMedia = "https://lh3.googleusercontent.com/d/1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly=s1000";
-       sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], bdayMedia);
-       sendProfessionalCelebrationEmail(data.email, 'BIRTHDAY', name);
-       
-       if (WHATSAPP_GROUP_ID) {
-         const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
-         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, bdayMedia);
-       }
-    } else if (type === 'ANNIVERSARY') {
-       const years = data.years || 1;
-       const annivMedia = "https://lh3.googleusercontent.com/d/1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB=s1000";
-       sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], annivMedia);
-       sendProfessionalCelebrationEmail(data.email, 'ANNIVERSARY', name, years);
+    const bdayMedia = "https://lh3.googleusercontent.com/d/1bhc0l3J8XKdiPOJVG_hfC27Saq1ivLly=s1000";
+    const annivMedia = "https://lh3.googleusercontent.com/d/1fzNq3x96Ag-dsOQgK4c7aX1yXiPcN6NB=s1000";
 
-       if (WHATSAPP_GROUP_ID) {
-         const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
-         sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, annivMedia);
-       }
+    // WHATSAPP BLOCK
+    if (channel === 'WHATSAPP' || channel === 'BOTH') {
+        if (mobileStr && mobileStr !== 'N/A') {
+            if (type === 'BIRTHDAY') {
+               sendMetaWhatsApp(mobileStr, "staff_birthday_wish", [name, name], bdayMedia);
+               if (WHATSAPP_GROUP_ID) {
+                 const groupMsg = `📢 *BIRTHDAY CELEBRATION* 🎂🎉\n\nDear *SBH Parivar*,\n\nToday is a very special day as we celebrate the birthday of our dear team member *${name}*! ✨\n\nLet's all join in wishing them a very *Happy Birthday!* 🥳🎈🎁\n\n- *SBH Group Of Hospitals* 🏥`;
+                 sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, bdayMedia);
+               }
+            } else {
+               sendMetaWhatsApp(mobileStr, "staff_anniversary_wish", [name, String(years)], annivMedia);
+               if (WHATSAPP_GROUP_ID) {
+                 const groupMsg = `📢 *WORK ANNIVERSARY CELEBRATION* 🌟🏆\n\nDear *SBH Parivar*,\n\nPlease join us in congratulating *${name}* on completing *${years} year(s)* with SBH Group! 🎊✨\n\n- *SBH Group Of Hospitals* 🏥`;
+                 sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg, annivMedia);
+               }
+            }
+        }
+    }
+
+    // EMAIL BLOCK
+    if (channel === 'EMAIL' || channel === 'BOTH') {
+        if (email && email !== 'N/A' && email.includes('@')) {
+            sendProfessionalCelebrationEmail(email, type, name, years);
+        }
     }
     
-    return createJsonResponse({ success: true, message: "Manual wishes sent via Meta/Group" });
+    return createJsonResponse({ success: true, message: `Manual wishes sent via ${channel}` });
 }
 
 function sendRecognition(data) {
@@ -915,4 +944,24 @@ function testGroupMessage() {
   
   sendWhatsApp(WHATSAPP_GROUP_ID, testMsg, testMedia);
   console.log("Test message dispatched to group!");
+}
+
+/**
+ * AUTOMATION: Sends tailored recognition for Smile Award winners
+ */
+function sendRecognition(data) {
+  const name = data.name;
+  const dept = data.department || data.dept || 'General';
+  const month = data.month;
+  const mobile = data.mobile;
+  
+  if (mobile && mobile !== 'N/A') {
+    const msg = `🏆 *SMILE AWARD WINNER* 🌟\n\nCongratulations *${name}* from *${dept}* Department!\n\nYou have been selected as the *Smile Award Winner* for *${month}* based on your exceptional service and hospital-wide recognition. ✨\n\nKeep spreading the smiles! 😊\n\n- *SBH Group Of Hospitals* 🏥`;
+    sendWhatsApp(mobile, msg);
+    
+    if (WHATSAPP_GROUP_ID) {
+       const groupMsg = `📢 *SMILE AWARD ANNOUNCEMENT* 🏆✨\n\nDear *SBH Parivar*,\n\nWe are proud to announce the *Smile Award Winner* for *${month}* from the *${dept}* Department:\n\n🌟 *${name}* 🌟\n\nLet's all congratulate them for their outstanding contribution! 👏👏👏\n\n- *SBH Group Of Hospitals* 🏥`;
+       sendWhatsApp(WHATSAPP_GROUP_ID, groupMsg);
+    }
+  }
 }
