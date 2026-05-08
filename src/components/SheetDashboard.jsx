@@ -16,6 +16,42 @@ import AccountUpdate from './Visiting/AccountUpdate';
 import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
 
 // --- UTILS ---
+const toFormDate = (str) => {
+    if (!str || str === '-') return '';
+    const s = String(str).trim();
+    
+    // Handle "DD MonthName YYYY" (e.g. 08 May 1998 or 22 December 1996)
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    const parts = s.split(' ');
+    if (parts.length === 3) {
+        const day = parts[0].padStart(2, '0');
+        const monthName = parts[1];
+        const year = parts[2];
+        const monthIdx = monthNames.findIndex(m => monthName.toLowerCase().startsWith(m.toLowerCase().substring(0,3)));
+        if (monthIdx !== -1) {
+            const mm = String(monthIdx + 1).padStart(2, '0');
+            return `${year}-${mm}-${day}`;
+        }
+    }
+
+    // Handle DD-MM-YYYY
+    if (s.includes('-') && s.split('-')[0].length <= 2) {
+        const [d, m, y] = s.split('-').map(p => p.padStart(2, '0'));
+        // If year is 2 digits, assume 20xx
+        const fullYear = y.length === 2 ? '20' + y : y;
+        return `${fullYear}-${m}-${d}`;
+    }
+
+    try {
+        const d = new Date(s);
+        if (!isNaN(d.getTime())) {
+            return d.toISOString().split('T')[0];
+        }
+    } catch (e) {}
+    
+    return '';
+};
+
 const formatTimeToAMPM = (timeStr) => {
     if (!timeStr) return '';
     if (timeStr.toLowerCase().includes('am') || timeStr.toLowerCase().includes('pm')) return timeStr;
@@ -31,12 +67,20 @@ const formatTimeToAMPM = (timeStr) => {
     } catch (e) { return timeStr; }
 };
 
-const formatDateReadable = (dateStr) => {
-    if (!dateStr) return '';
+const formatDateStrict = (dateVal) => {
+    if (!dateVal) return '-';
+    // If it's already a string in dd-mm-yyyy format, return as is
+    if (typeof dateVal === 'string' && dateVal.includes('-') && dateVal.split('-')[0].length <= 2) {
+        return dateVal;
+    }
     try {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-    } catch (e) { return dateStr; }
+        const d = new Date(dateVal);
+        if (isNaN(d.getTime())) return dateVal;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    } catch (e) { return dateVal; }
 };
 
 // --- HELPER COMPONENTS ---
@@ -360,16 +404,16 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
     const [formData, setFormData] = useState({ staffId: '', name: '', mobile: '', email: '', birthday: '', anniversary: '', department: '', role: '', dol: '' });
 
     const filteredStaff = useMemo(() => {
-        let list = staffList;
-        if (searchTerm) {
-            const s = searchTerm.toLowerCase();
-            list = list.filter(item => 
-                (item.Name || '').toLowerCase().includes(s) || 
-                (item.Staff_ID || '').toLowerCase().includes(s) ||
-                (item.Department || '').toLowerCase().includes(s)
+        return (staffList || []).filter(s => {
+            const search = searchTerm.toLowerCase();
+            return (
+                (s.Name || '').toLowerCase().includes(search) ||
+                (s.Staff_ID || '').toLowerCase().includes(search) ||
+                (s.Department || '').toLowerCase().includes(search) ||
+                (s.Mobile || '').toLowerCase().includes(search) ||
+                (s.Email || '').toLowerCase().includes(search)
             );
-        }
-        return list;
+        });
     }, [staffList, searchTerm]);
 
     const paginatedStaff = useMemo(() => {
@@ -495,10 +539,10 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading }) => {
                                     <td className="px-10 py-7">
                                         <div className="space-y-2">
                                             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                <Cake size={10} className="text-orange-400"/> {s.Birthday || 'Not Set'}
+                                                <Cake size={10} className="text-orange-400"/> {formatDateStrict(s.Birthday)}
                                             </div>
                                             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                                <Award size={10} className="text-emerald-400"/> {s.Anniversary || 'Not Set'}
+                                                <Award size={10} className="text-emerald-400"/> {formatDateStrict(s.Anniversary)}
                                             </div>
                                         </div>
                                     </td>
@@ -691,13 +735,29 @@ const CelebrationsSection = ({ staffList, loading, onRefresh, smileScriptUrl }) 
 
     const parseDate = (val) => {
         if (!val) return null;
-        const sVal = String(val);
-        // Handle DD-MM-YYYY
-        if (sVal.length === 10 && sVal.charAt(2) === '-') {
-            const [d, m, y] = sVal.split('-').map(Number);
-            return new Date(y, m - 1, d);
+        const sVal = String(val).trim();
+        
+        // 1. Handle "22 December 1996" style
+        if (sVal.match(/^\d{1,2} [A-Za-z]+ \d{4}$/)) {
+            const d = new Date(sVal);
+            return isNaN(d.getTime()) ? null : d;
         }
-        // Handle YYYY-MM-DD
+
+        // 2. Handle DD-MM-YYYY or D-M-YYYY (Strict priority)
+        if (sVal.includes('-')) {
+            const parts = sVal.split('-');
+            if (parts.length === 3) {
+                // If it looks like YYYY-MM-DD
+                if (parts[0].length === 4) {
+                    const [y, m, d] = parts.map(Number);
+                    return new Date(y, m - 1, d);
+                }
+                // Assume DD-MM-YYYY
+                const [d, m, y] = parts.map(Number);
+                return new Date(y, m - 1, d);
+            }
+        }
+        
         const d = new Date(val);
         return isNaN(d.getTime()) ? null : d;
     };

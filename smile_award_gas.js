@@ -173,39 +173,61 @@ function doPost(e) {
 function getStaffList() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Staff_Master');
-  const data = sheet.getDataRange().getValues();
+  const data = sheet.getDataRange().getDisplayValues(); // Use Display Values for exact text
   if (data.length <= 1) return createJsonResponse([]);
   
   const headers = data[0];
   const staff = data.slice(1).map(row => {
     let obj = {};
     headers.forEach((h, i) => {
-        let val = row[i];
-        if (val instanceof Date) {
-             val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
-        }
-        obj[h] = val;
+        obj[h] = row[i]; // row[i] is already a formatted string from getDisplayValues
     });
     return obj;
   });
   return createJsonResponse(staff);
 }
 
+function reformatToProfessional(val) {
+  if (!val) return '';
+  const sVal = val.toString().trim();
+  try {
+    const d = new Date(sVal);
+    if (!isNaN(d.getTime())) {
+      // Format as "22 December 1996"
+      return Utilities.formatDate(d, "GMT+5:30", "dd MMMM yyyy");
+    }
+  } catch(e) {}
+  return sVal;
+}
+
 function reformatDateString(val) {
   if (!val) return '';
   const sVal = val.toString().trim();
   
-  // 1. If already DD-MM-YYYY, return as is
+  // 1. If format is "22 December 1996", convert to "22-12-1996" for internal logic
+  if (sVal.match(/^\d{1,2} [A-Za-z]+ \d{4}$/)) {
+    try {
+      const d = new Date(sVal);
+      if (!isNaN(d.getTime())) {
+        const day = ("0" + d.getDate()).slice(-2);
+        const month = ("0" + (d.getMonth() + 1)).slice(-2);
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+      }
+    } catch(e) {}
+  }
+
+  // 2. If already DD-MM-YYYY, return as is
   if (/^\d{2}-\d{2}-\d{4}$/.test(sVal)) return sVal;
   
-  // 2. If format is YYYY-MM-DD or YYYY/MM/DD
+  // 3. If format is YYYY-MM-DD or YYYY/MM/DD
   if (/^\d{4}[-/]\d{2}[-/]\d{2}$/.test(sVal)) {
     const separator = sVal.includes('-') ? '-' : '/';
     const parts = sVal.split(separator);
     return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
   
-  // 3. Try parsing with native Date as last resort
+  // 4. Try parsing with native Date as last resort
   try {
     const d = new Date(sVal);
     if (!isNaN(d.getTime())) {
@@ -430,10 +452,10 @@ function addStaff(data) {
       if (!isNaN(lastNum)) {
         finalId = 'ST' + (lastNum + 1);
       } else {
-        finalId = 'ST' + (lastRow + 200); // Robust fallback
+        finalId = 'ST' + (lastRow + 200); 
       }
     } else {
-      finalId = 'ST' + (lastRow + 200); // Initial series start fallback
+      finalId = 'ST' + (lastRow + 200); 
     }
   }
   
@@ -442,11 +464,11 @@ function addStaff(data) {
     data.name,
     data.mobile || '',
     data.email || '',
-    "'" + (reformatDateString(data.birthday) || ''),
-    "'" + (reformatDateString(data.anniversary) || ''), 
+    "'" + (reformatToProfessional(data.birthday) || ''),
+    "'" + (reformatToProfessional(data.anniversary) || ''), 
     data.department || 'General',
     data.role || 'Staff',
-    "'" + (reformatDateString(data.dol) || '')
+    "'" + (reformatToProfessional(data.dol) || '')
   ]);
   
   return createJsonResponse({ success: true, staffId: finalId });
@@ -466,11 +488,11 @@ function editStaff(data) {
          data.name, 
          data.mobile || '', 
          data.email || '', 
-         "'" + (reformatDateString(data.birthday) || ''), 
-         "'" + (reformatDateString(data.anniversary) || ''), 
+         "'" + (reformatToProfessional(data.birthday) || ''), 
+         "'" + (reformatToProfessional(data.anniversary) || ''), 
          data.department || 'General', 
          data.role || 'Staff', 
-         "'" + (reformatDateString(data.dol) || '')
+         "'" + (reformatToProfessional(data.dol) || '')
        ]]);
        return createJsonResponse({ success: true, message: "Staff updated" });
     }
