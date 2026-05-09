@@ -14,6 +14,7 @@ import VisitingManager from './Visiting/VisitingManager';
 import AccountUpdate from './Visiting/AccountUpdate';
 import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
 import LasikSurvey from './LasikSurvey';
+import Footer from './Footer';
 
 // --- UTILITIES ---
 const getVal = (obj, key) => {
@@ -183,85 +184,7 @@ const CollapsibleCategory = ({ icon, label, children, isOpen, onToggle }) => (
     </div>
 );
 
-const Footer = () => {
-    return (
-        <footer className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-[#f59e0b] via-[#10b981] to-[#2e7d32] py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10">
-            {/* Subtle Overlay */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none bg-white/5"></div>
 
-            <div className="max-w-full mx-auto px-4 md:px-10 relative z-10">
-
-                {/* 📱 MOBILE VIEW (Simple 2-line stack - Even Smaller Height) */}
-                <div className="flex flex-col items-center justify-center md:hidden py-0.5">
-                    <a
-                        href="https://www.sbhhospital.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1.5 no-underline"
-                    >
-                        <ShieldCheck size={11} className="text-white" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">
-                            SBH Group Of Hospitals
-                        </span>
-                    </a>
-                    <a
-                        href="https://www.linkedin.com/in/ignamanmishra"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 no-underline mt-0.5 opacity-90"
-                    >
-                        <span className="text-[8px] font-bold text-white uppercase tracking-widest italic leading-none">
-                            Architected by
-                            <span className="ml-2 text-[9px] font-black text-white uppercase tracking-widest not-italic">Naman Mishra</span>
-                        </span>
-                        <Linkedin size={8} className="text-[#0077b5] bg-white rounded-[1px] p-[0.5px]" />
-                    </a>
-                </div>
-
-                {/* 💻 DESKTOP VIEW (Tight Layout) */}
-                <div className="hidden md:flex items-center justify-between gap-6 h-8">
-                    {/* 🏷️ BRANDING */}
-                    <div className="flex items-center gap-3">
-                        <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center border border-white/30 backdrop-blur-md shadow-sm">
-                            <Activity size={14} className="text-white" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none">SBH INTEL</span>
-                            <span className="text-[8px] font-extrabold text-white/80 tracking-wider mt-0.5">SYSTEM OPERATIONAL</span>
-                        </div>
-                    </div>
-
-                    {/* 🏢 CENTER */}
-                    <a
-                        href="https://www.sbhhospital.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 py-1 px-4 bg-white/10 hover:bg-white/20 rounded-full border border-white/20 backdrop-blur-lg transition-all transform hover:scale-105 group no-underline shadow-sm"
-                    >
-                        <ShieldCheck size={12} className="text-white" />
-                        <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] flex items-center gap-1.5 leading-none">
-                            SBH Group Of Hospitals
-                        </span>
-                    </a>
-
-                    {/* 👤 ARCHITECT */}
-                    <a
-                        href="https://www.linkedin.com/in/ignamanmishra"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex flex-col text-right group no-underline"
-                    >
-                        <span className="text-[8px] font-bold text-white/80 uppercase tracking-widest italic leading-none mb-1">Architected by</span>
-                        <span className="text-[10px] font-black text-white uppercase tracking-widest flex items-center justify-end gap-1.5 leading-none">
-                            Naman Mishra
-                            <Linkedin size={10} className="text-[#0077b5] bg-white rounded-[2px] p-[1px] opacity-100" />
-                        </span>
-                    </a>
-                </div>
-            </div>
-        </footer>
-    );
-};
 
 
 const SuccessModal = ({ isOpen, onClose, title = "Thank You!", subtitle = "Entry Registered", message = "Your submission has been logged into our system." }) => {
@@ -766,7 +689,7 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
 
                         <div className="mt-8 pt-6 border-t border-white/10 relative text-center">
                             <p className="text-[7px] font-black text-slate-500 uppercase tracking-[0.3em] mb-1">Status Report</p>
-                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">All Nodes Operational</p>
+                            <p className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">System Active</p>
                         </div>
                     </motion.div>
                 </div>
@@ -1595,7 +1518,7 @@ const StaffRegistrationForm = ({ onComplete }) => {
                 onClose={() => { setShowSuccess(false); if(onComplete) onComplete(); }}
                 title="Protocol Active"
                 subtitle="Central Roster Updated"
-                message="Welcome to the SBH Specialist Roster. Your credentials have been synchronized across all hospital nodes."
+                message="Welcome to the SBH Specialist Roster. Your credentials have been synchronized across all hospital systems."
             />
         </div>
     );
@@ -1635,7 +1558,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     };
 
     const smileScriptUrl = 'https://script.google.com/macros/s/AKfycbyHNF4Yzqvh6Copcl2aL1XyWZEyBSeoaxXz277xFbkPOqPOB-Fy7tNzDpMmFimHf2kGyg/exec';
-    const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbybBim6gXGxKgcwpivSGWOdzW4hyA_NAG-WwzoBk3mpsfJ-rznT-U99oVj6m1qNLeKwVw/exec';
+    const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbxAk2UQhkJbtQh0V9gjfs7kzFjUa59XnCKlQMQsgkRNrYDvqD5wtHi_0HUuit_tENalGw/exec';
     const sbhFamilyScriptUrl = 'https://script.google.com/macros/s/AKfycbxlKMT0rLe4QpbLl8x_Pm8blS8yCvWsvKMTz1_tozd94bju0Z8eEJ4lDz_1pnAmav_O/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
 
@@ -1747,7 +1670,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
                             <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{user}</p>
-                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Node</p>
+                            <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Terminal</p>
                         </div>
                         <div className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center text-xs font-black shadow-lg shadow-slate-200">{user?.[0]}</div>
                     </div>

@@ -3,18 +3,19 @@
  * Features: Auto-Mapping, Shift Correction, detailed WhatsApp.
  */
 
-const ACCOUNT_TEAM_MOBILE = "9644404741";
-const HR_TEAM_MOBILE = "9644404741";
+const ACCOUNT_TEAM_MOBILE = "9644199935";
+const HR_TEAM_MOBILE = "9644492116";
 
 function setupVisitingSheets() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let paymentsSheet = ss.getSheetByName('Visiting_Payments');
   if (!paymentsSheet) paymentsSheet = ss.insertSheet('Visiting_Payments');
   
-  // Force Reset Headers for consistency
+  // Enhanced headers for better tracking and reporting
   const headers = [
-    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Gross_Amount', 'Deductions', 'Amount_To_Pay', 'Visit_Dates', 
-    'Visit_Count', 'HR_Entry_Date', 'Status', 'Payment_Date', 'Account_Remarks', 'Paid_Amount', 'Reminders_Sent'
+    'Payment_ID', 'Settlement_ID', 'Doctor_ID', 'Doctor_Name', 'Gross_Amount', 'Deductions', 'Amount_To_Pay', 
+    'Visit_Dates', 'Visit_Count', 'Month', 'Year', 'HR_Entry_Date', 'Status', 'Payment_Date', 'Account_Remarks', 
+    'Paid_Amount', 'Reminders_Sent'
   ];
   paymentsSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   paymentsSheet.getRange(1, 1, 1, headers.length).setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
@@ -24,7 +25,7 @@ function setupVisitingSheets() {
   archiveSheet.getRange(1, 1, 1, headers.length).setValues([headers]);
   archiveSheet.getRange(1, 1, 1, headers.length).setBackground("#1a365d").setFontColor("white").setFontWeight("bold");
   
-  return "Sheets Reset Successfully!";
+  return "Sheets Reset Successfully with Enhanced Headers!";
 }
 
 function doGet(e) {
@@ -51,49 +52,58 @@ function doPost(e) {
 
 function getVisitingDoctors() {
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Visiting_Master');
+  if (!sheet) return createJsonResponse([]);
   return createJsonResponse(mapRows(sheet.getDataRange().getValues()));
 }
 
 function getVisitingPayments() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const activeSheet = ss.getSheetByName('Visiting_Payments');
-  
-  const headersNeeded = [
-    'Payment_ID', 'Doctor_ID', 'Doctor_Name', 'Gross_Amount', 'Deductions', 'Amount_To_Pay', 'Visit_Dates', 
-    'Visit_Count', 'HR_Entry_Date', 'Status', 'Payment_Date', 'Account_Remarks', 'Paid_Amount', 'Reminders_Sent'
-  ];
-
-  if (activeSheet) {
-    const currentHeaders = activeSheet.getRange(1, 1, 1, activeSheet.getLastColumn()).getValues()[0];
-    if (currentHeaders.indexOf('Paid_Amount') === -1 || currentHeaders.indexOf('Amount_To_Pay') === -1) {
-      activeSheet.getRange(1, 1, 1, headersNeeded.length).setValues([headersNeeded]);
-      activeSheet.getRange(1, 1, 1, headersNeeded.length).setBackground("#2E7D32").setFontColor("white").setFontWeight("bold");
-    }
-  }
-
   const archiveSheet = ss.getSheetByName('Visiting_Archive');
+  
   let combined = [];
   if (activeSheet && activeSheet.getLastRow() > 1) combined = combined.concat(mapRows(activeSheet.getDataRange().getValues()));
   if (archiveSheet && archiveSheet.getLastRow() > 1) combined = combined.concat(mapRows(archiveSheet.getDataRange().getValues()));
+  
+  // Sort by entry date (newest first)
+  combined.sort((a, b) => {
+    const dateA = new Date(a.HR_Entry_Date?.split('-').reverse().join('-') || 0);
+    const dateB = new Date(b.HR_Entry_Date?.split('-').reverse().join('-') || 0);
+    return dateB - dateA;
+  });
+
   return createJsonResponse(combined);
 }
 
 function logPayment(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Visiting_Payments');
-  const nextId = "PAY" + (sheet.getLastRow() + 1000);
-  const hrEntryDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
+  const nextId = "SBH-V-PAY-" + (sheet.getLastRow() + 1000);
+  const hrEntryDate = Utilities.formatDate(new Date(), "GMT+5:30", "MM-dd-yyyy");
   
-  // Ensure no undefined values cause shifting
+  // Extract month and year from first visit date if available
+  let month = "";
+  let year = "";
+  if (data.visitDates && data.visitDates.length > 0) {
+    const firstDate = new Date(data.visitDates[0]);
+    if (!isNaN(firstDate.getTime())) {
+      month = Utilities.formatDate(firstDate, "GMT+5:30", "MMMM");
+      year = Utilities.formatDate(firstDate, "GMT+5:30", "yyyy");
+    }
+  }
+
   const row = [
     nextId, 
+    '', // Settlement_ID (empty until settled)
     data.doctorId || '', 
     data.doctorName || '', 
     data.grossAmount || 0, 
     data.deductions || 0, 
     data.netAmount || 0, 
-    data.visitDates || '', 
+    (data.visitDates || []).join(', '), 
     data.visitCount || 0, 
+    month,
+    year,
     hrEntryDate, 
     'Pending', 
     '', 
@@ -103,7 +113,7 @@ function logPayment(data) {
   ];
   
   sheet.appendRow(row);
-  return createJsonResponse({ success: true });
+  return createJsonResponse({ success: true, paymentId: nextId });
 }
 
 function settlePayout(data) {
@@ -113,9 +123,11 @@ function settlePayout(data) {
   const dataRange = sheet.getDataRange();
   const rows = dataRange.getValues();
   const headers = rows[0].map(h => h.toString().trim());
-  const payDate = Utilities.formatDate(new Date(), "GMT+5:30", "dd-MM-yyyy HH:mm:ss");
+  const payDate = Utilities.formatDate(new Date(), "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+  const settId = "SBH-V-SET-" + Math.floor(1000 + Math.random() * 9000);
 
   const idIdx = headers.indexOf('Payment_ID');
+  const settIdIdx = headers.indexOf('Settlement_ID');
   const statusIdx = headers.indexOf('Status');
   const payDateIdx = headers.indexOf('Payment_Date');
   const remarkIdx = headers.indexOf('Account_Remarks');
@@ -124,19 +136,29 @@ function settlePayout(data) {
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][idIdx].toString() === data.paymentId.toString()) {
       const settledRow = [...rows[i]];
+      if (settIdIdx !== -1) settledRow[settIdIdx] = settId;
       if (statusIdx !== -1) settledRow[statusIdx] = 'Paid';
       if (payDateIdx !== -1) settledRow[payDateIdx] = data.paymentDate || payDate;
       if (remarkIdx !== -1) settledRow[remarkIdx] = data.remarks || 'Settled';
-      if (paidAmountIdx !== -1) settledRow[paidAmountIdx] = data.paidAmount || rows[i][headers.indexOf('Amount_To_Pay')] || rows[i][headers.indexOf('Net_Amount')] || 0;
+      if (paidAmountIdx !== -1) settledRow[paidAmountIdx] = data.paidAmount || rows[i][headers.indexOf('Amount_To_Pay')] || 0;
       
       archiveSheet.appendRow(settledRow);
       sheet.deleteRow(i + 1);
       
       // WhatsApp Notification
-      const finalAmount = data.paidAmount || data.netAmount || 0;
-      
-      // Breakdown visits if possible
-      const dates = String(data.visitDates || '').split(',').map(d => d.trim()).filter(d => d);
+      const finalAmount = data.paidAmount || rows[i][headers.indexOf('Amount_To_Pay')] || 0;
+      const dates = String(data.visitDates || '').split(',').map(d => {
+        const cleanDate = d.trim().split(' ')[0];
+        try {
+          const parts = cleanDate.split('-');
+          if (parts.length === 3) {
+            // Convert from yyyy-mm-dd or dd-mm-yyyy to mm-dd-yyyy
+            if (parts[0].length === 4) return `${parts[1]}-${parts[2]}-${parts[0]}`;
+            if (parts[2].length === 4) return `${parts[1]}-${parts[0]}-${parts[2]}`;
+          }
+          return cleanDate;
+        } catch (e) { return cleanDate; }
+      }).filter(d => d);
       const perVisitAmt = dates.length > 0 ? Math.round(data.grossAmount / dates.length) : data.grossAmount;
       
       let breakdownText = "";
@@ -147,6 +169,7 @@ function settlePayout(data) {
       const msgToDoctor = `*OFFICIAL FEE SETTLEMENT ADVISORY* 🏥\n\n` +
       `Dear *${data.doctorName}*,\n\n` +
       `We are pleased to inform you that your fee for *${data.visitCount} visits* has been processed.\n\n` +
+      `*Settlement ID:* ${settId}\n` +
       `*Visit Breakdown:*\n` +
       breakdownText + `\n` +
       `*Transaction Summary:*\n` +
@@ -158,7 +181,20 @@ function settlePayout(data) {
       `Regards,\n*SBH Hospitals Accounts Team*`;
 
       sendWhatsApp(data.doctorMobile, msgToDoctor);
-      return createJsonResponse({ success: true });
+
+      // Notification to HR Team
+      const msgToHR = `*✅ SETTLEMENT COMPLETED* 🏥\n\n` +
+      `The payout for *${data.doctorName}* has been successfully settled.\n\n` +
+      `*Settlement ID:* ${settId}\n` +
+      `*Gross Amount:* ₹${data.grossAmount}\n` +
+      `*Deductions:* ₹${data.deductions}\n` +
+      `*Net Paid:* ₹${finalAmount}\n` +
+      `*Remarks:* ${data.remarks || 'Settled'}\n\n` +
+      `This record has been moved to Archives.`;
+      
+      sendWhatsApp(HR_TEAM_MOBILE, msgToHR);
+
+      return createJsonResponse({ success: true, settlementId: settId });
     }
   }
   return createJsonResponse({ success: false });
@@ -166,10 +202,13 @@ function settlePayout(data) {
 
 function sendWhatsApp(mobile, message) {
   if (!mobile) return;
+  const cleanMobile = String(mobile).replace(/\D/g, '');
+  const finalMobile = cleanMobile.startsWith('91') ? cleanMobile : '91' + cleanMobile;
+  
   const url = "https://app.messageautosender.com/message/new" + 
               "?username=" + encodeURIComponent("SBH HOSPITAL") + 
               "&password=" + encodeURIComponent("123456789") + 
-              "&receiverMobileNo=" + encodeURIComponent(mobile) + 
+              "&receiverMobileNo=" + encodeURIComponent(finalMobile) + 
               "&message=" + encodeURIComponent(message);
   try { UrlFetchApp.fetch(url); } catch (e) {}
 }
@@ -182,20 +221,13 @@ function mapRows(data) {
     let obj = {};
     rawHeaders.forEach((h, i) => {
       let val = row[i];
-      if (val instanceof Date) val = Utilities.formatDate(val, "GMT+5:30", "dd-MM-yyyy");
+      if (val instanceof Date) {
+        // If time is midnight, just show date. Else show full datetime.
+        const hasTime = val.getHours() !== 0 || val.getMinutes() !== 0 || val.getSeconds() !== 0;
+        val = Utilities.formatDate(val, "GMT+5:30", hasTime ? "MM-dd-yyyy HH:mm" : "MM-dd-yyyy");
+      }
       obj[h] = val;
     });
-
-    // --- AUTO-CORRECTION FOR SHIFTED DATA ---
-    // If Status is empty but Visit_Count has "Pending", we shifted!
-    if (!obj.Status && String(obj.Visit_Count).trim() === 'Pending') {
-      obj.Status = 'Pending';
-      obj.HR_Entry_Date = obj.Visit_Dates;
-      obj.Amount_To_Pay = obj.Gross_Amount;
-      obj.Deductions = 0;
-      obj.Gross_Amount = obj.Amount_To_Pay;
-    }
-
     return obj;
   });
 }
@@ -225,7 +257,16 @@ function checkPendingReminders() {
   rows.forEach(row => {
     const status = String(row[statusIdx] || '').toUpperCase();
     if (status === "PENDING" || status === "DUE") {
-      const entryDate = new Date(row[dateIdx]);
+      let entryDate = row[dateIdx];
+      if (!(entryDate instanceof Date)) {
+        const parts = String(entryDate || '').split('-');
+        if (parts.length === 3) {
+          entryDate = new Date(parts[2], parts[0] - 1, parts[1]);
+        } else {
+          entryDate = new Date(entryDate);
+        }
+      }
+      
       if (!isNaN(entryDate.getTime())) {
         const age = now - entryDate;
         if (age >= fiveDaysInMs) {
@@ -250,9 +291,9 @@ function checkPendingReminders() {
     
     alertMsg += `Please process these settlements immediately.\n*SBH Payroll System*`;
     
-    // Send to Account Team / Admin
-    sendWhatsApp("919516624444", alertMsg); // Admin
-    sendWhatsApp("917000842261", alertMsg); // Accounts
+    // Send to both Account and HR Teams
+    sendWhatsApp(ACCOUNT_TEAM_MOBILE, alertMsg); 
+    sendWhatsApp(HR_TEAM_MOBILE, alertMsg); 
   }
 }
 

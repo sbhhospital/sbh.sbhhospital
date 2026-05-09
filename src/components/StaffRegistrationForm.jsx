@@ -41,7 +41,7 @@ const SuccessPopup = ({ onClose }) => (
 
 const PremiumLoader = ({ step }) => {
     const loadingMessages = [
-        "Initializing Roster Node...",
+        "Initializing Roster System...",
         "Encrypting Credentials...",
         "Authenticating with SBH Core...",
         "Finalizing Data Handshake..."
@@ -117,7 +117,7 @@ const StaffRegistrationForm = () => {
                 {showSuccess && <SuccessPopup onClose={() => window.location.reload()} />}
             </AnimatePresence>
             
-            {/* Header Branding */}
+            {/* SBH Hospital • Managed Terminal */}
             <motion.div 
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -237,7 +237,7 @@ const StaffRegistrationForm = () => {
                                 disabled={isSubmitting} 
                                 className="w-full bg-slate-950 text-white py-6 rounded-[2rem] font-black uppercase tracking-[0.4em] text-xs shadow-2xl shadow-slate-300 flex items-center justify-center gap-4 hover:bg-emerald-600 transition-all disabled:opacity-50"
                             >
-                                {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing Node...</> : <><Send size={20} /> Initialize Onboarding</>}
+                                {isSubmitting ? <><Loader2 className="animate-spin" size={20} /> Processing System...</> : <><Send size={20} /> Initialize Onboarding</>}
                             </motion.button>
                         </div>
                     </form>
