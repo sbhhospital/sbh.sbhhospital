@@ -330,7 +330,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                         {payments.filter(p => p.Status === 'Pending').slice(0, 5).map((p, i) => (
                                             <tr key={i} className="hover:bg-slate-50 transition-colors group">
                                                 <td className="px-8 py-5">
-                                                    <p className="text-[10px] font-black text-slate-800 uppercase">{p.Doctor_Name}</p>
+                                                    <div className="text-[11px] font-black text-slate-900">{p.Doctor_Name}</div>
                                                     <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">{p.Payment_ID}</p>
                                                 </td>
                                                 <td className="px-8 py-5 text-center">
@@ -404,7 +404,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                             const doc = doctors.find(d => d.Doctor_ID === e.target.value);
                                             setPaymentFormData({...paymentFormData, doctorId: e.target.value, doctorName: doc ? doc.Name : ''});
                                         }}
-                                        className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-4 focus:ring-orange-500/5 transition-all appearance-none uppercase"
+                                        className="w-full bg-slate-50 border-none rounded-2xl py-4 px-6 text-[11px] font-bold outline-none focus:ring-4 focus:ring-orange-500/5 transition-all appearance-none"
                                     >
                                         <option value="">Select Doctor...</option>
                                         {doctors.map(d => <option key={d.Doctor_ID} value={d.Doctor_ID}>{d.Name} — {d.Specialty}</option>)}
@@ -513,7 +513,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">Ref: {p.Payment_ID}</p>
                                         </td>
                                         <td className="px-8 py-4">
-                                            <p className="text-[10px] font-black text-slate-800 uppercase">{p.Doctor_Name}</p>
+                                            <p className="text-[10px] font-black text-slate-800">{p.Doctor_Name}</p>
                                         </td>
                                         <td className="px-8 py-4">
                                             <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">{p.Month} {p.Year}</p>
@@ -556,7 +556,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                 <div className="flex items-center gap-6">
                                     <div className="w-16 h-16 bg-slate-50 text-slate-400 rounded-3xl flex items-center justify-center font-black border border-slate-100 group-hover:bg-orange-600 group-hover:text-white transition-all text-xl">{p.Doctor_Name.substring(0, 2).toUpperCase()}</div>
                                     <div>
-                                        <h4 className="text-xl font-black text-slate-800 uppercase tracking-tighter leading-none mb-2">{p.Doctor_Name}</h4>
+                                        <h4 className="text-xl font-black text-slate-800 tracking-tighter leading-none mb-2">{p.Doctor_Name}</h4>
                                         <div className="flex items-center gap-4">
                                             <span className="text-[9px] font-black text-orange-600 uppercase tracking-widest">{p.Payment_ID}</span>
                                             <span className="w-1 h-1 bg-slate-200 rounded-full" />
@@ -615,7 +615,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                                         <div className="flex items-center gap-4">
                                             <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all"><User size={20} /></div>
                                             <div>
-                                                <p className="text-[11px] font-black uppercase text-slate-800">{d.Name}</p>
+                                                <p className="text-[11px] font-black text-slate-800">{d.Name}</p>
                                                 <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">{d.Specialty}</p>
                                             </div>
                                         </div>
@@ -644,7 +644,7 @@ const VisitingManager = ({ scriptUrl, user, loading: parentLoading }) => {
                         <div className="w-20 h-20 bg-orange-50 text-orange-600 rounded-[2rem] flex items-center justify-center mx-auto shadow-sm"><IndianRupee size={40} /></div>
                         <div className="text-center space-y-2">
                             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Confirm Payout?</h3>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Settle fee for <span className="text-slate-800 font-black">{confirmModal.docData.Doctor_Name}</span>.</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">Settle fee for <span className="text-slate-800 font-black tracking-normal">{confirmModal.docData.Doctor_Name}</span>.</p>
                         </div>
                         <div className="bg-slate-50 rounded-[2rem] p-8 space-y-4">
                             <div className="flex justify-between items-center">

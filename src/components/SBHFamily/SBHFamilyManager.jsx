@@ -311,7 +311,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                                     {paginatedLedger.map((item, idx) => (
                                         <tr key={idx} className="hover:bg-slate-50/50 transition-all group">
                                             <td className="px-6 py-3">
-                                                <p className="text-[10px] font-black text-slate-800 uppercase leading-none">{item.Staff_Name}</p>
+                                                <p className="text-[10px] font-black text-slate-800 leading-none">{item.Staff_Name}</p>
                                                 <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">ID: {item.Staff_ID}</p>
                                             </td>
                                             <td className="px-6 py-3">
@@ -479,7 +479,7 @@ const SBHFamilyManager = ({ scriptUrl, user }) => {
                             <h3 className="text-xl font-black text-slate-800 uppercase tracking-tighter">Confirm Payment?</h3>
                             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-relaxed">
                                 You are about to settle the salary for <br/>
-                                <span className="text-slate-800 font-black">{confirmModal.staffData.Staff_Name}</span> for <span className="text-orange-600">{confirmModal.staffData.Month} {confirmModal.staffData.Year}</span>.
+                                <span className="text-slate-800 font-black tracking-normal">{confirmModal.staffData.Staff_Name}</span> for <span className="text-orange-600">{confirmModal.staffData.Month} {confirmModal.staffData.Year}</span>.
                             </p>
                         </div>
 
@@ -567,7 +567,7 @@ const StaffDetailPopup = ({ staff, history, onClose }) => {
                         </div>
                         <div className="space-y-4">
                             <div>
-                                <h3 className="text-3xl font-black uppercase tracking-tighter leading-none mb-2">{staff.Name}</h3>
+                                <h3 className="text-3xl font-black tracking-tighter leading-none mb-2">{staff.Name}</h3>
                                 <p className="text-sm font-bold text-white/60 uppercase tracking-[0.2em]">{staff.Designation} • {staff.Unit}</p>
                             </div>
                             <div className="flex flex-wrap items-center gap-3">

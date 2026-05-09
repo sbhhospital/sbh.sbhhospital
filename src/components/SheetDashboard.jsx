@@ -7,7 +7,7 @@ import {
     Trash, Save, Phone, Mail, User, X, Loader2, RefreshCw, 
     Calendar, Star, Download, QrCode, ArrowLeft, Filter,
     ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Fingerprint,
-    Linkedin, ExternalLink, ChevronDown, MessageCircle,
+    Linkedin, ExternalLink, ChevronDown, MessageCircle, Lock,
     Send, MessageSquare, Building2, CheckCircle, Check
 } from 'lucide-react';
 import VisitingManager from './Visiting/VisitingManager';
@@ -533,7 +533,7 @@ const SmileEntriesSection = ({ entries, loading, onRefresh, selectedMonth, onMon
                                 <div className="flex items-center gap-4">
                                     <div className="w-12 h-12 bg-emerald-600 text-white rounded-2xl flex items-center justify-center text-lg font-black shadow-lg shadow-emerald-200">{en.employee_name?.[0]}</div>
                                     <div>
-                                        <p className="text-[11px] font-black text-slate-800 uppercase leading-none">{en.employee_name}</p>
+                                        <p className="text-[11px] font-black text-slate-800 leading-none">{en.employee_name}</p>
                                         <p className="text-[8px] font-bold text-emerald-600 uppercase tracking-widest mt-1.5 px-2 py-0.5 bg-emerald-50 rounded-full inline-block">{en.department}</p>
                                     </div>
                                 </div>
@@ -548,7 +548,7 @@ const SmileEntriesSection = ({ entries, loading, onRefresh, selectedMonth, onMon
                             <div className="flex items-center justify-between relative z-10 px-1">
                                 <div className="flex items-center gap-2">
                                     <div className="w-5 h-5 bg-slate-900 rounded-full flex items-center justify-center text-[8px] text-white font-black">{en.voter_name?.[0]}</div>
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Nominated by <span className="text-slate-900">{en.voter_name}</span></p>
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Nominated by <span className="text-slate-900 normal-case">{en.voter_name}</span></p>
                                 </div>
                             </div>
                         </motion.div>
@@ -613,7 +613,7 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
                                     </div>
                                     <div className="w-10 h-10 bg-slate-900 text-white rounded-xl flex items-center justify-center font-black text-xs shadow-md group-hover:bg-emerald-600 transition-colors">{st.name?.[0]}</div>
                                     <div>
-                                        <p className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1.5">{st.name}</p>
+                                        <p className="text-[11px] font-black text-slate-800 leading-none mb-1.5">{st.name}</p>
                                         <div className="flex items-center gap-2">
                                             <span className="text-[7px] font-black text-emerald-600 uppercase tracking-widest px-2 py-0.5 bg-emerald-50 rounded-md">{st.dept}</span>
                                         </div>
@@ -672,7 +672,7 @@ const SmileLeaderboardSection = ({ stats, winners, selectedMonth, onMonthChange,
                                     <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all group">
                                         <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center font-black text-xs text-white group-hover:bg-emerald-600 transition-colors">{w.employee_name?.[0]}</div>
                                         <div>
-                                            <p className="text-[10px] font-black uppercase leading-none mb-1.5">{w.employee_name}</p>
+                                            <p className="text-[10px] font-black leading-none mb-1.5">{w.employee_name}</p>
                                             <div className="flex items-center gap-1.5">
                                                 <Trophy size={8} className="text-emerald-500" />
                                                 <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{w.month}</p>
@@ -755,7 +755,7 @@ const SmileWinnersSection = ({ winners, loading, onRefresh, selectedMonth, onMon
                                     </div>
                                 </div>
 
-                                <h3 className="text-sm font-black text-slate-800 uppercase tracking-tight mb-2 px-2">{w.employee_name}</h3>
+                                <h3 className="text-sm font-black text-slate-800 tracking-tight mb-2 px-2">{w.employee_name}</h3>
                                 <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full mb-4 border border-emerald-100/50">
                                     <Award size={10} fill="currentColor" />
                                     <span className="text-[9px] font-black uppercase tracking-widest">Smile Laureate</span>
@@ -850,7 +850,7 @@ const HRApprovalPanel = ({ stats, onApprove, winners, loading, onRefresh, select
                                                             {i === 0 ? <Star size={14} fill="currentColor" /> : w.name?.[0]}
                                                         </div>
                                                         <div>
-                                                            <p className="text-[11px] font-black text-slate-800 uppercase leading-none mb-1">{w.name}</p>
+                                                            <p className="text-[11px] font-black text-slate-800 leading-none mb-1">{w.name}</p>
                                                             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">Candidate #{i+1} {i === 0 && '• LEADER'}</p>
                                                         </div>
                                                     </div>
@@ -1375,7 +1375,7 @@ const CelebrationsSection = ({ staffList, smileScriptUrl, loading, onRefresh }) 
                                 </div>
 
                                 <div className="space-y-1 mb-6">
-                                    <h3 className={`text-sm font-black uppercase tracking-tight ${ev.days === 0 ? 'text-white' : 'text-slate-900'}`}>{ev.name}</h3>
+                                    <h3 className={`text-sm font-black tracking-tight ${ev.days === 0 ? 'text-white' : 'text-slate-900'}`}>{ev.name}</h3>
                                     <p className={`text-[10px] font-bold uppercase tracking-widest ${ev.days === 0 ? 'text-white/80' : 'text-orange-600'}`}>
                                         {ev.type === 'BIRTHDAY' ? 'Birthday' : 'Work Anniversary'}
                                     </p>
@@ -1396,18 +1396,18 @@ const CelebrationsSection = ({ staffList, smileScriptUrl, loading, onRefresh }) 
 
                                 <div className="grid grid-cols-2 gap-3">
                                     <button 
-                                        disabled={sendingWish[`${ev.name}_whatsapp`]}
+                                        disabled={ev.days !== 0 || sendingWish[`${ev.name}_whatsapp`]}
                                         onClick={() => handleWish(ev, 'whatsapp')}
-                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white text-orange-600 hover:bg-slate-900 hover:text-white' : 'bg-emerald-600 text-white hover:bg-slate-900'} disabled:opacity-50`}
+                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white text-orange-600 hover:bg-slate-900 hover:text-white' : 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'} disabled:opacity-50`}
                                     >
-                                        {sendingWish[`${ev.name}_whatsapp`] ? <Loader2 size={14} className="animate-spin" /> : <><MessageCircle size={14} /> WhatsApp</>}
+                                        {sendingWish[`${ev.name}_whatsapp`] ? <Loader2 size={14} className="animate-spin" /> : <>{ev.days !== 0 && <Lock size={10} />} <MessageCircle size={14} /> WhatsApp</>}
                                     </button>
                                     <button 
-                                        disabled={sendingWish[`${ev.name}_email`]}
+                                        disabled={ev.days !== 0 || sendingWish[`${ev.name}_email`]}
                                         onClick={() => handleWish(ev, 'email')}
-                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white/20 text-white border border-white/30 hover:bg-white/40' : 'bg-slate-900 text-white hover:bg-orange-600'} disabled:opacity-50`}
+                                        className={`flex items-center justify-center gap-2 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${ev.days === 0 ? 'bg-white/20 text-white border border-white/30 hover:bg-white/40' : 'bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed'} disabled:opacity-50`}
                                     >
-                                        {sendingWish[`${ev.name}_email`] ? <Loader2 size={14} className="animate-spin" /> : <><Mail size={14} /> Email</>}
+                                        {sendingWish[`${ev.name}_email`] ? <Loader2 size={14} className="animate-spin" /> : <>{ev.days !== 0 && <Lock size={10} />} <Mail size={14} /> Email</>}
                                     </button>
                                 </div>
                             </div>
@@ -1669,7 +1669,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="text-right hidden sm:block">
-                            <p className="text-[10px] font-black text-slate-900 uppercase leading-none">{user}</p>
+                            <p className="text-[10px] font-black text-slate-900 leading-none">{user}</p>
                             <p className="text-[7px] font-bold text-slate-400 uppercase tracking-widest mt-1">Authorized Terminal</p>
                         </div>
                         <div className="w-8 h-8 bg-slate-900 text-white rounded-lg flex items-center justify-center text-xs font-black shadow-lg shadow-slate-200">{user?.[0]}</div>
@@ -1731,7 +1731,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                                 {paginatedLasik.map((row, idx) => (
                                                     <tr key={idx} className="hover:bg-slate-50/50 transition-all">
                                                         <td className="px-6 py-4">
-                                                            <p className="font-black text-slate-800 text-[10px] uppercase mb-0.5">{row.name}</p>
+                                                            <p className="font-black text-slate-800 text-[10px] mb-0.5">{row.name}</p>
                                                             <p className="text-[8px] text-slate-400 font-bold tracking-widest">{row.phone_no}</p>
                                                         </td>
                                                         <td className="px-6 py-4 text-[9px] font-bold text-slate-700">{row.age}</td>
