@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Presentation, Send, CheckCircle, Loader2, 
     Calendar, User, Building2, Link as LinkIcon,
-    AlertCircle, Fingerprint, ShieldCheck
+    AlertCircle, Fingerprint, ShieldCheck, CheckCircle2,
+    Clock, Tag, Hash, Sparkles
 } from 'lucide-react';
 
 const SuccessModal = ({ isOpen, onClose, title, message }) => {
@@ -78,30 +79,33 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
         ppt_link: '',
         confirmed: false
     });
-    const [leaderData, setLeaderData] = useState(null);
-    const [fetchingLeader, setFetchingLeader] = useState(false);
+    const [submissionStatus, setSubmissionStatus] = useState(null); // { isSubmitted: bool, submission: obj, leader: obj }
+    const [checkingStatus, setCheckingStatus] = useState(true);
     const [loading, setLoading] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
 
     useEffect(() => {
-        if (formData.staff_id) {
-            const fetchLeader = async () => {
-                setFetchingLeader(true);
-                try {
-                    const r = await fetch(`${scriptUrl}?action=get_ppt_data`);
-                    const res = await r.json();
-                    const leader = res.master.find(m => m.staff_id == formData.staff_id);
-                    if (leader) setLeaderData(leader);
-                } catch (e) {
-                    console.error("Leader fetch error:", e);
-                } finally {
-                    setFetchingLeader(false);
+        const checkStatus = async () => {
+            if (!formData.staff_id || !formData.month) {
+                setCheckingStatus(false);
+                return;
+            }
+            try {
+                const r = await fetch(`${scriptUrl}?action=check_status&id=${formData.staff_id}&month=${encodeURIComponent(formData.month)}`);
+                const res = await r.json();
+                setSubmissionStatus(res);
+                if (res.isSubmitted) {
+                    setFormData(prev => ({ ...prev, ppt_link: res.submission.ppt_link }));
                 }
-            };
-            fetchLeader();
-        }
-    }, [formData.staff_id, scriptUrl]);
+            } catch (e) {
+                console.error("Status check error:", e);
+            } finally {
+                setCheckingStatus(false);
+            }
+        };
+        checkStatus();
+    }, [formData.staff_id, formData.month, scriptUrl]);
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
@@ -127,135 +131,206 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
         }
     };
 
+    if (checkingStatus) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+                <div className="relative">
+                    <div className="w-20 h-20 border-4 border-slate-100 rounded-full animate-spin border-t-orange-600"></div>
+                    <Presentation className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-orange-600" size={32} />
+                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] animate-pulse">Checking Protocol Status...</p>
+            </div>
+        );
+    }
+
+    const leader = submissionStatus?.leader;
+    const isSubmitted = submissionStatus?.isSubmitted;
+    const submission = submissionStatus?.submission;
+
     return (
-        <div className="max-w-xl mx-auto py-10 px-4">
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-2xl overflow-hidden relative">
+        <div className="max-w-xl mx-auto py-12 px-4">
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-[3.5rem] border border-slate-100 shadow-2xl overflow-hidden relative"
+            >
                 {/* Brand Header */}
-                <div className="bg-slate-900 p-10 text-white relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+                <div className="bg-slate-900 p-12 text-white relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-600/10 rounded-full -mr-32 -mt-32 blur-3xl" />
+                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-500/5 rounded-full -ml-24 -mb-24 blur-3xl" />
+                    
                     <div className="flex flex-col items-center text-center relative z-10">
-                        <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mb-6 border border-white/20">
-                            <Presentation size={32} className="text-orange-500" />
+                        <motion.div 
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            className="w-24 h-24 bg-white p-1 rounded-3xl mb-8 shadow-2xl border-4 border-white/10"
+                        >
+                            <img src="publiclogo.jpg" alt="SBH Logo" className="w-full h-full object-cover rounded-[1.2rem]" />
+                        </motion.div>
+                        <h1 className="text-3xl font-black tracking-tighter uppercase leading-none">
+                            PPT <span className="text-orange-500">Protocol</span>
+                        </h1>
+                        <div className="flex items-center gap-2 mt-3 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
+                            <ShieldCheck size={12} className="text-emerald-500" />
+                            <p className="text-[8px] font-black text-white/60 uppercase tracking-[0.2em]">Official Compliance Gateway v3.2</p>
                         </div>
-                        <h1 className="text-2xl font-black tracking-tight uppercase">PPT <span className="text-orange-500">Submission</span></h1>
-                        <p className="text-[9px] font-bold text-white/40 mt-1 uppercase tracking-[0.3em]">Official Compliance Portal v2.0</p>
                     </div>
                 </div>
 
-                <div className="p-10 md:p-12">
-                    {/* Identification Card */}
-                    {leaderData ? (
-                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-5">
-                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm font-black text-xl">
-                                {leaderData.name?.[0]}
+                <div className="p-10 md:p-14 space-y-10">
+                    {/* Identification Header */}
+                    {leader && (
+                        <div className="flex items-center gap-6 p-8 bg-slate-50 rounded-[2.5rem] border border-slate-100 relative group">
+                            <div className="w-16 h-16 bg-white text-slate-800 rounded-2xl flex items-center justify-center font-black text-2xl shadow-xl border border-slate-100">
+                                {leader.name?.[0]}
                             </div>
-                            <div>
-                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Authorized Leader</p>
-                                <h2 className="text-lg font-black text-slate-900 leading-none uppercase">{leaderData.name}</h2>
-                                <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mt-1.5">{leaderData.department} • {leaderData.staff_id}</p>
-                            </div>
-                        </motion.div>
-                    ) : fetchingLeader ? (
-                        <div className="mb-10 p-6 bg-slate-50 rounded-3xl animate-pulse flex items-center gap-5">
-                            <div className="w-14 h-14 bg-slate-200 rounded-2xl"></div>
-                            <div className="flex-1 space-y-2">
-                                <div className="h-4 bg-slate-200 rounded w-1/2"></div>
-                                <div className="h-3 bg-slate-200 rounded w-1/4"></div>
+                            <div className="flex-1">
+                                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                                    <Sparkles size={12} className="text-orange-500" /> Authorized Leader Profile
+                                </p>
+                                <h2 className="text-xl font-black text-slate-900 leading-none uppercase mb-2">{leader.name}</h2>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <span className="text-[9px] font-bold text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-full border border-orange-100">{leader.ppt_type || 'General PPT'}</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{leader.department}</span>
+                                </div>
                             </div>
                         </div>
-                    ) : null}
+                    )}
 
-                    <form onSubmit={handleSubmit} className="space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Staff ID Node</label>
-                                <div className="relative">
-                                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
+                    {/* SUBMISSION CONTENT */}
+                    <AnimatePresence mode="wait">
+                        {isSubmitted ? (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="space-y-8"
+                            >
+                                <div className="p-10 bg-emerald-50/50 rounded-[3rem] border-2 border-emerald-100 text-center relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-6 opacity-10 text-emerald-600"><CheckCircle2 size={80} /></div>
+                                    <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                        <CheckCircle2 size={40} />
+                                    </div>
+                                    <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight mb-2">Submission Synchronized</h3>
+                                    <p className="text-[11px] font-medium text-slate-500 leading-relaxed max-w-xs mx-auto mb-8">
+                                        Your {leader?.ppt_type || 'PPT'} for {formData.month} was successfully logged.
+                                    </p>
+                                    
+                                    <div className="grid grid-cols-2 gap-4 text-left">
+                                        <div className="p-5 bg-white rounded-2xl border border-emerald-100">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Status</p>
+                                            <p className="text-[10px] font-black text-emerald-600 uppercase">Confirmed ✅</p>
+                                        </div>
+                                        <div className="p-5 bg-white rounded-2xl border border-emerald-100">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Entry Date</p>
+                                            <p className="text-[10px] font-black text-slate-800 uppercase">
+                                                {new Date(submission.submitted_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {submission.ppt_link && submission.ppt_link !== 'Portal Confirmation' && (
+                                    <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <LinkIcon size={16} className="text-slate-400" />
+                                            <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Access Link Provided</span>
+                                        </div>
+                                        <a href={submission.ppt_link} target="_blank" rel="noreferrer" className="text-[9px] font-black text-orange-600 uppercase tracking-widest hover:underline">View File ↗</a>
+                                    </div>
+                                )}
+                            </motion.div>
+                        ) : (
+                            <form onSubmit={handleSubmit} className="space-y-10">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                            <Hash size={12} className="text-orange-500" /> Node ID
+                                        </label>
+                                        <input 
+                                            readOnly
+                                            value={formData.staff_id}
+                                            className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-3xl font-black text-slate-400 text-sm outline-none cursor-not-allowed uppercase tracking-widest"
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                            <Calendar size={12} className="text-orange-500" /> Target Cycle
+                                        </label>
+                                        <input 
+                                            readOnly
+                                            value={formData.month}
+                                            className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-3xl font-black text-slate-400 text-sm outline-none cursor-not-allowed uppercase tracking-widest"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 flex items-center gap-2">
+                                        <LinkIcon size={12} className="text-orange-500" /> Submission Link (Optional)
+                                    </label>
                                     <input 
-                                        required 
-                                        readOnly={!!prefillData.id}
-                                        value={formData.staff_id} 
-                                        onChange={e => setFormData({...formData, staff_id: e.target.value})} 
-                                        className={`w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none transition-all text-xs ${prefillData.id ? 'opacity-60 cursor-not-allowed' : 'focus:bg-white focus:border-orange-500'}`} 
-                                        placeholder="Enter ID" 
+                                        type="url"
+                                        placeholder="Drive / OneDrive / Portal Link"
+                                        value={formData.ppt_link}
+                                        onChange={e => setFormData({...formData, ppt_link: e.target.value})}
+                                        className="w-full px-6 py-5 bg-slate-50 border border-slate-100 rounded-3xl font-black text-slate-900 text-sm outline-none focus:bg-white focus:border-orange-500 focus:shadow-xl focus:shadow-orange-500/5 transition-all uppercase tracking-tight placeholder:text-slate-300"
                                     />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Reporting Cycle</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                    <select 
-                                        required
-                                        value={formData.month} 
-                                        onChange={e => setFormData({...formData, month: e.target.value})} 
-                                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs appearance-none"
-                                    >
-                                        <option value="">Select Month</option>
-                                        {[...Array(6)].map((_, i) => {
-                                            const d = new Date();
-                                            d.setMonth(d.getMonth() - i);
-                                            const m = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-                                            return <option key={m} value={m}>{m}</option>;
-                                        })}
-                                    </select>
+
+                                <div className="p-8 bg-orange-50/50 rounded-[2.5rem] border-2 border-orange-100/50 space-y-6">
+                                    <div className="flex items-start gap-4">
+                                        <div className="relative pt-1">
+                                            <input 
+                                                type="checkbox"
+                                                id="confirm"
+                                                checked={formData.confirmed}
+                                                onChange={e => setFormData({...formData, confirmed: e.target.checked})}
+                                                className="w-6 h-6 rounded-xl border-2 border-orange-200 text-orange-600 focus:ring-orange-500 transition-all cursor-pointer"
+                                            />
+                                        </div>
+                                        <label htmlFor="confirm" className="text-[11px] font-black text-slate-800 uppercase leading-relaxed tracking-tight cursor-pointer">
+                                            I solemnly confirm that my *{leader?.ppt_type || 'PPT'}* for {formData.month} has been finalized and submitted for management review.
+                                        </label>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
 
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">PPT Access Link (Optional)</label>
-                            <div className="relative">
-                                <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
-                                <input 
-                                    type="url"
-                                    value={formData.ppt_link} 
-                                    onChange={e => setFormData({...formData, ppt_link: e.target.value})} 
-                                    className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" 
-                                    placeholder="Google Drive / OneDrive Link" 
-                                />
-                            </div>
-                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest ml-1">Leave empty if submitted manually to office.</p>
-                        </div>
+                                <MathCaptcha onVerify={setIsVerified} />
 
-                        <div className="p-6 bg-orange-50 border border-orange-100 rounded-3xl space-y-4">
-                            <div className="flex items-center gap-4">
-                                <input 
-                                    type="checkbox"
-                                    id="confirm"
-                                    checked={formData.confirmed}
-                                    onChange={e => setFormData({...formData, confirmed: e.target.checked})}
-                                    className="w-5 h-5 rounded-lg border-2 border-orange-200 text-orange-600 focus:ring-orange-500"
-                                />
-                                <label htmlFor="confirm" className="text-[10px] font-black text-slate-800 uppercase tracking-tight cursor-pointer">
-                                    I confirm that I have submitted my monthly PPT for the selected cycle.
-                                </label>
-                            </div>
-                        </div>
-
-                        <MathCaptcha onVerify={setIsVerified} />
-
-                        <button 
-                            disabled={loading || !isVerified || !formData.confirmed} 
-                            type="submit"
-                            className="w-full py-5 bg-slate-900 text-white text-[10px] font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50"
-                        >
-                            {loading ? <Loader2 size={16} className="animate-spin" /> : <><ShieldCheck size={14}/> Finalize Submission</>}
-                        </button>
-                    </form>
+                                <motion.button 
+                                    whileHover={{ scale: 1.02 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    disabled={loading || !isVerified || !formData.confirmed} 
+                                    type="submit"
+                                    className="w-full py-6 bg-slate-900 text-white text-xs font-black rounded-[2rem] shadow-2xl flex items-center justify-center gap-4 uppercase tracking-[0.3em] hover:bg-orange-600 transition-all disabled:opacity-30 disabled:cursor-not-allowed group"
+                                >
+                                    {loading ? (
+                                        <Loader2 size={20} className="animate-spin" />
+                                    ) : (
+                                        <>
+                                            <ShieldCheck size={20} className="text-orange-500 group-hover:text-white transition-colors" /> 
+                                            Finalize Protocol
+                                        </>
+                                    )}
+                                </motion.button>
+                            </form>
+                        )}
+                    </AnimatePresence>
                 </div>
-            </div>
+                
+                {/* Footer Status */}
+                <div className="bg-slate-50 p-8 flex items-center justify-center border-t border-slate-100">
+                    <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.5em] flex items-center gap-3">
+                        SBH Infrastructure <span className="w-1.5 h-1.5 rounded-full bg-slate-200" /> Management Core
+                    </p>
+                </div>
+            </motion.div>
 
             <SuccessModal 
                 isOpen={showSuccess} 
                 onClose={() => window.location.reload()}
-                title="Protocol Synchronized"
-                message={`Your PPT submission for ${formData.month} has been successfully logged. Reminders for this cycle have been deactivated.`}
+                title="System Synchronized"
+                message={`Your ${leader?.ppt_type || 'PPT'} submission for ${formData.month} has been successfully recorded in the central roster.`}
             />
-            
-            <div className="mt-12 text-center">
-                <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">SBH Hospital Management System • Infrastructure Group</p>
-            </div>
         </div>
     );
 };

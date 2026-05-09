@@ -4,7 +4,7 @@ import {
     Activity, AlertTriangle, ArrowDownRight, ArrowUpRight, BarChart3, Bell, 
     Calendar, Check, CheckCircle2, ChevronRight, Clock, Download, Edit3, 
     Filter, Loader2, MoreVertical, Plus, Presentation, RefreshCw, Search, 
-    Send, Shield, ShieldAlert, TrendingUp, UserCheck, UserPlus, Users, X, Trash
+    Send, Shield, ShieldAlert, TrendingUp, UserCheck, UserPlus, Users, X, Trash, Tag, Mail
 } from 'lucide-react';
 
 const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
@@ -31,11 +31,23 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
     const [showDirectorModal, setShowDirectorModal] = useState(false);
     
     // Form States
-    const [leaderForm, setLeaderForm] = useState({ staff_id: '', name: '', department: '', mobile: '', email: '', submission_day: '5', reminder_days: 'Wednesday,Friday' });
-    const [adminForm, setAdminForm] = useState({ name: '', mobile: '', role: 'Admin' });
-    const [directorForm, setDirectorForm] = useState({ name: '', mobile: '' });
+    const [leaderForm, setLeaderForm] = useState({ 
+        staff_id: '', name: '', department: '', mobile: '', email: '', 
+        submission_day: '5', reminder_days: 'Wednesday,Friday',
+        ppt_type: 'Center Head PPT' 
+    });
+    const [adminForm, setAdminForm] = useState({ name: '', mobile: '', email: '', role: 'Admin' });
+    const [directorForm, setDirectorForm] = useState({ name: '', mobile: '', email: '' });
 
-    // Loading Logic similar to Visiting Manager
+    const pptTypes = [
+        "Center Head PPT", "Eye Center Head PPT", "Women Center Head PPT", 
+        "COO PPT", "Operations PPT", "HR PPT", "Pharmacy PPT", 
+        "Marketing PPT", "Account Eye PPT", "Account Women PPT", 
+        "London Eye Account PPT", "Women Doctors PPT", "Eye Doctors PPT",
+        "Hospital Admin PPT", "Quality PPT", "Monthly Performance PPT"
+    ];
+
+    // Loading Logic
     const loadingMessages = [
         "Synchronizing PPT Protocols...",
         "Scanning Submission Horizon...",
@@ -96,7 +108,8 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
     const filteredMaster = useMemo(() => {
         return data.master.filter(m => 
             m.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            m.department?.toLowerCase().includes(searchTerm.toLowerCase())
+            m.department?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            m.ppt_type?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [data.master, searchTerm]);
 
@@ -164,7 +177,8 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
             mobile: leader.mobile,
             email: leader.email,
             submission_day: leader.submission_day || '5',
-            reminder_days: leader.reminder_days || 'Wednesday,Friday'
+            reminder_days: leader.reminder_days || 'Wednesday,Friday',
+            ppt_type: leader.ppt_type || 'Center Head PPT'
         });
         setShowLeaderModal(true);
     };
@@ -188,7 +202,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                 <div>
                     <h2 className="text-3xl font-black text-slate-800 uppercase tracking-tighter flex items-center gap-3">
                         PPT <span className="text-orange-600">Reminders</span>
-                        <div className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-black tracking-widest border border-orange-100 uppercase">System v3.0</div>
+                        <div className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[10px] font-black tracking-widest border border-orange-100 uppercase">System v3.2</div>
                     </h2>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-2">
                         <Activity size={12} className="text-emerald-500" />
@@ -207,7 +221,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                             onChange={(e) => setSelectedMonth(e.target.value)}
                             className="bg-transparent text-[10px] font-black uppercase tracking-widest text-slate-800 outline-none px-4 py-1.5 cursor-pointer appearance-none min-w-[140px]"
                         >
-                            {[...Array(6)].map((_, i) => {
+                            {[...Array(12)].map((_, i) => {
                                 const d = new Date();
                                 d.setMonth(d.getMonth() - i);
                                 const m = d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
@@ -227,9 +241,9 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
             {/* Stats Overview */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard label="Compliance Score" value={`${stats.avgCompliance}%`} icon={<TrendingUp size={24} />} color="emerald" trend={stats.avgCompliance > 90 ? 'Healthy' : 'Needs Review'} />
-                <StatCard label="Total Leaders" value={stats.totalLeaders} icon={<Users size={24} />} color="slate" />
-                <StatCard label="Submissions" value={`${stats.submittedCount}/${stats.totalLeaders}`} icon={<CheckCircle2 size={24} />} color="orange" trend={`${stats.pendingCount} Pending`} />
-                <StatCard label="Super Alerts" value={stats.delayOver15} icon={<ShieldAlert size={24} />} color="rose" trend={stats.delayOver15 > 0 ? 'Action Required' : 'All Clear'} />
+                <StatCard label="Total Leaders" value={stats.totalLeaders} icon={<Users size={24} />} color="slate" trend={`${stats.submittedCount} Submissions`} />
+                <StatCard label="Pending Cycle" value={stats.pendingCount} icon={<CheckCircle2 size={24} />} color="orange" trend="Action Required" />
+                <StatCard label="Escalations" value={stats.delayOver15} icon={<ShieldAlert size={24} />} color="rose" trend={stats.delayOver15 > 0 ? 'Director Informed' : 'All Clear'} />
             </div>
 
             {/* Navigation Tabs */}
@@ -248,10 +262,11 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Submission Horizon - {selectedMonth}</h3>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full text-left min-w-[800px]">
+                                <table className="w-full text-left min-w-[900px]">
                                     <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-100">
                                         <tr>
                                             <th className="px-8 py-5">Leader Detail</th>
+                                            <th className="px-8 py-5">PPT Type</th>
                                             <th className="px-8 py-5">Status</th>
                                             <th className="px-8 py-5">Submission Date</th>
                                             <th className="px-8 py-5 text-right">Actions</th>
@@ -270,6 +285,12 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                                     </div>
                                                 </td>
                                                 <td className="px-8 py-6">
+                                                    <div className="flex items-center gap-2">
+                                                        <Tag size={12} className="text-orange-500" />
+                                                        <span className="text-[9px] font-black text-slate-700 uppercase tracking-widest">{row.ppt_type || 'General PPT'}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-8 py-6">
                                                     {row.status === 'SUBMITTED' ? (
                                                         <div className="flex items-center gap-2 text-emerald-600 font-black text-[9px] uppercase tracking-widest bg-emerald-50 px-3 py-1.5 rounded-full w-fit border border-emerald-100">
                                                             <Check size={12} strokeWidth={3} /> Synchronized
@@ -281,7 +302,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                                             'text-slate-500 bg-slate-50 border-slate-100'
                                                         }`}>
                                                             <Clock size={12} strokeWidth={3} /> {
-                                                                parseInt(row.delay) >= 15 ? 'Super Alert Required' :
+                                                                parseInt(row.delay) >= 15 ? 'Critical Escalation' :
                                                                 parseInt(row.delay) >= 10 ? 'Delayed Over 10 Days' :
                                                                 'Upcoming / Pending'
                                                             }
@@ -300,9 +321,9 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                                 </td>
                                                 <td className="px-8 py-6 text-right">
                                                     <div className="flex items-center justify-end gap-2">
-                                                        <button onClick={() => handleSendManualReminder(row.staff_id)} className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all" title="Send Manual Reminder"><Bell size={14} /></button>
+                                                        <button onClick={() => handleSendManualReminder(row.staff_id)} className="p-2 text-slate-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg transition-all" title="Send WhatsApp & Email"><Bell size={14} /></button>
                                                         {row.status === 'PENDING' && (
-                                                            <button onClick={() => handleSendManualReminder(row.staff_id, 'Super Alert')} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Initiate Super Alert"><ShieldAlert size={14} /></button>
+                                                            <button onClick={() => handleSendManualReminder(row.staff_id, 'Super Alert')} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all" title="Direct Director Alert"><ShieldAlert size={14} /></button>
                                                         )}
                                                     </div>
                                                 </td>
@@ -319,9 +340,9 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="relative flex-1 max-w-md">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input type="text" placeholder="Search Leaders, Departments..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-orange-500/20 focus:ring-4 ring-orange-500/5 transition-all shadow-sm" />
+                                    <input type="text" placeholder="Search Leaders, Departments, PPT Types..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:border-orange-500/20 focus:ring-4 ring-orange-500/5 transition-all shadow-sm" />
                                 </div>
-                                <button onClick={() => { setLeaderForm({ staff_id: '', name: '', department: '', mobile: '', email: '', submission_day: '5', reminder_days: 'Wednesday,Friday' }); setShowLeaderModal(true); }} className="flex items-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-orange-600 transition-all group">
+                                <button onClick={() => { setLeaderForm({ staff_id: '', name: '', department: '', mobile: '', email: '', submission_day: '5', reminder_days: 'Wednesday,Friday', ppt_type: 'Center Head PPT' }); setShowLeaderModal(true); }} className="flex items-center gap-3 px-6 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl hover:bg-orange-600 transition-all group">
                                     <UserPlus size={16} className="group-hover:scale-110 transition-transform" /> Add New Leader
                                 </button>
                             </div>
@@ -334,14 +355,18 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                             <UserCheck size={24} className="text-slate-400 group-hover:text-orange-600 transition-colors" />
                                         </div>
                                         <h4 className="text-sm font-black text-slate-800 leading-tight mb-2 uppercase">{leader.name}</h4>
-                                        <div className="flex items-center gap-2 mb-6">
+                                        <div className="flex flex-wrap items-center gap-2 mb-6">
                                             <div className="px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[8px] font-black uppercase tracking-widest">{leader.department}</div>
-                                            <div className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[8px] font-black uppercase tracking-widest">Deadline: {leader.submission_day || 5}th</div>
+                                            <div className="px-3 py-1 bg-orange-50 text-orange-600 rounded-full text-[8px] font-black uppercase tracking-widest">{leader.ppt_type || 'General PPT'}</div>
                                         </div>
                                         <div className="space-y-3 pt-6 border-t border-slate-50">
                                             <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
-                                                <span className="text-slate-400">Reminders</span>
-                                                <span className="text-slate-700 text-[7px]">{leader.reminder_days || 'None'}</span>
+                                                <span className="text-slate-400">Node Email</span>
+                                                <span className="text-slate-700 text-[8px]">{leader.email || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
+                                                <span className="text-slate-400">Deadline</span>
+                                                <span className="text-slate-700">{leader.submission_day || 5}th of Month</span>
                                             </div>
                                             <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
                                                 <span className="text-slate-400">Mobile Node</span>
@@ -366,14 +391,20 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">Director's Global Node</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setShowDirectorModal(true)} className="p-2.5 bg-slate-50 hover:bg-orange-50 text-slate-400 hover:text-orange-600 rounded-xl transition-all"><Edit3 size={14} /></button>
+                                    <button onClick={() => {
+                                        setDirectorForm(data.director[0] || { name: '', mobile: '', email: '' });
+                                        setShowDirectorModal(true);
+                                    }} className="p-2.5 bg-slate-50 hover:bg-orange-50 text-slate-400 hover:text-orange-600 rounded-xl transition-all"><Edit3 size={14} /></button>
                                 </div>
                                 {data.director[0] ? (
                                     <div className="space-y-6 relative">
                                         <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100">
                                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Primary Director</p>
                                             <p className="text-lg font-black text-slate-900 uppercase">{data.director[0].name}</p>
-                                            <div className="flex items-center gap-2 mt-4 text-[10px] font-black text-orange-600 uppercase tracking-widest"><Send size={12} /> {data.director[0].mobile}</div>
+                                            <div className="flex flex-col gap-2 mt-4 text-[10px] font-black text-orange-600 uppercase tracking-widest">
+                                                <div className="flex items-center gap-2"><Send size={12} /> {data.director[0].mobile}</div>
+                                                <div className="flex items-center gap-2"><Mail size={12} /> {data.director[0].email || 'No Email Configured'}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 ) : (
@@ -390,7 +421,10 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                             <p className="text-[9px] font-bold text-white/40 uppercase tracking-widest mt-1">Notification Controllers</p>
                                         </div>
                                     </div>
-                                    <button onClick={() => setShowAdminModal(true)} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Manage</button>
+                                    <button onClick={() => {
+                                        setAdminForm({ name: '', mobile: '', email: '', role: 'Admin' });
+                                        setShowAdminModal(true);
+                                    }} className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all">Manage</button>
                                 </div>
                                 <div className="space-y-4 relative">
                                     {data.admins.length > 0 ? data.admins.map((admin, i) => (
@@ -404,6 +438,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                             </div>
                                             <div className="text-right">
                                                 <p className="text-[9px] font-black leading-none mb-1 text-orange-500">{admin.mobile}</p>
+                                                <p className="text-[7px] font-bold text-white/20 uppercase tracking-widest">{admin.email || 'No Email'}</p>
                                             </div>
                                         </div>
                                     )) : (
@@ -418,16 +453,30 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
 
             {/* MODALS */}
             <Modal isOpen={showLeaderModal} onClose={() => setShowLeaderModal(false)} title="Configure Hospital Leader">
-                <div className="space-y-6 max-h-[70vh] overflow-y-auto px-2 custom-scrollbar">
+                <div className="space-y-6 max-h-[75vh] overflow-y-auto px-2 custom-scrollbar">
                     <div className="grid grid-cols-2 gap-4">
                         <InputField label="Staff ID" value={leaderForm.staff_id} onChange={v => setLeaderForm({...leaderForm, staff_id: v})} />
                         <InputField label="Leader Name" value={leaderForm.name} onChange={v => setLeaderForm({...leaderForm, name: v})} />
                     </div>
+                    
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Assigned PPT Protocol (Post/Dept)</label>
+                        <select 
+                            value={leaderForm.ppt_type}
+                            onChange={(e) => setLeaderForm({...leaderForm, ppt_type: e.target.value})}
+                            className="w-full px-5 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs appearance-none"
+                        >
+                            {pptTypes.map(type => <option key={type} value={type}>{type}</option>)}
+                        </select>
+                    </div>
+
                     <div className="grid grid-cols-2 gap-4">
                         <InputField label="Department" value={leaderForm.department} onChange={v => setLeaderForm({...leaderForm, department: v})} />
                         <InputField label="Mobile Number" value={leaderForm.mobile} onChange={v => setLeaderForm({...leaderForm, mobile: v})} />
                     </div>
                     
+                    <InputField label="Official Email Node" value={leaderForm.email} onChange={v => setLeaderForm({...leaderForm, email: v})} />
+
                     <div className="pt-4 border-t border-slate-100">
                         <p className="text-[10px] font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">
                             <Calendar size={14} className="text-orange-600" /> Individual Protocol Settings
@@ -453,6 +502,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                                         return (
                                             <button 
                                                 key={day}
+                                                type="button"
                                                 onClick={() => {
                                                     const days = leaderForm.reminder_days.split(',').filter(d => d);
                                                     const next = days.includes(day) ? days.filter(d => d !== day) : [...days, day];
@@ -478,6 +528,7 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                 <div className="space-y-4">
                     <InputField label="Admin Name" value={adminForm.name} onChange={v => setAdminForm({...adminForm, name: v})} />
                     <InputField label="Mobile Number" value={adminForm.mobile} onChange={v => setAdminForm({...adminForm, mobile: v})} />
+                    <InputField label="Email Address" value={adminForm.email} onChange={v => setAdminForm({...adminForm, email: v})} />
                     <InputField label="Role" value={adminForm.role} onChange={v => setAdminForm({...adminForm, role: v})} />
                     <button onClick={() => handleAction('update_admins', adminForm)} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest mt-6">Connect Admin Node</button>
                 </div>
@@ -487,11 +538,12 @@ const PPTDashboard = ({ scriptUrl, loading: parentLoading, onRefresh }) => {
                 <div className="space-y-4">
                     <InputField label="Director Name" value={directorForm.name} onChange={v => setDirectorForm({...directorForm, name: v})} />
                     <InputField label="Mobile Number" value={directorForm.mobile} onChange={v => setDirectorForm({...directorForm, mobile: v})} />
+                    <InputField label="Email Address" value={directorForm.email} onChange={v => setDirectorForm({...directorForm, email: v})} />
                     <button onClick={() => handleAction('update_director', directorForm)} className="w-full py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest mt-6">Synchronize Director</button>
                 </div>
             </Modal>
 
-            {/* Processing Overlay (Action Specific) */}
+            {/* Processing Overlay */}
             {loading && !parentLoading && data.master.length > 0 && (
                 <div className="fixed inset-0 z-[2000] bg-white/80 backdrop-blur-sm flex items-center justify-center">
                     <div className="flex flex-col items-center gap-4">

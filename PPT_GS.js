@@ -24,6 +24,7 @@ function doPost(e) {
 function doGet(e) {
   const action = e.parameter.action;
   if (action === 'get_ppt_data') return jsonRes(getPPTData());
+  if (action === 'check_status') return jsonRes(checkSubmissionStatus(e.parameter.id, e.parameter.month));
   return jsonRes({ success: false, message: "Invalid action" });
 }
 
@@ -37,10 +38,10 @@ function jsonRes(obj) {
 function setupPPTSheets() {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheets = {
-    'PPT_Master': ['Staff_ID', 'Name', 'Department', 'Mobile', 'Email', 'Status', 'Submission_Day', 'Reminder_Days'],
+    'PPT_Master': ['Staff_ID', 'Name', 'Department', 'Mobile', 'Email', 'Status', 'Submission_Day', 'Reminder_Days', 'PPT_Type'],
     'PPT_Submissions': ['Submission_ID', 'Staff_ID', 'Month', 'Submitted_Date', 'PPT_Link', 'Status', 'Delay_Days'],
-    'PPT_Admins': ['Name', 'Mobile', 'Role'],
-    'PPT_Director': ['Name', 'Mobile'],
+    'PPT_Admins': ['Name', 'Mobile', 'Email', 'Role'],
+    'PPT_Director': ['Name', 'Mobile', 'Email'],
     'PPT_Reminders': ['Timestamp', 'Staff_ID', 'Month', 'Type', 'Target_No', 'Message_Status'],
     'PPT_Config': ['Key', 'Value']
   };
@@ -51,10 +52,18 @@ function setupPPTSheets() {
       sheet = ss.insertSheet(name);
       sheet.appendRow(sheets[name]);
       sheet.getRange(1, 1, 1, sheets[name].length).setFontWeight("bold").setBackground("#f3f3f3");
+    } else {
+      // Column validation
+      const headers = sheet.getRange(1, 1, 1, Math.max(1, sheet.getLastColumn())).getValues()[0];
+      sheets[name].forEach(h => {
+        if (headers.indexOf(h) === -1) {
+          sheet.getRange(1, sheet.getLastColumn() + 1).setValue(h).setFontWeight("bold").setBackground("#f3f3f3");
+        }
+      });
     }
   });
 
-  return "Sheets Setup Successfully.";
+  return "System v3.2 Sheets Setup Successfully.";
 }
 
 /**
@@ -72,7 +81,7 @@ function setupDailyTrigger() {
     .atHour(9) // 9:00 AM
     .create();
     
-  return "Daily Automation Trigger Protocol Activated (9:00 AM).";
+  return "Daily Automation Trigger Activated (9:00 AM). Email & Escalation Protocols Live.";
 }
 
 /**
@@ -85,24 +94,42 @@ function autoCheckReminders() {
   
   const master = getSheetData(ss, 'PPT_Master');
   const submissions = getSheetData(ss, 'PPT_Submissions');
+  const history = getSheetData(ss, 'PPT_Reminders');
   const currentMonth = today.toLocaleString('en-US', { month: 'long', year: 'numeric' });
   
   let count = 0;
   master.forEach(leader => {
-    const userReminderDays = (leader.reminder_days || "").split(',').map(d => d.trim());
-    if (!userReminderDays.includes(dayName)) return;
-
     // Check if submitted for current month
     const hasSubmitted = submissions.some(s => s.staff_id == leader.staff_id && s.month === currentMonth);
-    
-    // IF ALREADY SUBMITTED, DO NOT SEND ANY REMINDER (Standard or Director)
     if (hasSubmitted) return;
+
+    const userReminderDays = (leader.reminder_days || "").split(',').map(d => d.trim());
     
-    sendPPTReminder({ staff_id: leader.staff_id, month: currentMonth });
-    count++;
+    // Check delay for Super Alert frequency (Every 2 days to Director)
+    const [mName, yStr] = currentMonth.split(' ');
+    const monthIdx = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"].indexOf(mName);
+    const deadline = new Date(parseInt(yStr), monthIdx + 1, parseInt(leader.submission_day) || 5);
+    const delayDays = Math.max(0, Math.ceil((today - deadline) / (1000 * 60 * 60 * 24)));
+
+    if (delayDays >= 15) {
+      // Super Alert Logic: Send every 2 days
+      const lastAlert = history.filter(h => h.staff_id == leader.staff_id && h.month === currentMonth && h.type === 'Super Alert')
+                               .sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp))[0];
+      
+      const shouldSendEscalation = !lastAlert || (today - new Date(lastAlert.timestamp)) / (1000 * 60 * 60 * 24) >= 2;
+      
+      if (shouldSendEscalation) {
+        sendPPTReminder({ staff_id: leader.staff_id, month: currentMonth, manual_type: 'Super Alert' });
+        count++;
+      }
+    } else if (userReminderDays.includes(dayName)) {
+      // Standard Reminder Cycle
+      sendPPTReminder({ staff_id: leader.staff_id, month: currentMonth });
+      count++;
+    }
   });
   
-  return `Automated dispatch complete. Sent ${count} reminders.`;
+  return `Automated dispatch complete. Sent ${count} alerts.`;
 }
 
 /**
@@ -118,6 +145,21 @@ function getPPTData() {
     reminders: getSheetData(ss, 'PPT_Reminders'),
     config: getSheetData(ss, 'PPT_Config'),
     schedule: calculateSchedule()
+  };
+}
+
+function checkSubmissionStatus(id, month) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const submissions = getSheetData(ss, 'PPT_Submissions');
+  const master = getSheetData(ss, 'PPT_Master');
+  
+  const sub = submissions.find(s => s.staff_id == id && s.month === month);
+  const leader = master.find(m => m.staff_id == id);
+  
+  return {
+    isSubmitted: !!sub,
+    submission: sub || null,
+    leader: leader || null
   };
 }
 
@@ -140,9 +182,10 @@ function recordPPTSubmission(res) {
   const deadline = new Date(parseInt(yStr), monthIdx + 1, subDay);
   const delayDays = Math.max(0, Math.ceil((today - deadline) / (1000 * 60 * 60 * 24)));
   
-  // Check if duplicate
+  const pptType = staff.ppt_type || 'Monthly PPT';
+
   const existing = getSheetData(ss, 'PPT_Submissions').find(s => s.staff_id == res.staff_id && s.month === res.month);
-  if (existing) return { success: true, message: "Submission already exists and is synchronized." };
+  if (existing) return { success: true, message: `Record for ${pptType} synchronized.` };
 
   const submissionId = "PPT-" + Date.now().toString().slice(-6);
   
@@ -156,32 +199,19 @@ function recordPPTSubmission(res) {
     delayDays
   ]);
 
-  // Confirmation to Leader
+  // Confirmation WhatsApp
   const msg = `✅ *PPT SUBMISSION CONFIRMED*\n\n` +
-              `Dear *${staff.name}*,\n\n` +
-              `Thank you for confirming your monthly PPT submission for *${res.month}*.\n\n` +
-              `Your record (ID: *${submissionId}*) has been successfully synchronized. All automated reminders for this cycle have been deactivated. 🎊\n\n` +
-              `Regards,\n` +
-              `SBH HOSPITAL`;
+              `Thank you *${staff.name}* for your *${pptType}* for *${res.month}*.\n\n` +
+              `Status: ${delayDays > 0 ? 'Delayed Submission' : 'On-Time ✅'}\n` +
+              `Ref: *${submissionId}*\n\n` +
+              `Reminders for this cycle deactivated.`;
   
-  const reminderSheet = ss.getSheetByName('PPT_Reminders');
-  reminderSheet.appendRow([new Date(), res.staff_id, res.month, 'Confirmation', staff.mobile, 'Sent']);
   sendWhatsApp(staff.mobile, msg);
+  
+  // EMAIL NOTIFICATION (To: Leader, CC: Director, Admin)
+  sendPPTEmail(staff, res.month, 'Submission Confirmation', delayDays, submissionId);
 
-  // NOTIFICATION TO ADMINS
-  const admins = getSheetData(ss, 'PPT_Admins');
-  const adminMsg = `📊 *NEW PPT SUBMISSION LOGGED*\n\n` +
-                   `• *Leader:* ${staff.name}\n` +
-                   `• *Dept:* ${staff.department}\n` +
-                   `• *Cycle:* ${res.month}\n` +
-                   `• *Status:* ${delayDays > 0 ? 'Delayed ('+delayDays+' Days)' : 'On-Time ✅'}\n\n` +
-                   `Reminders for Director Sir have been deactivated for this user.`;
-  
-  admins.forEach(admin => {
-    if (admin.mobile) sendWhatsApp(admin.mobile, adminMsg);
-  });
-  
-  return { success: true, submissionId: submissionId, message: msg };
+  return { success: true, submissionId: submissionId, message: "Synchronized Successfully" };
 }
 
 /**
@@ -202,6 +232,7 @@ function sendPPTReminder(res) {
   const deadline = new Date(parseInt(yStr), monthIdx + 1, subDay);
   const delayDays = Math.max(0, Math.ceil((today - deadline) / (1000 * 60 * 60 * 24)));
   
+  const pptType = staff.ppt_type || 'Monthly PPT';
   let type = res.manual_type || 'Pending';
   if (!res.manual_type) {
     if (delayDays >= 15) type = 'Super Alert';
@@ -211,54 +242,79 @@ function sendPPTReminder(res) {
   let msg = "";
   let targetNo = staff.mobile;
 
+  const portalLink = `https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
+
   if (type === 'Pending' || type === 'Manual') {
-    msg = `📢 *PPT Submission Reminder*\n\n` +
-          `Dear *${staff.name}*,\n\n` +
-          `Hope you are doing well.\n\n` +
-          `This is a gentle reminder regarding the PPT submission for the task assigned to you.\n` +
-          `If you have already submitted your PPT regularly, please feel free to ignore this message — and thank you for your timely submissions. 😊\n\n` +
-          `However, if the PPT submission is still pending, we kindly request you to submit it as per the details mentioned below 👇\n\n` +
-          `*Department:* ${staff.department}\n` +
-          `*Task:* Please Submit PPT\n` +
-          `*Deadline:* ${subDay}th of ${nextMonthName}\n\n` +
-          `Your cooperation and timely submission will be highly appreciated.\n` +
-          `Thank you for your understanding and support.\n\n` +
-          `*Confirm Here:* https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}\n\n` +
-          `Regards,\n` +
+    msg = `📋 *DUE: ${pptType}*\n\n` +
+          `Dear *${staff.name}*,\n` +
+          `This is a reminder to submit your *${pptType}* for *${month}*.\n\n` +
+          `*Deadline:* ${subDay}th ${nextMonthName}\n` +
+          `*Action:* Please confirm via link below 👇\n\n` +
+          `${portalLink}\n\n` +
           `SBH HOSPITAL`;
   } 
   else if (type === 'Delayed') {
-    msg = `⚠️ *URGENT: PPT Submission Overdue*\n\n` +
-          `Dear *${staff.name}*,\n\n` +
-          `Our records indicate that your monthly PPT for *${month}* is now significantly delayed by *${delayDays} days*.\n\n` +
-          `Prompt submission is required to maintain departmental reporting standards. 🕒\n\n` +
-          `*Department:* ${staff.department}\n` +
-          `*Action Required:* Please submit and confirm immediately via the portal.\n\n` +
-          `*Submission Link:* https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}\n\n` +
-          `Regards,\n` +
+    msg = `⚠️ *DELAYED: ${pptType}*\n\n` +
+          `Dear *${staff.name}*,\n` +
+          `Your *${pptType}* is now *${delayDays} days* overdue.\n\n` +
+          `Please synchronize your submission immediately to avoid escalation.\n\n` +
+          `*Link:* ${portalLink}\n\n` +
           `SBH ADMINISTRATION`;
   }
   else if (type === 'Super Alert') {
     const director = getSheetData(ss, 'PPT_Director')[0] || { name: 'Director Sir', mobile: '' };
     targetNo = director.mobile;
-    msg = `🚨 *SUPER ALERT: CRITICAL PPT DELAY*\n\n` +
-          `Director Sir,\n\n` +
-          `This is to bring to your attention a critical delay in PPT submission.\n\n` +
+    msg = `🚨 *SUPER ALERT: ${pptType} CRITICAL DELAY*\n\n` +
+          `Director Sir,\n` +
           `*User:* ${staff.name}\n` +
-          `*Department:* ${staff.department}\n` +
-          `*Reporting Month:* ${month}\n` +
-          `*Delay Status:* ${delayDays} Days Overdue\n\n` +
-          `Multiple reminders have been sent to the user. Final escalation protocol initiated. 🛡️\n\n` +
-          `Regards,\n` +
-          `SBH CORE SYSTEM`;
+          `*PPT Type:* ${pptType}\n` +
+          `*Delay:* ${delayDays} Days Overdue\n\n` +
+          `Final escalation protocol active. Sending reminders every 2 days. 🛡️`;
   }
   
   const reminderSheet = ss.getSheetByName('PPT_Reminders');
   reminderSheet.appendRow([new Date(), staff.staff_id, month, type, targetNo, 'Sent']);
   
   sendWhatsApp(targetNo, msg);
+  sendPPTEmail(staff, month, type, delayDays, null);
   
-  return { success: true, message: "Reminder Logged: " + type, template: msg };
+  return { success: true, message: `Alert Logged: ${type}` };
+}
+
+/**
+ * EMAIL UTILITY (To Leader, CC Director & Admin)
+ */
+function sendPPTEmail(staff, month, type, delayDays, subId) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  const director = getSheetData(ss, 'PPT_Director')[0] || { email: '' };
+  const admin = getSheetData(ss, 'PPT_Admins')[0] || { email: '' };
+  
+  if (!staff.email) return;
+
+  const pptType = staff.ppt_type || 'Monthly PPT';
+  const portalLink = `https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
+  
+  let subject = "";
+  let body = "";
+
+  if (type === 'Submission Confirmation') {
+    subject = `✅ PPT Submission Synchronized: ${staff.name} - ${month}`;
+    body = `Dear ${staff.name},\n\nYour ${pptType} for ${month} has been successfully logged (ID: ${subId}).\n\nStatus: ${delayDays > 0 ? 'Delayed by ' + delayDays + ' days' : 'Submitted On-Time'}\n\nThank you,\nSBH HOSPITAL`;
+  } else {
+    subject = `🔔 [${type}] PPT Submission Requirement: ${pptType}`;
+    body = `Dear ${staff.name},\n\nThis is an official notification regarding your ${pptType} for ${month}.\n\nStatus: ${type}\nDelay: ${delayDays} Days\n\nPlease finalize your submission at: ${portalLink}\n\nRegards,\nSBH MANAGEMENT`;
+  }
+
+  const ccList = [director.email, admin.email].filter(e => e).join(',');
+  
+  try {
+    MailApp.sendEmail({
+      to: staff.email,
+      cc: ccList,
+      subject: subject,
+      body: body
+    });
+  } catch (e) { console.log("Email Error: " + e.toString()); }
 }
 
 /**
@@ -299,20 +355,25 @@ function updatePPTMaster(res) {
   const sheet = ss.getSheetByName('PPT_Master');
   const data = sheet.getDataRange().getValues();
   
+  const rowData = [
+    res.staff_id, res.name, res.department, res.mobile, res.email, 
+    'ACTIVE', res.submission_day || 5, res.reminder_days || '', res.ppt_type || ''
+  ];
+
   for (let i = 1; i < data.length; i++) {
     if (data[i][0] == res.staff_id) {
-      sheet.getRange(i + 1, 2, 1, 7).setValues([[res.name, res.department, res.mobile, res.email, 'ACTIVE', res.submission_day || 5, res.reminder_days || '']]);
+      sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
       return { success: true };
     }
   }
-  sheet.appendRow([res.staff_id, res.name, res.department, res.mobile, res.email, 'ACTIVE', res.submission_day || 5, res.reminder_days || '']);
+  sheet.appendRow(rowData);
   return { success: true };
 }
 
 function updatePPTAdmins(res) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('PPT_Admins');
-  sheet.appendRow([res.name, res.mobile, res.role]);
+  sheet.appendRow([res.name, res.mobile, res.email, res.role]);
   return { success: true };
 }
 
@@ -320,8 +381,8 @@ function updatePPTDirector(res) {
   const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sheet = ss.getSheetByName('PPT_Director');
   sheet.clearContents();
-  sheet.appendRow(['Name', 'Mobile']);
-  sheet.appendRow([res.name, res.mobile]);
+  sheet.appendRow(['Name', 'Mobile', 'Email']);
+  sheet.appendRow([res.name, res.mobile, res.email]);
   return { success: true };
 }
 
