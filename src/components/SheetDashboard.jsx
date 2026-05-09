@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-    Award, Plus, ClipboardList, TrendingUp, Trophy, 
-    CheckCircle2, Users, Scan, Cake, Edit3, BarChart3, 
-    IndianRupee, LogOut, Activity, ChevronRight, Search, 
-    Trash, Save, Phone, Mail, User, X, Loader2, RefreshCw, 
-    Calendar, Star, Download, QrCode, ArrowLeft, Filter,
-    ChevronLeft, ChevronsLeft, ChevronsRight, ShieldCheck, Fingerprint,
-    Linkedin, ExternalLink, ChevronDown, MessageCircle, Lock,
-    Send, MessageSquare, Building2, CheckCircle, Check
+    Activity, ArrowLeft, Award, BarChart3, Bell, Building2, Cake, Calendar, 
+    Check, CheckCircle, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, 
+    ChevronsLeft, ChevronsRight, ClipboardList, Download, Edit3, ExternalLink, 
+    Fingerprint, Filter, IndianRupee, Linkedin, Loader2, Lock, LogOut, Mail, 
+    MessageCircle, MessageSquare, Phone, Plus, Presentation, QrCode, RefreshCw, 
+    Save, Scan, Search, Send, ShieldCheck, Star, Trash, TrendingUp, Trophy, 
+    User, Users, X
 } from 'lucide-react';
 import VisitingManager from './Visiting/VisitingManager';
 import AccountUpdate from './Visiting/AccountUpdate';
 import SBHFamilyManager from './SBHFamily/SBHFamilyManager';
 import LasikSurvey from './LasikSurvey';
+import PPTDashboard from './PPTDashboard';
+import PPTSubmissionForm from './PPTSubmissionForm';
 import Footer from './Footer';
 
 // --- UTILITIES ---
@@ -1533,6 +1534,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             if (publicType === 'register') return 'STAFF_REGISTER';
             if (publicType === 'lasik') return 'LASIK_FORM';
             if (publicType === 'visiting_update') return 'VISITING_UPDATE';
+            if (publicType === 'ppt_submit') return 'PPT_SUBMIT';
             return 'SMILE_FORM';
         }
         if (user === 'ACCOUNT') return 'SBH_FAMILY_DASHBOARD';
@@ -1547,11 +1549,17 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const [lasikData, setLasikData] = useState([]);
     const [selectedMonth, setSelectedMonth] = useState(new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' }));
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-    const [openCategories, setOpenCategories] = useState({ smile: true, employees: false, lasik: false, accounting: user === 'ACCOUNT' });
+    const [openCategories, setOpenCategories] = useState({ 
+        smile: true, 
+        employees: false, 
+        lasik: false, 
+        accounting: user === 'ACCOUNT',
+        system: false 
+    });
 
     const toggleCategory = (cat) => {
         setOpenCategories(prev => {
-            const newState = { smile: false, employees: false, lasik: false, accounting: false };
+            const newState = { smile: false, employees: false, lasik: false, accounting: false, system: false };
             newState[cat] = !prev[cat];
             return newState;
         });
@@ -1561,6 +1569,11 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
     const visitingScriptUrl = 'https://script.google.com/macros/s/AKfycbxAk2UQhkJbtQh0V9gjfs7kzFjUa59XnCKlQMQsgkRNrYDvqD5wtHi_0HUuit_tENalGw/exec';
     const sbhFamilyScriptUrl = 'https://script.google.com/macros/s/AKfycbxlKMT0rLe4QpbLl8x_Pm8blS8yCvWsvKMTz1_tozd94bju0Z8eEJ4lDz_1pnAmav_O/exec';
     const lasikScriptUrl = 'https://script.google.com/macros/s/AKfycbxuFDz3LDBM88Wy-7naDgffvXQ0hH37-EMQhJuMcUId40PNG5yX_PFZLyXXiGYMB0zQ/exec';
+    const pptScriptUrl = 'https://script.google.com/macros/s/AKfycbzm55hBacrqB1c0I56stWFsYOV-MXvGSzZ9TJ1tg2z-IGAR77y3ZBteb2ON_dUuskGS/exec'; 
+    
+    // Use a hardcoded one for now if possible, or wait for user to deploy.
+    // Given I just created the file, I'll use a placeholder or the one from previous logic if any.
+    // Actually, I'll use the one I'll define in the next step.
 
     const fetchData = async () => {
         setLoading(true);
@@ -1645,6 +1658,10 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         <CollapsibleCategory icon={<IndianRupee />} label="Accounting" isOpen={openCategories.accounting} onToggle={() => toggleCategory('accounting')}>
                             <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
                             <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
+                        </CollapsibleCategory>
+                        
+                        <CollapsibleCategory icon={<Bell />} label="System Reminder" isOpen={openCategories.system} onToggle={() => toggleCategory('system')}>
+                            <NavItem icon={<Presentation />} label="PPT" active={activeTab === 'PPT_DASHBOARD'} onClick={() => handleNavClick('PPT_DASHBOARD')} />
                         </CollapsibleCategory>
                         
                         <div className="pt-4 border-t border-white/5">
@@ -1765,6 +1782,8 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'VISITING_DASHBOARD' && <VisitingManager scriptUrl={visitingScriptUrl} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'VISITING_UPDATE' && <AccountUpdate scriptUrl={visitingScriptUrl} />}
                         {activeTab === 'SBH_FAMILY_DASHBOARD' && <SBHFamilyManager scriptUrl={sbhFamilyScriptUrl} user={user} onRefresh={fetchData} loading={loading} />}
+                        {activeTab === 'PPT_DASHBOARD' && <PPTDashboard scriptUrl={pptScriptUrl} loading={loading} onRefresh={fetchData} />}
+                        {activeTab === 'PPT_SUBMIT' && <PPTSubmissionForm scriptUrl={pptScriptUrl} prefillData={{ id: new URLSearchParams(window.location.search).get('id'), month: new URLSearchParams(window.location.search).get('month') }} />}
                     </div>
                 </main>
                 <Footer />
