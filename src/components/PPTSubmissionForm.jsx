@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
     Presentation, Send, CheckCircle, Loader2, 
     Calendar, User, Building2, Link as LinkIcon,
-    AlertCircle, Fingerprint
+    AlertCircle, Fingerprint, ShieldCheck
 } from 'lucide-react';
 
 const SuccessModal = ({ isOpen, onClose, title, message }) => {
@@ -78,9 +78,30 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
         ppt_link: '',
         confirmed: false
     });
+    const [leaderData, setLeaderData] = useState(null);
+    const [fetchingLeader, setFetchingLeader] = useState(false);
     const [loading, setLoading] = useState(false);
     const [isVerified, setIsVerified] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+
+    useEffect(() => {
+        if (formData.staff_id) {
+            const fetchLeader = async () => {
+                setFetchingLeader(true);
+                try {
+                    const r = await fetch(`${scriptUrl}?action=get_ppt_data`);
+                    const res = await r.json();
+                    const leader = res.master.find(m => m.staff_id == formData.staff_id);
+                    if (leader) setLeaderData(leader);
+                } catch (e) {
+                    console.error("Leader fetch error:", e);
+                } finally {
+                    setFetchingLeader(false);
+                }
+            };
+            fetchLeader();
+        }
+    }, [formData.staff_id, scriptUrl]);
 
     const handleSubmit = async (e) => {
         if (e) e.preventDefault();
@@ -122,6 +143,28 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
                 </div>
 
                 <div className="p-10 md:p-12">
+                    {/* Identification Card */}
+                    {leaderData ? (
+                        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-10 p-6 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-5">
+                            <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-400 border border-slate-100 shadow-sm font-black text-xl">
+                                {leaderData.name?.[0]}
+                            </div>
+                            <div>
+                                <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Authorized Leader</p>
+                                <h2 className="text-lg font-black text-slate-900 leading-none uppercase">{leaderData.name}</h2>
+                                <p className="text-[9px] font-bold text-orange-600 uppercase tracking-widest mt-1.5">{leaderData.department} • {leaderData.staff_id}</p>
+                            </div>
+                        </motion.div>
+                    ) : fetchingLeader ? (
+                        <div className="mb-10 p-6 bg-slate-50 rounded-3xl animate-pulse flex items-center gap-5">
+                            <div className="w-14 h-14 bg-slate-200 rounded-2xl"></div>
+                            <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-slate-200 rounded w-1/2"></div>
+                                <div className="h-3 bg-slate-200 rounded w-1/4"></div>
+                            </div>
+                        </div>
+                    ) : null}
+
                     <form onSubmit={handleSubmit} className="space-y-8">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-2">
@@ -130,9 +173,10 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
                                     <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={14} />
                                     <input 
                                         required 
+                                        readOnly={!!prefillData.id}
                                         value={formData.staff_id} 
                                         onChange={e => setFormData({...formData, staff_id: e.target.value})} 
-                                        className="w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none focus:bg-white focus:border-orange-500 transition-all text-xs" 
+                                        className={`w-full pl-12 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-slate-900 outline-none transition-all text-xs ${prefillData.id ? 'opacity-60 cursor-not-allowed' : 'focus:bg-white focus:border-orange-500'}`} 
                                         placeholder="Enter ID" 
                                     />
                                 </div>
@@ -196,7 +240,7 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
                             type="submit"
                             className="w-full py-5 bg-slate-900 text-white text-[10px] font-black rounded-2xl shadow-xl flex items-center justify-center gap-3 uppercase tracking-widest hover:bg-orange-600 transition-all disabled:opacity-50"
                         >
-                            {loading ? <Loader2 size={16} className="animate-spin" /> : <><Send size={14}/> Synchronize Submission</>}
+                            {loading ? <Loader2 size={16} className="animate-spin" /> : <><ShieldCheck size={14}/> Finalize Submission</>}
                         </button>
                     </form>
                 </div>
@@ -209,7 +253,6 @@ const PPTSubmissionForm = ({ scriptUrl, prefillData = {} }) => {
                 message={`Your PPT submission for ${formData.month} has been successfully logged. Reminders for this cycle have been deactivated.`}
             />
             
-            {/* Footer matching other forms */}
             <div className="mt-12 text-center">
                 <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">SBH Hospital Management System • Infrastructure Group</p>
             </div>
