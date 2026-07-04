@@ -266,3 +266,13 @@ function createJsonResponse(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
 }
+
+// Diagnostic test function to run in Apps Script editor
+function testSMS() {
+  try {
+    const result = sendSMS("9644404741", "test_file_id", "sw37373", "Test Patient");
+    Logger.log("Test Success! Response: " + result);
+  } catch (err) {
+    Logger.log("Test Failed! Error: " + err.toString());
+  }
+}
