@@ -190,13 +190,13 @@ function handleSendReport(data) {
       status = "Error: " + err.toString();
     }
   } else {
-    // SMS channel placeholder
+    // Call live SMS API
     try {
-      sendSMS(mobileNo, directDownloadUrl, mrdNo);
+      apiResponse = sendSMS(mobileNo, file.getId(), mrdNo, patientName);
       status = "Success";
-      apiResponse = "SMS queued successfully";
     } catch (err) {
-      status = "SMS Error: " + err.toString();
+      status = "SMS Error";
+      apiResponse = err.toString();
     }
   }
   
@@ -218,8 +218,35 @@ function handleSendReport(data) {
 }
 
 // SMS Placeholder send function
-function sendSMS(mobileNo, pdfLink, mrdNo) {
-  Logger.log("SMS Transmission to " + mobileNo + " initiated. Reference Link: " + pdfLink);
+function sendSMS(mobileNo, fileId, mrdNo, patientName) {
+  // Strip non-digits and extract 10-digit Indian mobile number
+  let clean10DigitMobile = String(mobileNo).replace(/[^0-9]/g, "");
+  if (clean10DigitMobile.startsWith("91") && clean10DigitMobile.length === 12) {
+    clean10DigitMobile = clean10DigitMobile.substring(2);
+  }
+  
+  // Format message strictly matching approved DLT template
+  const msgText = "Thank you for visiting SBH Group Of Hospital. Dear " + patientName + ", your lab report for MRD No. " + mrdNo + " is ready. Please click on the link to view: https://sbhhospital-seven.vercel.app/?id=" + fileId;
+  
+  const smsUrl = "http://sms.messageindia.in/v2/sendSMS" +
+    "?username=sbhhospital" +
+    "&message=" + encodeURIComponent(msgText) +
+    "&sendername=SBHGRP" +
+    "&smstype=TRANS" +
+    "&numbers=" + clean10DigitMobile +
+    "&apikey=ede7ca8a-d272-437f-9fa5-dfa5136cedf9" +
+    "&peid=1201160586649150204" +
+    "&templateid=1707178316268580384";
+    
+  const response = UrlFetchApp.fetch(smsUrl, { "muteHttpExceptions": true });
+  const code = response.getResponseCode();
+  const content = response.getContentText();
+  
+  if (code !== 200 && code !== 201) {
+    throw new Error("SMS API returned status " + code + ": " + content);
+  }
+  
+  return content;
 }
 
 // Helper to check and get subfolder
