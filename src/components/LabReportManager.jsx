@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Search, MessageSquare, Send, Paperclip, FileText, CheckCheck, 
-    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone, ArrowLeft
+    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone, ArrowLeft, Loader2
 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 
@@ -93,6 +93,9 @@ export default function LabReportManager() {
     const [fileError, setFileError] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendChannel, setSendChannel] = useState(null); // 'WhatsApp' or 'SMS'
+    
+    // Background jobs queue state
+    const [sendingJobs, setSendingJobs] = useState([]);
 
     // PDF Preview Modal State
     const [previewUrl, setPreviewUrl] = useState(null);
@@ -117,10 +120,15 @@ export default function LabReportManager() {
         fetchHistory();
     }, []);
 
+    // Combine history and background sending jobs for live updates
+    const combinedHistory = useMemo(() => {
+        return [...history, ...sendingJobs];
+    }, [history, sendingJobs]);
+
     // Group logs by mobile number
     const chatsList = useMemo(() => {
         const groups = {};
-        history.forEach(log => {
+        combinedHistory.forEach(log => {
             const mob = log.Mobile_No || 'Unknown';
             if (!groups[mob]) {
                 groups[mob] = [];
@@ -137,7 +145,7 @@ export default function LabReportManager() {
                 lastLog
             };
         }).sort((a, b) => new Date(b.lastLog.Timestamp) - new Date(a.lastLog.Timestamp));
-    }, [history]);
+    }, [combinedHistory]);
 
     // Filter chats
     const filteredChats = useMemo(() => {
@@ -176,7 +184,13 @@ export default function LabReportManager() {
     const handleSelectChat = (mobile) => {
         setActiveMobile(mobile);
         setIsNewChat(false);
-        setFormMobile(mobile);
+        
+        let displayMobile = mobile;
+        if (displayMobile.startsWith('91')) {
+            displayMobile = displayMobile.substring(2);
+        }
+        setFormMobile(displayMobile);
+
         const chat = chatsList.find(c => c.mobile === mobile);
         if (chat && chat.lastLog) {
             setFormMrd(chat.lastLog.MRD_No || '');
@@ -194,7 +208,7 @@ export default function LabReportManager() {
     const handleNewChatClick = () => {
         setActiveMobile('');
         setIsNewChat(true);
-        setFormMobile('91'); // Pre-fill with Indian country code 91
+        setFormMobile('');
         setFormName('');
         setFormMrd('');
         setSelectedFiles([]);
@@ -232,59 +246,84 @@ export default function LabReportManager() {
             return;
         }
 
-        setIsSending(true);
-        setSendChannel(channel);
-        try {
-            let base64Data = '';
-            if (selectedFiles.length === 1) {
-                base64Data = await fileToBase64(selectedFiles[0]);
-            } else {
-                const mergedBytes = await mergePDFs(selectedFiles);
-                base64Data = uint8ToBase64(mergedBytes);
+        const cleanMobile = formMobile.replace(/[^0-9]/g, "");
+        const fullMobile = "91" + cleanMobile;
+
+        const jobId = Date.now();
+        const today = new Date();
+        const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
+        const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}:${String(today.getSeconds()).padStart(2, '0')}`;
+
+        const tempLog = {
+            Timestamp: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} ${timeStr}`,
+            Date: dateStr,
+            Patient_Name: formName,
+            MRD_No: formMrd,
+            Mobile_No: fullMobile,
+            PDF_Link: '#',
+            Status: 'Sending',
+            Channel: channel,
+            jobId: jobId
+        };
+
+        // Instantly add to sending queue local state
+        setSendingJobs(prev => [...prev, tempLog]);
+
+        // Copy files for async background thread execution
+        const currentFiles = [...selectedFiles];
+        const currentName = formName;
+        const currentMrd = formMrd;
+
+        // Clear files and form immediately to free UI
+        setSelectedFiles([]);
+        setFormMobile('');
+        setFormName('');
+        setFormMrd('');
+
+        setActiveMobile(fullMobile);
+        setIsNewChat(false);
+
+        // Run request in background
+        (async () => {
+            try {
+                let base64Data = '';
+                if (currentFiles.length === 1) {
+                    base64Data = await fileToBase64(currentFiles[0]);
+                } else {
+                    const mergedBytes = await mergePDFs(currentFiles);
+                    base64Data = uint8ToBase64(mergedBytes);
+                }
+
+                const payload = {
+                    action: 'send_report',
+                    patientName: currentName,
+                    mrdNo: currentMrd,
+                    mobileNo: fullMobile,
+                    fileName: currentFiles.length === 1 ? currentFiles[0].name : `${currentMrd}_merged.pdf`,
+                    fileData: base64Data,
+                    channel: channel
+                };
+
+                await fetch(SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify(payload)
+                });
+
+                // Short delay to sync sheet
+                setTimeout(async () => {
+                    await fetchHistory();
+                    setSendingJobs(prev => prev.filter(j => j.jobId !== jobId));
+                }, 4000);
+
+            } catch (err) {
+                console.error('Background send error:', err);
+                setSendingJobs(prev => prev.map(j => j.jobId === jobId ? { ...j, Status: 'Failed' } : j));
             }
-
-            let cleanMobile = formMobile.replace(/[^0-9]/g, "");
-            if (cleanMobile.length === 10) {
-                cleanMobile = "91" + cleanMobile;
-            }
-
-            const payload = {
-                action: 'send_report',
-                patientName: formName,
-                mrdNo: formMrd,
-                mobileNo: cleanMobile,
-                fileName: selectedFiles.length === 1 ? selectedFiles[0].name : `${formMrd}_merged.pdf`,
-                fileData: base64Data,
-                channel: channel
-            };
-
-            await fetch(SCRIPT_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'text/plain'
-                },
-                body: JSON.stringify(payload)
-            });
-
-            setTimeout(async () => {
-                await fetchHistory();
-                setSelectedFiles([]);
-                setFormMrd('');
-                setFormName('');
-                setActiveMobile(formMobile);
-                setIsNewChat(false);
-                setIsSending(false);
-                setSendChannel(null);
-            }, 3000);
-
-        } catch (err) {
-            console.error('Send error:', err);
-            alert('Connection failed. Please check the server status.');
-            setIsSending(false);
-            setSendChannel(null);
-        }
+        })();
     };
+
 
     return (
         <div className="h-[calc(100vh-12rem)] min-h-[500px] bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm flex flex-row text-slate-800 relative font-sans">
@@ -472,7 +511,9 @@ export default function LabReportManager() {
                                                             <div className="flex flex-col items-end text-[7px] text-slate-400 font-bold">
                                                                 <span>{cleanTime(log.Timestamp)}</span>
                                                                 <div className="flex items-center gap-1 mt-0.5">
-                                                                    {log.Status === 'Success' ? (
+                                                                    {log.Status === 'Sending' ? (
+                                                                        <Loader2 size={11} className="animate-spin text-orange-500" />
+                                                                    ) : log.Status === 'Success' ? (
                                                                         <CheckCheck size={11} className="text-emerald-500" />
                                                                     ) : (
                                                                         <AlertCircle size={10} className="text-rose-500" title={log.Status} />
@@ -494,15 +535,18 @@ export default function LabReportManager() {
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Mobile No</label>
-                                    <input 
-                                        type="number"
-                                        required
-                                        disabled={!isNewChat || isSending}
-                                        value={formMobile}
-                                        onChange={(e) => setFormMobile(e.target.value)}
-                                        placeholder="10 digit mobile number"
-                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400 disabled:opacity-50"
-                                    />
+                                    <div className="flex items-center bg-slate-50 rounded-2xl px-5 py-3.5 focus-within:bg-white focus-within:ring-4 focus-within:ring-orange-500/5 transition-all">
+                                        <span className="text-xs font-black text-slate-400 select-none mr-2 shrink-0">+91</span>
+                                        <input 
+                                            type="number"
+                                            required
+                                            disabled={!isNewChat}
+                                            value={formMobile}
+                                            onChange={(e) => setFormMobile(e.target.value)}
+                                            placeholder="10 digit mobile number"
+                                            className="w-full bg-transparent border-none p-0 text-xs font-bold text-slate-700 outline-none placeholder:text-slate-400 disabled:opacity-50"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Name</label>

@@ -1640,39 +1640,38 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-1.5 text-emerald-500 hover:text-white transition-none"><X size={14}/></button>
                     </div>
                     <div className="p-3 flex-1 space-y-1 overflow-y-auto custom-scrollbar">
-                        {user === 'Lab' ? (
+                        {/* Lab Reports (Visible to Lab and Admin users) */}
+                        {(user === 'Lab' || user === 'SBH' || user === 'SBH HRD') && (
                             <CollapsibleCategory icon={<MessageSquare />} label="Lab Reports" isOpen={openCategories.lab} onToggle={() => toggleCategory('lab')}>
                                 <NavItem icon={<MessageSquare />} label="WhatsApp Panel" active={activeTab === 'LAB_REPORTS'} onClick={() => handleNavClick('LAB_REPORTS')} />
                             </CollapsibleCategory>
-                        ) : (
-                            <>
-                                <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => toggleCategory('smile')}>
-                                    <NavItem icon={<Plus />} label="Cast Nomination" active={activeTab === 'SMILE_FORM'} onClick={() => handleNavClick('SMILE_FORM')} />
-                                    <NavItem icon={<ClipboardList />} label="Nomination Ledger" active={activeTab === 'SMILE_ENTRIES'} onClick={() => handleNavClick('SMILE_ENTRIES')} />
-                                    <NavItem icon={<TrendingUp />} label="Leader Board" active={activeTab === 'SMILE_LEADERBOARD'} onClick={() => handleNavClick('SMILE_LEADERBOARD')} />
-                                    <NavItem icon={<Trophy />} label="Honor Roll" active={activeTab === 'SMILE_WINNERS'} onClick={() => handleNavClick('SMILE_WINNERS')} />
-                                    {(user === 'SBH' || user === 'SBH HRD') && (
-                                        <NavItem icon={<CheckCircle2 />} label="Approval Desk" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
-                                    )}
-                                </CollapsibleCategory>
-                                <CollapsibleCategory icon={<Users />} label="Workforce" isOpen={openCategories.employees} onToggle={() => toggleCategory('employees')}>
-                                    <NavItem icon={<Users />} label="Staff Roster" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
-                                    <NavItem icon={<Scan />} label="QR Manager" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
-                                    <NavItem icon={<Cake />} label="Celebrations" active={activeTab === 'CELEBRATIONS'} onClick={() => handleNavClick('CELEBRATIONS')} />
-                                </CollapsibleCategory>
-                                <CollapsibleCategory icon={<ClipboardList />} label="Lasik Section" isOpen={openCategories.lasik} onToggle={() => toggleCategory('lasik')}>
-                                    <NavItem icon={<Edit3 />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
-                                    <NavItem icon={<BarChart3 />} label="Feedback Data" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
-                                </CollapsibleCategory>
-                                <CollapsibleCategory icon={<IndianRupee />} label="Accounting" isOpen={openCategories.accounting} onToggle={() => toggleCategory('accounting')}>
-                                    <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
-                                    <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
-                                </CollapsibleCategory>
-                                <CollapsibleCategory icon={<Bell />} label="System Reminder" isOpen={openCategories.system} onToggle={() => toggleCategory('system')}>
-                                    <NavItem icon={<Presentation />} label="PPT" active={activeTab === 'PPT_DASHBOARD'} onClick={() => handleNavClick('PPT_DASHBOARD')} />
-                                </CollapsibleCategory>
-                            </>
                         )}
+
+                        <CollapsibleCategory icon={<Award />} label="Smile Award" isOpen={openCategories.smile} onToggle={() => toggleCategory('smile')}>
+                            <NavItem icon={<Plus />} label="Cast Nomination" active={activeTab === 'SMILE_FORM'} onClick={() => handleNavClick('SMILE_FORM')} />
+                            <NavItem icon={<ClipboardList />} label="Nomination Ledger" active={activeTab === 'SMILE_ENTRIES'} onClick={() => handleNavClick('SMILE_ENTRIES')} />
+                            <NavItem icon={<TrendingUp />} label="Leader Board" active={activeTab === 'SMILE_LEADERBOARD'} onClick={() => handleNavClick('SMILE_LEADERBOARD')} />
+                            <NavItem icon={<Trophy />} label="Honor Roll" active={activeTab === 'SMILE_WINNERS'} onClick={() => handleNavClick('SMILE_WINNERS')} />
+                            {(user === 'SBH' || user === 'SBH HRD') && (
+                                <NavItem icon={<CheckCircle2 />} label="Approval Desk" active={activeTab === 'HR_PANEL'} onClick={() => handleNavClick('HR_PANEL')} />
+                            )}
+                        </CollapsibleCategory>
+                        <CollapsibleCategory icon={<Users />} label="Workforce" isOpen={openCategories.employees} onToggle={() => toggleCategory('employees')}>
+                            <NavItem icon={<Users />} label="Staff Roster" active={activeTab === 'EMPLOYEE_ROSTER'} onClick={() => handleNavClick('EMPLOYEE_ROSTER')} />
+                            <NavItem icon={<Scan />} label="QR Manager" active={activeTab === 'PRINT_QR'} onClick={() => handleNavClick('PRINT_QR')} />
+                            <NavItem icon={<Cake />} label="Celebrations" active={activeTab === 'CELEBRATIONS'} onClick={() => handleNavClick('CELEBRATIONS')} />
+                        </CollapsibleCategory>
+                        <CollapsibleCategory icon={<ClipboardList />} label="Lasik Section" isOpen={openCategories.lasik} onToggle={() => toggleCategory('lasik')}>
+                            <NavItem icon={<Edit3 />} label="Lasik Form" active={activeTab === 'LASIK_FORM'} onClick={() => handleNavClick('LASIK_FORM')} />
+                            <NavItem icon={<BarChart3 />} label="Feedback Data" active={activeTab === 'LASIK_DATA'} onClick={() => handleNavClick('LASIK_DATA')} />
+                        </CollapsibleCategory>
+                        <CollapsibleCategory icon={<IndianRupee />} label="Accounting" isOpen={openCategories.accounting} onToggle={() => toggleCategory('accounting')}>
+                            <NavItem icon={<Users />} label="SBH Family" active={activeTab === 'SBH_FAMILY_DASHBOARD'} onClick={() => handleNavClick('SBH_FAMILY_DASHBOARD')} />
+                            <NavItem icon={<IndianRupee />} label="Visiting" active={activeTab === 'VISITING_DASHBOARD'} onClick={() => handleNavClick('VISITING_DASHBOARD')} />
+                        </CollapsibleCategory>
+                        <CollapsibleCategory icon={<Bell />} label="System Reminder" isOpen={openCategories.system} onToggle={() => toggleCategory('system')}>
+                            <NavItem icon={<Presentation />} label="PPT" active={activeTab === 'PPT_DASHBOARD'} onClick={() => handleNavClick('PPT_DASHBOARD')} />
+                        </CollapsibleCategory>
                         
                         <div className="pt-4 border-t border-white/5">
                             <p className="text-[7px] font-black text-slate-600 uppercase tracking-widest px-5 mb-2">Management</p>
