@@ -125,8 +125,8 @@ function handleSendReport(data) {
   // Allow anyone with the link to view the file so the Meta API can access it
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
   
-  // Direct download link with suffix &file.pdf to force correct PDF handling on WhatsApp
-  const directDownloadUrl = "https://docs.google.com/uc?export=download&id=" + file.getId() + "&file.pdf";
+  // Direct download link via Vercel serverless proxy to force correct PDF handling on WhatsApp
+  const directDownloadUrl = "https://sbhhospital-seven.vercel.app/api/view-pdf?id=" + file.getId() + "&file.pdf";
 
   let status = "Failed";
   let apiResponse = "";
