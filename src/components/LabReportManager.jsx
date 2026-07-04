@@ -160,6 +160,11 @@ export default function LabReportManager() {
         );
     }, [chatsList, searchQuery]);
 
+    // Limit displayed chats to top 100 for smooth rendering performance
+    const displayedChats = useMemo(() => {
+        return filteredChats.slice(0, 100);
+    }, [filteredChats]);
+
     // Logs for active chat
     const activeChatLogs = useMemo(() => {
         if (!activeMobile) return [];
@@ -373,13 +378,13 @@ export default function LabReportManager() {
                             <RefreshCw size={24} className="animate-spin mb-3 text-orange-600" />
                             <p className="text-[9px] font-black uppercase tracking-widest">Loading history...</p>
                         </div>
-                    ) : filteredChats.length === 0 ? (
+                    ) : displayedChats.length === 0 ? (
                         <div className="text-center py-16 text-slate-400">
                             <MessageSquare size={28} className="mx-auto mb-2 opacity-30 text-slate-300" />
                             <p className="text-[9px] font-black uppercase tracking-wider">No Records Found</p>
                         </div>
                     ) : (
-                        filteredChats.map((chat) => (
+                        displayedChats.map((chat) => (
                             <button
                                 key={chat.mobile}
                                 onClick={() => handleSelectChat(chat.mobile)}
