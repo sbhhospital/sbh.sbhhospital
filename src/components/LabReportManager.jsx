@@ -279,10 +279,8 @@ export default function LabReportManager() {
         const currentName = formName;
         const currentMrd = formMrd;
 
-        // Clear files and form immediately to free UI
+        // Clear files and MRD immediately to free UI for next send (keep Mobile/Name populated for consecutive sends)
         setSelectedFiles([]);
-        setFormMobile('');
-        setFormName('');
         setFormMrd('');
 
         setActiveMobile(fullMobile);
@@ -558,7 +556,7 @@ export default function LabReportManager() {
                                     <input 
                                         type="text"
                                         required
-                                        disabled={!isNewChat || isSending}
+                                        disabled={!isNewChat}
                                         value={formName}
                                         onChange={(e) => setFormName(e.target.value)}
                                         placeholder="Enter Patient Name"
@@ -570,7 +568,7 @@ export default function LabReportManager() {
                                     <input 
                                         type="text"
                                         required
-                                        disabled={!isNewChat || isSending}
+                                        disabled={false}
                                         value={formMrd}
                                         onChange={(e) => setFormMrd(e.target.value)}
                                         placeholder="e.g. MRD_9401"
@@ -589,12 +587,12 @@ export default function LabReportManager() {
                                             accept="application/pdf"
                                             multiple
                                             onChange={handleFileChange}
-                                            disabled={isSending}
+                                            disabled={false}
                                             className="hidden" 
                                         />
                                         <label 
                                             htmlFor="pdf-upload" 
-                                            className={`flex items-center gap-2 px-4.5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border border-slate-200/50 ${isSending ? 'opacity-50 pointer-events-none' : ''}`}
+                                            className="flex items-center gap-2 px-4.5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border border-slate-200/50"
                                         >
                                             <Paperclip size={12} />
                                             {selectedFiles.length > 0 ? 'Add More PDFs' : 'Attach PDF Report(s)'}
@@ -632,36 +630,20 @@ export default function LabReportManager() {
                                     <button
                                         type="button"
                                         onClick={() => handleSendReport('WhatsApp')}
-                                        disabled={isSending || selectedFiles.length === 0}
+                                        disabled={selectedFiles.length === 0}
                                         className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-emerald-600/10 flex items-center gap-2"
                                     >
-                                        {isSending && sendChannel === 'WhatsApp' ? (
-                                            <>
-                                                <RefreshCw size={12} className="animate-spin" /> Dispatching...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <MessageSquare size={13} /> Send WhatsApp
-                                            </>
-                                        )}
+                                        <MessageSquare size={13} /> Send WhatsApp
                                     </button>
 
                                     {/* Send SMS Button */}
                                     <button
                                         type="button"
                                         onClick={() => handleSendReport('SMS')}
-                                        disabled={isSending || selectedFiles.length === 0}
+                                        disabled={selectedFiles.length === 0}
                                         className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-blue-600/10 flex items-center gap-2"
                                     >
-                                        {isSending && sendChannel === 'SMS' ? (
-                                            <>
-                                                <RefreshCw size={12} className="animate-spin" /> Dispatching...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Smartphone size={13} /> Send SMS
-                                            </>
-                                        )}
+                                        <Smartphone size={13} /> Send SMS
                                     </button>
                                 </div>
                             </div>
