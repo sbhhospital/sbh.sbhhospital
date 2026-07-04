@@ -243,11 +243,12 @@ export default function LabReportManager() {
                 base64Data = uint8ToBase64(mergedBytes);
             }
 
+            const cleanMobile = formMobile.replace(/[^0-9]/g, "");
             const payload = {
                 action: 'send_report',
                 patientName: formName,
                 mrdNo: formMrd,
-                mobileNo: formMobile,
+                mobileNo: cleanMobile,
                 fileName: selectedFiles.length === 1 ? selectedFiles[0].name : `${formMrd}_merged.pdf`,
                 fileData: base64Data,
                 channel: channel

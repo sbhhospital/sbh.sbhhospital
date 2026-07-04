@@ -102,6 +102,9 @@ function handleSendReport(data) {
     return createJsonResponse({ success: false, message: "Missing required fields (mrdNo, mobileNo, fileData)" });
   }
 
+  // Remove any non-numeric characters (like + or spaces) to prevent API validation errors
+  mobileNo = String(mobileNo).replace(/[^0-9]/g, "");
+
   // Prepend 91 to 10-digit mobile number if not already present
   if (mobileNo.length === 10) {
     mobileNo = "91" + mobileNo;
