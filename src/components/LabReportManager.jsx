@@ -194,7 +194,7 @@ export default function LabReportManager() {
     const handleNewChatClick = () => {
         setActiveMobile('');
         setIsNewChat(true);
-        setFormMobile('');
+        setFormMobile('91'); // Pre-fill with Indian country code 91
         setFormName('');
         setFormMrd('');
         setSelectedFiles([]);
@@ -243,7 +243,11 @@ export default function LabReportManager() {
                 base64Data = uint8ToBase64(mergedBytes);
             }
 
-            const cleanMobile = formMobile.replace(/[^0-9]/g, "");
+            let cleanMobile = formMobile.replace(/[^0-9]/g, "");
+            if (cleanMobile.length === 10) {
+                cleanMobile = "91" + cleanMobile;
+            }
+
             const payload = {
                 action: 'send_report',
                 patientName: formName,
