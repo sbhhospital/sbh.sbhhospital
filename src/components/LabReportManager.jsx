@@ -4,6 +4,7 @@ import {
     Search, MessageSquare, Send, Paperclip, FileText, CheckCheck, 
     AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone
 } from 'lucide-react';
+import { PDFDocument } from 'pdf-lib';
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4RzOprfy_BYDY2SwFXgKV7RhnMuPXvT4A7sbgREj2aTBxhE_qtf5UNxtMYTarwTfN/exec';
 
@@ -17,6 +18,27 @@ const fileToBase64 = (file) => {
         };
         reader.onerror = (error) => reject(error);
     });
+};
+
+const uint8ToBase64 = (uint8Array) => {
+    let binary = '';
+    const len = uint8Array.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(uint8Array[i]);
+    }
+    return window.btoa(binary);
+};
+
+const mergePDFs = async (files) => {
+    const mergedPdf = await PDFDocument.create();
+    for (const file of files) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await PDFDocument.load(arrayBuffer);
+        const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+        copiedPages.forEach((page) => mergedPdf.addPage(page));
+    }
+    const mergedPdfBytes = await mergedPdf.save();
+    return mergedPdfBytes;
 };
 
 const cleanDate = (dateVal, timestampVal) => {
@@ -66,7 +88,7 @@ export default function LabReportManager() {
     const [formMobile, setFormMobile] = useState('');
     const [formName, setFormName] = useState('');
     const [formMrd, setFormMrd] = useState('');
-    const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedFiles, setSelectedFiles] = useState([]);
     const [fileError, setFileError] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [sendChannel, setSendChannel] = useState(null); // 'WhatsApp' or 'SMS'
@@ -162,7 +184,7 @@ export default function LabReportManager() {
             setFormMrd('');
             setFormName('');
         }
-        setSelectedFile(null);
+        setSelectedFiles([]);
         setFileError('');
     };
 
@@ -173,48 +195,57 @@ export default function LabReportManager() {
         setFormMobile('');
         setFormName('');
         setFormMrd('');
-        setSelectedFile(null);
+        setSelectedFiles([]);
         setFileError('');
     };
 
     // File check
     const handleFileChange = (e) => {
-        const file = e.target.files[0];
+        const files = Array.from(e.target.files);
         setFileError('');
-        if (!file) return;
+        if (files.length === 0) return;
 
-        if (file.type !== 'application/pdf') {
-            setFileError('Only PDF files are supported.');
-            setSelectedFile(null);
-            return;
+        const validFiles = [];
+        for (const file of files) {
+            if (file.type !== 'application/pdf') {
+                setFileError('Only PDF files are supported.');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                setFileError('One of the files exceeds the 5MB size limit.');
+                return;
+            }
+            validFiles.push(file);
         }
 
-        if (file.size > 5 * 1024 * 1024) {
-            setFileError('File exceeds 5MB size limit.');
-            setSelectedFile(null);
-            return;
-        }
-
-        setSelectedFile(file);
+        setSelectedFiles(prev => [...prev, ...validFiles]);
     };
 
     // Send logic (accepts channel param: 'WhatsApp' or 'SMS')
     const handleSendReport = async (channel) => {
-        if (!formMobile || !formName || !formMrd || !selectedFile) {
-            alert('Please fill out all fields and select a PDF file.');
+        if (!formMobile || !formName || !formMrd || selectedFiles.length === 0) {
+            alert('Please fill out all fields and select at least one PDF file.');
             return;
         }
 
         setIsSending(true);
         setSendChannel(channel);
         try {
-            const base64Data = await fileToBase64(selectedFile);
+            let base64Data = '';
+            if (selectedFiles.length === 1) {
+                base64Data = await fileToBase64(selectedFiles[0]);
+            } else {
+                const mergedBytes = await mergePDFs(selectedFiles);
+                base64Data = uint8ToBase64(mergedBytes);
+            }
+
             const payload = {
                 action: 'send_report',
                 patientName: formName,
                 mrdNo: formMrd,
                 mobileNo: formMobile,
-                fileName: selectedFile.name,
+                fileName: selectedFiles.length === 1 ? selectedFiles[0].name : `${formMrd}_merged.pdf`,
                 fileData: base64Data,
                 channel: channel
             };
@@ -230,7 +261,7 @@ export default function LabReportManager() {
 
             setTimeout(async () => {
                 await fetchHistory();
-                setSelectedFile(null);
+                setSelectedFiles([]);
                 setFormMrd('');
                 setFormName('');
                 setActiveMobile(formMobile);
@@ -489,6 +520,7 @@ export default function LabReportManager() {
                                             type="file" 
                                             id="pdf-upload" 
                                             accept="application/pdf"
+                                            multiple
                                             onChange={handleFileChange}
                                             disabled={isSending}
                                             className="hidden" 
@@ -498,14 +530,24 @@ export default function LabReportManager() {
                                             className={`flex items-center gap-2 px-4.5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest cursor-pointer transition-all border border-slate-200/50 ${isSending ? 'opacity-50 pointer-events-none' : ''}`}
                                         >
                                             <Paperclip size={12} />
-                                            {selectedFile ? 'Change PDF' : 'Attach PDF Report'}
+                                            {selectedFiles.length > 0 ? 'Add More PDFs' : 'Attach PDF Report(s)'}
                                         </label>
                                         
-                                        {selectedFile && (
-                                            <div className="ml-3 flex items-center gap-2 bg-slate-50 border border-slate-100 px-3.5 py-2 rounded-xl">
-                                                <FileText size={12} className="text-orange-600" />
-                                                <span className="text-[9px] font-bold text-slate-600 max-w-[150px] truncate">{selectedFile.name}</span>
-                                                <button type="button" onClick={() => setSelectedFile(null)} className="text-slate-400 hover:text-slate-600"><X size={12}/></button>
+                                        {selectedFiles.length > 0 && (
+                                            <div className="ml-3 flex flex-wrap gap-2 max-w-lg">
+                                                {selectedFiles.map((file, idx) => (
+                                                    <div key={idx} className="flex items-center gap-1.5 bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-xl">
+                                                        <FileText size={10} className="text-orange-600" />
+                                                        <span className="text-[8px] font-bold text-slate-600 max-w-[100px] truncate">{file.name}</span>
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== idx))} 
+                                                            className="text-slate-400 hover:text-slate-600"
+                                                        >
+                                                            <X size={10}/>
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
 
@@ -515,7 +557,7 @@ export default function LabReportManager() {
                                             </p>
                                         )}
                                     </div>
-                                    <p className="text-[8px] font-bold text-slate-400 mt-2 uppercase tracking-wider">Format: PDF only • Limit: 5MB maximum size</p>
+                                    <p className="text-[8px] font-bold text-slate-400 mt-2 uppercase tracking-wider">Format: PDF only • Limit: 5MB per file • Select multiple files to merge them</p>
                                 </div>
 
                                 <div className="flex gap-2 shrink-0">
@@ -523,7 +565,7 @@ export default function LabReportManager() {
                                     <button
                                         type="button"
                                         onClick={() => handleSendReport('WhatsApp')}
-                                        disabled={isSending || !selectedFile}
+                                        disabled={isSending || selectedFiles.length === 0}
                                         className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-emerald-600/10 flex items-center gap-2"
                                     >
                                         {isSending && sendChannel === 'WhatsApp' ? (
@@ -541,7 +583,7 @@ export default function LabReportManager() {
                                     <button
                                         type="button"
                                         onClick={() => handleSendReport('SMS')}
-                                        disabled={isSending || !selectedFile}
+                                        disabled={isSending || selectedFiles.length === 0}
                                         className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-slate-100 text-white disabled:text-slate-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-blue-600/10 flex items-center gap-2"
                                     >
                                         {isSending && sendChannel === 'SMS' ? (
