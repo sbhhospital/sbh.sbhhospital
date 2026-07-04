@@ -34,20 +34,30 @@ function doPost(e) {
   }
 }
 
+// Setup Sheet structure if not exists with auto-migration
 function setupLabSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sheet = ss.getSheetByName('Lab_Reports');
   if (!sheet) {
     sheet = ss.insertSheet('Lab_Reports');
-    sheet.appendRow(['Timestamp', 'Date', 'MRD_No', 'Mobile_No', 'PDF_Link', 'Status', 'Channel']);
-    sheet.getRange("A1:G1").setBackground("#1E3A8A").setFontColor("white").setFontWeight("bold");
+    sheet.appendRow(['Timestamp', 'Date', 'Patient_Name', 'MRD_No', 'Mobile_No', 'PDF_Link', 'Status', 'Channel']);
+    sheet.getRange("A1:H1").setBackground("#1E3A8A").setFontColor("white").setFontWeight("bold");
   } else {
-    // If sheet exists, check if 'Channel' column exists
+    // If sheet exists, check if 'Patient_Name' column exists
     const lastCol = sheet.getLastColumn();
-    const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
-    if (headers.indexOf('Channel') === -1) {
-      sheet.getRange(1, 7).setValue('Channel');
-      sheet.getRange("G1").setBackground("#1E3A8A").setFontColor("white").setFontWeight("bold");
+    const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => h.toString().trim()) : [];
+    
+    if (headers.indexOf('Patient_Name') === -1) {
+      sheet.insertColumnBefore(3);
+      sheet.getRange(1, 3).setValue('Patient_Name');
+      sheet.getRange("C1").setBackground("#1E3A8A").setFontColor("white").setFontWeight("bold");
+    }
+    
+    // Refresh headers after insertion
+    const updatedHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => h.toString().trim());
+    if (updatedHeaders.indexOf('Channel') === -1) {
+      sheet.getRange(1, 8).setValue('Channel');
+      sheet.getRange("H1").setBackground("#1E3A8A").setFontColor("white").setFontWeight("bold");
     }
   }
 }
@@ -81,6 +91,7 @@ function getHistory() {
 function handleSendReport(data) {
   setupLabSheet();
   
+  const patientName = data.patientName ? data.patientName.trim() : "";
   const mrdNo = data.mrdNo ? data.mrdNo.trim() : "";
   let mobileNo = data.mobileNo ? data.mobileNo.trim() : "";
   const fileData = data.fileData; // base64 string
@@ -140,7 +151,7 @@ function handleSendReport(data) {
         "destination": mobileNo,
         "userName": "SBH Women Hospital Private Limited",
         "templateParams": [
-          mrdNo
+          patientName // Pass Patient Name here instead of MRD No so the template says "Dear [Name]"
         ],
         "source": "new-landing-page form",
         "media": {
@@ -152,7 +163,7 @@ function handleSendReport(data) {
         "location": {},
         "attributes": {},
         "paramsFallbackValue": {
-          "FirstName": mrdNo
+          "FirstName": patientName
         }
       };
       
@@ -186,11 +197,11 @@ function handleSendReport(data) {
     }
   }
   
-  // Log Transaction in Google Sheet
+  // Log Transaction in Google Sheet (including Patient Name)
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName('Lab_Reports');
   const timestamp = Utilities.formatDate(now, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
-  sheet.appendRow([timestamp, dateStr, mrdNo, mobileNo, directDownloadUrl, status, channel]);
+  sheet.appendRow([timestamp, dateStr, patientName, mrdNo, mobileNo, directDownloadUrl, status, channel]);
   
   return createJsonResponse({
     success: status === "Success",
@@ -198,16 +209,13 @@ function handleSendReport(data) {
     pdfLink: directDownloadUrl,
     timestamp: timestamp,
     channel: channel,
+    patientName: patientName,
     response: apiResponse
   });
 }
 
 // SMS Placeholder send function
 function sendSMS(mobileNo, pdfLink, mrdNo) {
-  // TODO: Paste your SMS gateway API endpoint code here when available.
-  // Example:
-  // const url = "https://your-sms-api.com/send?to=" + mobileNo + "&msg=" + encodeURIComponent("Your SBH Lab Report for MRD " + mrdNo + " is ready: " + pdfLink);
-  // UrlFetchApp.fetch(url);
   Logger.log("SMS Transmission to " + mobileNo + " initiated. Reference Link: " + pdfLink);
 }
 

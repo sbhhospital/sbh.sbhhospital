@@ -64,6 +64,7 @@ export default function LabReportManager() {
     
     // Send form state
     const [formMobile, setFormMobile] = useState('');
+    const [formName, setFormName] = useState('');
     const [formMrd, setFormMrd] = useState('');
     const [selectedFile, setSelectedFile] = useState(null);
     const [fileError, setFileError] = useState('');
@@ -121,7 +122,10 @@ export default function LabReportManager() {
         const q = searchQuery.toLowerCase().trim();
         return chatsList.filter(chat => 
             chat.mobile.includes(q) || 
-            chat.logs.some(log => (log.MRD_No || '').toLowerCase().includes(q))
+            chat.logs.some(log => 
+                (log.MRD_No || '').toLowerCase().includes(q) ||
+                (log.Patient_Name || '').toLowerCase().includes(q)
+            )
         );
     }, [chatsList, searchQuery]);
 
@@ -153,8 +157,10 @@ export default function LabReportManager() {
         const chat = chatsList.find(c => c.mobile === mobile);
         if (chat && chat.lastLog) {
             setFormMrd(chat.lastLog.MRD_No || '');
+            setFormName(chat.lastLog.Patient_Name || '');
         } else {
             setFormMrd('');
+            setFormName('');
         }
         setSelectedFile(null);
         setFileError('');
@@ -165,6 +171,7 @@ export default function LabReportManager() {
         setActiveMobile('');
         setIsNewChat(true);
         setFormMobile('');
+        setFormName('');
         setFormMrd('');
         setSelectedFile(null);
         setFileError('');
@@ -193,7 +200,7 @@ export default function LabReportManager() {
 
     // Send logic (accepts channel param: 'WhatsApp' or 'SMS')
     const handleSendReport = async (channel) => {
-        if (!formMobile || !formMrd || !selectedFile) {
+        if (!formMobile || !formName || !formMrd || !selectedFile) {
             alert('Please fill out all fields and select a PDF file.');
             return;
         }
@@ -204,6 +211,7 @@ export default function LabReportManager() {
             const base64Data = await fileToBase64(selectedFile);
             const payload = {
                 action: 'send_report',
+                patientName: formName,
                 mrdNo: formMrd,
                 mobileNo: formMobile,
                 fileName: selectedFile.name,
@@ -224,6 +232,7 @@ export default function LabReportManager() {
                 await fetchHistory();
                 setSelectedFile(null);
                 setFormMrd('');
+                setFormName('');
                 setActiveMobile(formMobile);
                 setIsNewChat(false);
                 setIsSending(false);
@@ -239,7 +248,7 @@ export default function LabReportManager() {
     };
 
     return (
-        <div className="h-[calc(100vh-10rem)] min-h-[550px] bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm flex flex-row text-slate-800 relative font-sans">
+        <div className="h-[calc(100vh-12rem)] min-h-[500px] bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm flex flex-row text-slate-800 relative font-sans">
             
             {/* 1. LEFT COLUMN: CHAT LIST */}
             <div className="w-80 md:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
@@ -309,9 +318,11 @@ export default function LabReportManager() {
                                         {chat.mobile.slice(-4)}
                                     </div>
                                     <div className="min-w-0">
-                                        <p className="text-xs font-black tracking-tight text-slate-800">+{chat.mobile}</p>
+                                        <p className="text-xs font-black tracking-tight text-slate-800">
+                                            {chat.lastLog?.Patient_Name || `+${chat.mobile}`}
+                                        </p>
                                         <p className="text-[9px] font-bold text-slate-400 truncate mt-0.5">
-                                            MRD: {chat.lastLog?.MRD_No || 'N/A'} • {chat.lastLog?.Channel || 'WhatsApp'}
+                                            {chat.lastLog?.Patient_Name ? `+${chat.mobile} • ` : ''}MRD: {chat.lastLog?.MRD_No || 'N/A'}
                                         </p>
                                     </div>
                                 </div>
@@ -431,7 +442,7 @@ export default function LabReportManager() {
 
                         {/* Input Footer Form */}
                         <div className="p-5 border-t border-slate-100 bg-white space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Mobile No</label>
                                     <input 
@@ -445,15 +456,27 @@ export default function LabReportManager() {
                                     />
                                 </div>
                                 <div className="space-y-1.5">
+                                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Name</label>
+                                    <input 
+                                        type="text"
+                                        required
+                                        disabled={!isNewChat || isSending}
+                                        value={formName}
+                                        onChange={(e) => setFormName(e.target.value)}
+                                        placeholder="Enter Patient Name"
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400 disabled:opacity-50"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">MRD Reference No</label>
                                     <input 
                                         type="text"
                                         required
-                                        disabled={isSending}
+                                        disabled={!isNewChat || isSending}
                                         value={formMrd}
                                         onChange={(e) => setFormMrd(e.target.value)}
                                         placeholder="e.g. MRD_9401"
-                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400"
+                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400 disabled:opacity-50"
                                     />
                                 </div>
                             </div>
