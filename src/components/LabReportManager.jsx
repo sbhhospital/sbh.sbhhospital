@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Search, MessageSquare, Send, Paperclip, FileText, CheckCheck, 
-    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone
+    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone, ArrowLeft
 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 
@@ -83,6 +83,7 @@ export default function LabReportManager() {
     // Active chat state
     const [activeMobile, setActiveMobile] = useState('');
     const [isNewChat, setIsNewChat] = useState(false);
+    const [showChatWindowOnMobile, setShowChatWindowOnMobile] = useState(false);
     
     // Send form state
     const [formMobile, setFormMobile] = useState('');
@@ -186,6 +187,7 @@ export default function LabReportManager() {
         }
         setSelectedFiles([]);
         setFileError('');
+        setShowChatWindowOnMobile(true);
     };
 
     // Prepare for new chat
@@ -197,6 +199,7 @@ export default function LabReportManager() {
         setFormMrd('');
         setSelectedFiles([]);
         setFileError('');
+        setShowChatWindowOnMobile(true);
     };
 
     // File check
@@ -282,7 +285,7 @@ export default function LabReportManager() {
         <div className="h-[calc(100vh-12rem)] min-h-[500px] bg-white rounded-[2rem] overflow-hidden border border-slate-100 shadow-sm flex flex-row text-slate-800 relative font-sans">
             
             {/* 1. LEFT COLUMN: CHAT LIST */}
-            <div className="w-80 md:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0">
+            <div className={`w-full md:w-80 lg:w-96 border-r border-slate-100 flex flex-col bg-slate-50/50 shrink-0 ${showChatWindowOnMobile ? 'hidden md:flex' : 'flex'}`}>
                 {/* Header */}
                 <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-white">
                     <div className="flex items-center gap-2">
@@ -369,18 +372,28 @@ export default function LabReportManager() {
             </div>
 
             {/* 2. RIGHT COLUMN: ACTIVE CHAT VIEW */}
-            <div className="flex-1 flex flex-col bg-white relative">
+            <div className={`flex-1 flex flex-col bg-white relative ${showChatWindowOnMobile ? 'flex' : 'hidden md:flex'}`}>
                 {activeMobile || isNewChat ? (
                     <>
                         {/* Chat Header */}
                         <div className="h-16 border-b border-slate-100 px-6 flex items-center justify-between bg-slate-50/20">
-                            <div>
-                                <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
-                                    {isNewChat ? 'New Dispatch Session' : `Transmission Feed`}
-                                </h3>
-                                <p className="text-[9px] font-bold text-orange-600 tracking-wider uppercase mt-0.5">
-                                    {isNewChat ? 'Configure fields below to transmit' : `Destination Mobile: +${activeMobile}`}
-                                </p>
+                            <div className="flex items-center gap-3">
+                                {/* Back button on mobile */}
+                                <button 
+                                    onClick={() => setShowChatWindowOnMobile(false)}
+                                    className="p-2 -ml-2 text-slate-500 hover:text-orange-600 hover:bg-slate-100 rounded-xl md:hidden transition-all"
+                                    title="Back to list"
+                                >
+                                    <ArrowLeft size={16} />
+                                </button>
+                                <div>
+                                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800">
+                                        {isNewChat ? 'New Dispatch Session' : `Transmission Feed`}
+                                    </h3>
+                                    <p className="text-[9px] font-bold text-orange-600 tracking-wider uppercase mt-0.5">
+                                        {isNewChat ? 'Configure fields below to transmit' : `Destination Mobile: +${activeMobile}`}
+                                    </p>
+                                </div>
                             </div>
                             {!isNewChat && (
                                 <span className="px-3.5 py-1.5 bg-slate-100 rounded-xl text-[9px] font-black uppercase text-slate-500 tracking-widest border border-slate-200/45">
