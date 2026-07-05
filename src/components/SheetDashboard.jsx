@@ -1629,12 +1629,12 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             {!isPublic && (
                 <aside className={`fixed top-0 left-0 h-full w-60 bg-slate-50 border-r border-slate-200 z-[110] flex flex-col lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full shadow-2xl'} transition-transform duration-300 ease-in-out`}>
                     <div className="h-20 flex items-center justify-between px-6 border-b border-violet-50 mb-4 bg-white/30 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center p-1.5 border border-[#dcdcdc] shadow-sm">
-                                <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" />
+                        <div className="flex items-center gap-2">
+                            <div className="h-10 flex items-center justify-center max-w-[130px]">
+                                <img src="/sbh_logo.png" alt="Logo" className="h-full w-full object-contain" />
                             </div>
-                            <span className="font-bold text-lg text-emerald-950 tracking-tight uppercase">
-                                SBH <span className="text-orange-600">CORE</span>
+                            <span className="px-2 py-0.5 bg-orange-600 text-white text-[8px] font-black uppercase tracking-wider rounded-md shrink-0">
+                                CORE
                             </span>
                         </div>
                         <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden ml-auto p-1.5 text-emerald-500 hover:text-white transition-none"><X size={14}/></button>

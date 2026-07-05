@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospital } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Footer from './Footer';
 
 const LoginPanel = ({ onLogin }) => {
   const [username, setUsername] = useState('SBH');
@@ -60,16 +59,16 @@ const LoginPanel = ({ onLogin }) => {
       >
         <div className="flex flex-col items-center mb-8">
           <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-100 mb-6"
+            whileHover={{ scale: 1.02 }}
+            className="w-full max-w-[280px] h-20 flex items-center justify-center mb-6"
           >
-            <Hospital className="w-7 h-7" />
+            <img src="/sbh_logo.png" alt="SBH Group of Hospitals" className="w-full h-full object-contain" />
           </motion.div>
           <div className="text-center space-y-1.5">
-            <h1 className="text-xl font-black tracking-tighter text-slate-800 uppercase">
-              Secure <span className="text-emerald-600">Access</span>
+            <h1 className="text-[11px] font-black tracking-widest text-slate-800 uppercase">
+              Secure <span className="text-emerald-600">Access Portal</span>
             </h1>
-            <p className="text-slate-400 text-[9px] font-black tracking-[0.2em] uppercase">
+            <p className="text-slate-400 text-[8px] font-black tracking-[0.2em] uppercase">
               SBH Hospital Management System 2.0
             </p>
           </div>
@@ -164,7 +163,6 @@ const LoginPanel = ({ onLogin }) => {
           </p>
         </div>
       </motion.div>
-      <Footer />
     </div>
   );
 };

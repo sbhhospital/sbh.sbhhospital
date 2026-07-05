@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import LoginPanel from './components/LoginPanel';
 import SheetDashboard from './components/SheetDashboard';
+import Footer from './components/Footer';
 import { Download, FileText, Hospital, Lock, ShieldAlert, KeyRound, Loader2 } from 'lucide-react';
 
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4RzOprfy_BYDY2SwFXgKV7RhnMuPXvT4A7sbgREj2aTBxhE_qtf5UNxtMYTarwTfN/exec';
@@ -203,12 +204,13 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#050505]">
+    <div className="min-h-screen bg-[#050505] pb-10">
       {!user ? (
         <LoginPanel onLogin={setUser} />
       ) : (
         <SheetDashboard user={user} onLogout={handleLogout} />
       )}
+      <Footer />
     </div>
   );
 }

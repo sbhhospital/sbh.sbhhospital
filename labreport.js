@@ -182,7 +182,16 @@ function handleSendReport(data) {
       apiResponse = response.getContentText();
       
       if (code === 200 || code === 201) {
-        status = "Success";
+        try {
+          const resObj = JSON.parse(apiResponse);
+          if (resObj && (resObj.success === false || resObj.status === "failed" || resObj.valid === false)) {
+            status = "Failed: " + (resObj.message || "API Failure");
+          } else {
+            status = "Success";
+          }
+        } catch (e) {
+          status = "Success";
+        }
       } else {
         status = "API Error (" + code + ")";
       }

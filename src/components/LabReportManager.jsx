@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Search, MessageSquare, Send, Paperclip, FileText, CheckCheck, 
-    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone, ArrowLeft, Loader2
+    AlertCircle, Plus, RefreshCw, X, ShieldCheck, Download, Eye, Smartphone, ArrowLeft, Loader2,
+    Activity, FlaskConical, Dna
 } from 'lucide-react';
 import { PDFDocument } from 'pdf-lib';
 
@@ -65,14 +66,56 @@ const cleanDate = (dateVal, timestampVal) => {
 
 const cleanTime = (timestampVal) => {
     if (!timestampVal) return '';
-    const parts = String(timestampVal).split(' ');
-    if (parts.length >= 2) {
-        return parts[1];
+    try {
+        const isoStr = String(timestampVal).replace(' ', 'T');
+        const dateObj = new Date(isoStr);
+        if (isNaN(dateObj.getTime())) {
+            const parts = String(timestampVal).split(' ');
+            const timePart = parts.length >= 2 ? parts[1] : String(timestampVal);
+            const timeParts = timePart.split(':');
+            if (timeParts.length >= 2) {
+                let h = parseInt(timeParts[0]);
+                const m = timeParts[1];
+                const ampm = h >= 12 ? 'PM' : 'AM';
+                h = h % 12;
+                h = h ? h : 12;
+                return `${String(h).padStart(2, '0')}:${m} ${ampm}`;
+            }
+            return timePart;
+        }
+        let hours = dateObj.getHours();
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+    } catch (e) {
+        return '';
     }
-    if (String(timestampVal).includes(':')) {
+};
+
+const formatDateTime = (timestampVal) => {
+    if (!timestampVal) return '';
+    try {
+        const isoStr = String(timestampVal).replace(' ', 'T');
+        const dateObj = new Date(isoStr);
+        if (isNaN(dateObj.getTime())) {
+            return String(timestampVal);
+        }
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const year = dateObj.getFullYear();
+        
+        let hours = dateObj.getHours();
+        const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        hours = hours % 12;
+        hours = hours ? hours : 12;
+        
+        return `${day}-${month}-${year} ${String(hours).padStart(2, '0')}:${minutes}${ampm}`;
+    } catch (e) {
         return String(timestampVal);
     }
-    return '';
 };
 
 export default function LabReportManager() {
@@ -99,6 +142,27 @@ export default function LabReportManager() {
 
     // PDF Preview Modal State
     const [previewUrl, setPreviewUrl] = useState(null);
+    
+    // Dynamic lab loading status text state
+    const [loadingMessage, setLoadingMessage] = useState('Connecting to secure gateway...');
+
+    useEffect(() => {
+        if (!loading) return;
+        const messages = [
+            'Syncing pathology databases...',
+            'Connecting to secure lab gateway...',
+            'Parsing medical MRD records...',
+            'Updating WhatsApp/SMS transmission feeds...',
+            'Loading digital verification signatures...',
+            'Securing patient data channels...'
+        ];
+        let idx = 0;
+        const interval = setInterval(() => {
+            idx = (idx + 1) % messages.length;
+            setLoadingMessage(messages[idx]);
+        }, 1200);
+        return () => clearInterval(interval);
+    }, [loading]);
 
     // Fetch history
     const fetchHistory = async () => {
@@ -154,8 +218,8 @@ export default function LabReportManager() {
         return chatsList.filter(chat => 
             chat.mobile.includes(q) || 
             chat.logs.some(log => 
-                (log.MRD_No || '').toLowerCase().includes(q) ||
-                (log.Patient_Name || '').toLowerCase().includes(q)
+                String(log.MRD_No || '').toLowerCase().includes(q) ||
+                String(log.Patient_Name || '').toLowerCase().includes(q)
             )
         );
     }, [chatsList, searchQuery]);
@@ -365,7 +429,7 @@ export default function LabReportManager() {
                         onClick={handleNewChatClick}
                         className="w-full py-3 bg-orange-600 hover:bg-orange-500 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-orange-600/10 flex items-center justify-center gap-2"
                     >
-                        <Plus size={14} /> New Delivery
+                        <Plus size={14} /> Send New Report
                     </button>
                 </div>
 
@@ -408,8 +472,8 @@ export default function LabReportManager() {
                                     </div>
                                 </div>
                                 <div className="text-right shrink-0">
-                                    <span className="text-[8px] font-bold text-slate-400 block">
-                                        {chat.lastLog?.Date || ''}
+                                    <span className="text-[8px] font-bold text-slate-400 block whitespace-nowrap">
+                                        {formatDateTime(chat.lastLog?.Timestamp)}
                                     </span>
                                 </div>
                             </button>
@@ -470,15 +534,20 @@ export default function LabReportManager() {
                                         </div>
                                         {logs.map((log, index) => {
                                             const isSMS = log.Channel === 'SMS';
+                                            const isFailed = log.Status !== 'Sending' && log.Status !== 'Success';
                                             return (
                                                 <div key={index} className="flex flex-col items-end w-full">
-                                                    <div className={`border rounded-[1.5rem] rounded-tr-sm p-4 max-w-md shadow-sm relative group bg-white ${
-                                                        isSMS ? 'border-blue-100' : 'border-emerald-100'
+                                                    <div className={`border rounded-[1.5rem] rounded-tr-sm p-4 max-w-md shadow-sm relative group bg-white transition-all duration-300 ${
+                                                        isFailed 
+                                                        ? 'border-rose-200 bg-rose-50/10' 
+                                                        : isSMS ? 'border-blue-100' : 'border-emerald-100'
                                                     }`}>
                                                         <div className="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b border-slate-100">
                                                             <div className="flex items-center gap-2">
                                                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                                                                    isSMS ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                                                                    isFailed
+                                                                    ? 'bg-rose-50 text-rose-600'
+                                                                    : isSMS ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
                                                                 }`}>
                                                                     <FileText size={16} />
                                                                 </div>
@@ -488,7 +557,9 @@ export default function LabReportManager() {
                                                                 </div>
                                                             </div>
                                                             <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest ${
-                                                                isSMS ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
+                                                                isFailed
+                                                                ? 'bg-rose-50 text-rose-600 border border-rose-100'
+                                                                : isSMS ? 'bg-blue-50 text-blue-600' : 'bg-emerald-50 text-emerald-600'
                                                             }`}>
                                                                 {log.Channel || 'WhatsApp'}
                                                             </span>
@@ -515,11 +586,20 @@ export default function LabReportManager() {
                                                                 <span>{cleanTime(log.Timestamp)}</span>
                                                                 <div className="flex items-center gap-1 mt-0.5">
                                                                     {log.Status === 'Sending' ? (
-                                                                        <Loader2 size={11} className="animate-spin text-orange-500" />
+                                                                        <div className="flex items-center gap-0.5 text-orange-500 font-black uppercase tracking-wider text-[7px]">
+                                                                            <Loader2 size={10} className="animate-spin" />
+                                                                            <span>Sending</span>
+                                                                        </div>
                                                                     ) : log.Status === 'Success' ? (
-                                                                        <CheckCheck size={11} className="text-emerald-500" />
+                                                                        <div className="flex items-center gap-0.5 text-emerald-600 font-black uppercase tracking-wider text-[7px]">
+                                                                            <CheckCheck size={10} />
+                                                                            <span>Sent</span>
+                                                                        </div>
                                                                     ) : (
-                                                                        <AlertCircle size={10} className="text-rose-500" title={log.Status} />
+                                                                        <div className="flex items-center gap-0.5 text-rose-600 font-black uppercase tracking-wider text-[7px]" title={log.Status}>
+                                                                            <AlertCircle size={10} />
+                                                                            <span>Failed</span>
+                                                                        </div>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -656,7 +736,7 @@ export default function LabReportManager() {
                         </div>
                         <h3 className="text-xs font-black uppercase tracking-[0.2em] text-slate-700">Dispatcher Console</h3>
                         <p className="text-[10px] text-slate-400 max-w-sm mt-1.5 leading-relaxed">
-                            Select a dispatch log from the left sidebar to view history, or click **"New Delivery"** to send a report to a new patient.
+                            Select a dispatch log from the left sidebar to view history, or click **"Send New Report"** to send a report to a new patient.
                         </p>
                     </div>
                 )}
@@ -694,6 +774,53 @@ export default function LabReportManager() {
                             </div>
                         </motion.div>
                     </div>
+                )}
+            </AnimatePresence>
+
+            {/* LAB REPORT THEMED GLASS OVERLAY LOADER */}
+            <AnimatePresence>
+                {loading && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 bg-slate-900/10 backdrop-blur-[6px] z-[1000] flex items-center justify-center p-4 transition-all duration-300"
+                    >
+                        <div className="bg-white/95 border border-slate-100 rounded-[2.5rem] p-8 max-w-sm w-full shadow-2xl flex flex-col items-center text-center space-y-6">
+                            {/* Medical / Lab graphic container */}
+                            <div className="relative w-20 h-20 flex items-center justify-center bg-orange-50 rounded-3xl text-orange-600">
+                                <div className="absolute inset-0 rounded-3xl bg-orange-500/10 animate-ping" />
+                                <div className="relative flex items-center justify-center gap-1">
+                                    <FlaskConical size={32} className="animate-bounce" />
+                                    <Dna size={20} className="absolute -top-1 -right-2 text-emerald-500 animate-pulse" />
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                                <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-800">
+                                    Analyzing Lab Records
+                                </h4>
+                                <div className="h-[1.5px] w-12 bg-orange-100 mx-auto rounded-full overflow-hidden relative">
+                                    <motion.div 
+                                        className="h-full bg-orange-600 rounded-full"
+                                        animate={{ x: [-30, 60] }}
+                                        transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                                        style={{ width: '50%' }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            {/* ECG Pulse Indicator */}
+                            <div className="w-full h-8 flex items-center justify-center text-orange-600/40 relative">
+                                <Activity size={24} className="animate-pulse" />
+                                <span className="absolute text-[8px] font-black tracking-widest text-emerald-500/80 uppercase bottom-[-8px]">Secure connection active</span>
+                            </div>
+
+                            <p className="text-[10px] font-bold text-slate-500 animate-pulse h-4 mt-2">
+                                {loadingMessage}
+                            </p>
+                        </div>
+                    </motion.div>
                 )}
             </AnimatePresence>
         </div>

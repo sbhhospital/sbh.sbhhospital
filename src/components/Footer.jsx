@@ -3,7 +3,10 @@ import { ShieldCheck, Activity, Linkedin } from 'lucide-react';
 
 const Footer = () => {
     return (
-        <footer className="fixed bottom-0 left-0 w-full bg-gradient-to-r from-[#f59e0b] via-[#10b981] to-[#2e7d32] py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10">
+        <footer 
+            style={{ background: 'linear-gradient(to right, #f59e0b, #10b981, #2e7d32)' }}
+            className="fixed bottom-0 left-0 w-full py-1 md:py-1.5 z-[150] overflow-hidden shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.3)] select-none border-t border-white/10"
+        >
             {/* Subtle Overlay */}
             <div className="absolute inset-0 opacity-10 pointer-events-none bg-white/5"></div>
 
