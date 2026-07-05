@@ -165,8 +165,8 @@ export default function LabReportManager() {
     }, [loading]);
 
     // Fetch history
-    const fetchHistory = async () => {
-        setLoading(true);
+    const fetchHistory = async (isSilent = false) => {
+        if (!isSilent) setLoading(true);
         try {
             const res = await fetch(`${SCRIPT_URL}?action=get_history`);
             const data = await res.json();
@@ -176,7 +176,7 @@ export default function LabReportManager() {
         } catch (err) {
             console.error('Failed to load history:', err);
         } finally {
-            setLoading(false);
+            if (!isSilent) setLoading(false);
         }
     };
 
@@ -380,7 +380,7 @@ export default function LabReportManager() {
 
                 // Short delay to sync sheet
                 setTimeout(async () => {
-                    await fetchHistory();
+                    await fetchHistory(true);
                     setSendingJobs(prev => prev.filter(j => j.jobId !== jobId));
                 }, 4000);
 
