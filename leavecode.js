@@ -185,21 +185,37 @@ function sendLeaveEmail_(leaveDetails, recipients, settings) {
     return { recipient: '', status: 'Skipped', message: 'No staff contact has Email = YES.' };
   }
 
-  const to = recipients.map((person) => person.email).join(',');
-  const subject = `${leaveDetails.designation} ${leaveDetails.personName} is on leave: ${formatDate_(leaveDetails.startDate)} to ${formatDate_(leaveDetails.endDate)}`;
+  let sentCount = 0;
+  let failedRecipients = [];
+  const subject = `🏥 SBH Hospital: Senior Leave Notification - ${leaveDetails.designation} ${leaveDetails.personName}`;
 
-  try {
-    MailApp.sendEmail({
-      to,
-      subject,
-      htmlBody: buildEmailHtml_(leaveDetails, settings),
-      name: settings.EMAIL_FROM_NAME || 'Senior Leave Reminder System',
-      replyTo: leaveDetails.submittedEmail || undefined
-    });
-    return { recipient: to, status: 'Sent', message: 'One combined email sent with all recipients in To.' };
-  } catch (error) {
-    return { recipient: to, status: 'Failed', message: error.message };
+  recipients.forEach((person) => {
+    try {
+      GmailApp.sendEmail(
+        person.email,
+        subject,
+        "", // plain text body placeholder
+        {
+          htmlBody: buildEmailHtml_(leaveDetails, settings),
+          name: settings.EMAIL_FROM_NAME || 'SBH Operations Manager',
+          replyTo: leaveDetails.submittedEmail || undefined
+        }
+      );
+      sentCount++;
+    } catch (error) {
+      failedRecipients.push(`${person.email} (${error.message})`);
+    }
+  });
+
+  if (sentCount === 0) {
+    return { recipient: recipients.map(r => r.email).join(', '), status: 'Failed', message: failedRecipients.join('; ') };
   }
+
+  return { 
+    recipient: recipients.map(r => r.email).join(', '), 
+    status: 'Sent', 
+    message: `Dispatched emails to ${sentCount} staff members. ${failedRecipients.length ? 'Failed: ' + failedRecipients.join('; ') : ''}` 
+  };
 }
 
 function sendLeaveWhatsApp_(leaveDetails, recipients, settings) {
@@ -262,7 +278,7 @@ function buildEmailHtml_(leaveDetails, settings) {
         
         <!-- Header Panel with Amber/Orange Gradient -->
         <div style="background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
-          <img src="https://sbhhospital-seven.vercel.app/sbh_logo.png" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; filter: brightness(0) invert(1);" />
+          <img src="https://raw.githubusercontent.com/sbhhospital/sbh.sbhhospital/main/public/publiclogo.jpg" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; border-radius: 12px; object-fit: contain;" />
           <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.9; margin-bottom: 6px;">${safe(orgName)}</div>
           <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">Senior Leave Alert</h1>
         </div>
