@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospital } from 'lucide-react';
+import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospital, QrCode, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginPanel = ({ onLogin }) => {
@@ -21,6 +21,13 @@ const LoginPanel = ({ onLogin }) => {
     { name: 'Lab', password: 'L@B#123' }
   ];
 
+  const publicForms = [
+    { id: 'smile', label: 'Smile Award', sub: 'Staff Recognition', type: 'smile_award', color: 'border-emerald-100 hover:border-emerald-200 text-emerald-600', btnColor: 'bg-emerald-600 shadow-emerald-600/10 hover:bg-emerald-500' },
+    { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'border-orange-100 hover:border-orange-200 text-orange-600', btnColor: 'bg-orange-600 shadow-orange-600/10 hover:bg-orange-500' },
+    { id: 'staff', label: 'Staff Roster', sub: 'Roster Onboarding', type: 'register', color: 'border-slate-150 hover:border-slate-350 text-slate-900', btnColor: 'bg-slate-900 shadow-slate-900/10 hover:bg-slate-800' },
+    { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'border-amber-100 hover:border-amber-200 text-amber-600', btnColor: 'bg-amber-600 shadow-amber-600/10 hover:bg-amber-500' }
+  ];
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsVerifying(true);
@@ -31,7 +38,7 @@ const LoginPanel = ({ onLogin }) => {
     }
     setError('');
 
-    // Simulate ultra-fast secure check
+    // Simulate ultra-fast check
     await new Promise(resolve => setTimeout(resolve, 600));
 
     const user = users.find(u => u.name === username);
@@ -45,17 +52,18 @@ const LoginPanel = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 overflow-hidden font-sans relative">
+    <div className="min-h-screen flex flex-col lg:flex-row items-center justify-center bg-[#050505] p-6 lg:p-12 overflow-x-hidden font-sans relative gap-8 lg:gap-12">
       {/* Subtle Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] right-[10%] w-[40rem] h-[40rem] bg-emerald-500/5 blur-[120px] rounded-full" />
         <div className="absolute bottom-[10%] left-[10%] w-[40rem] h-[40rem] bg-orange-500/5 blur-[120px] rounded-full" />
       </div>
 
+      {/* Login Card Panel */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10"
+        className="w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 shrink-0"
       >
         <div className="flex flex-col items-center mb-8">
           <motion.div
@@ -157,9 +165,81 @@ const LoginPanel = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-8 text-center pb-4">
+        <div className="mt-8 text-center pb-2">
           <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.4em]">
             SBH Hospital • Managed Terminal
+          </p>
+        </div>
+      </motion.div>
+
+      {/* Public Forms Panel */}
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.15 }}
+        className="w-full max-w-3xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 flex flex-col"
+      >
+        <div className="mb-8 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-orange-600/10 flex items-center justify-center text-orange-600">
+            <QrCode className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-xs font-black tracking-widest text-slate-800 uppercase">
+              Public Access Portals
+            </h2>
+            <p className="text-slate-400 text-[8px] font-black tracking-[0.15em] uppercase mt-0.5">
+              Bina Login Kiye Bharein • Scan QR or Click to Fill
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {publicForms.map((form) => {
+            const finalUrl = `${window.location.origin}/?type=${form.type}`;
+            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(finalUrl)}`;
+            
+            return (
+              <div 
+                key={form.id}
+                className="p-6 rounded-[2rem] border border-slate-100 bg-slate-50/35 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group"
+              >
+                {/* QR Code Container */}
+                <div className="w-24 h-24 bg-white p-2 rounded-2xl shadow-inner border border-slate-100 shrink-0 flex items-center justify-center">
+                  <img 
+                    src={qrImageUrl} 
+                    alt={form.label} 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+
+                {/* Form Details */}
+                <div className="flex-1 min-w-0 flex flex-col justify-between h-24 py-1">
+                  <div>
+                    <h3 className="text-xs font-black uppercase text-slate-800 leading-tight">
+                      {form.label}
+                    </h3>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                      {form.sub}
+                    </p>
+                  </div>
+                  
+                  <a
+                    href={finalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`w-full py-2.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-wider text-white text-center flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] shadow-md ${form.btnColor}`}
+                  >
+                    <ExternalLink size={10} /> Fill Form
+                  </a>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-8 text-center pt-2 border-t border-slate-50">
+          <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.4em]">
+            Developed By SBH Group Of Hospitals
           </p>
         </div>
       </motion.div>

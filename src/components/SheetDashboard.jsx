@@ -17,6 +17,7 @@ import PPTDashboard from './PPTDashboard';
 import PPTSubmissionForm from './PPTSubmissionForm';
 import Footer from './Footer';
 import LabReportManager from './LabReportManager';
+import LeaveRequestForm from './LeaveRequestForm';
 
 // --- UTILITIES ---
 const getVal = (obj, key) => {
@@ -1188,12 +1189,13 @@ const EmployeeRoster = ({ staffList, smileScriptUrl, fetchStaff, loading, userRo
 };
 
 const PrintQRSection = () => {
-    const PUBLIC_URL = "https://lasik-feedback.vercel.app/public"; // Adjust this to your actual production domain
+    const PUBLIC_URL = window.location.origin;
     
     const qrData = [
         { id: 'smile', label: 'Smile Award', sub: 'Nomination Portal', type: 'smile_award', color: 'bg-emerald-600' },
         { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'bg-orange-600' },
-        { id: 'staff', label: 'Staff Roster', sub: 'Onboarding Portal', type: 'register', color: 'bg-slate-900' }
+        { id: 'staff', label: 'Staff Roster', sub: 'Onboarding Portal', type: 'register', color: 'bg-slate-900' },
+        { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'bg-orange-500' }
     ];
 
     const downloadQR = (url, label) => {
@@ -1217,7 +1219,7 @@ const PrintQRSection = () => {
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Central Distribution Hub for Public Access</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                 {qrData.map(qr => {
                     const finalUrl = `${PUBLIC_URL}?type=${qr.type}`;
                     return (
@@ -1536,6 +1538,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             if (publicType === 'lasik') return 'LASIK_FORM';
             if (publicType === 'visiting_update') return 'VISITING_UPDATE';
             if (publicType === 'ppt_submit') return 'PPT_SUBMIT';
+            if (publicType === 'leave' || publicType === 'senior_leave') return 'LEAVE_FORM';
             return 'SMILE_FORM';
         }
         if (user === 'ACCOUNT') return 'SBH_FAMILY_DASHBOARD';
@@ -1557,12 +1560,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
         lasik: false, 
         accounting: user === 'ACCOUNT',
         system: false,
-        lab: user === 'Lab'
+        lab: user === 'Lab',
+        leave: false
     });
 
     const toggleCategory = (cat) => {
         setOpenCategories(prev => {
-            const newState = { smile: false, employees: false, lasik: false, accounting: false, system: false, lab: false };
+            const newState = { smile: false, employees: false, lasik: false, accounting: false, system: false, lab: false, leave: false };
             newState[cat] = !prev[cat];
             return newState;
         });
@@ -1677,6 +1681,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 <CollapsibleCategory icon={<Bell />} label="System Reminder" isOpen={openCategories.system} onToggle={() => toggleCategory('system')}>
                                     <NavItem icon={<Presentation />} label="PPT" active={activeTab === 'PPT_DASHBOARD'} onClick={() => handleNavClick('PPT_DASHBOARD')} />
                                 </CollapsibleCategory>
+                                <CollapsibleCategory icon={<Calendar />} label="Leave System" isOpen={openCategories.leave} onToggle={() => toggleCategory('leave')}>
+                                    <NavItem icon={<Plus />} label="Request Leave" active={activeTab === 'LEAVE_FORM'} onClick={() => handleNavClick('LEAVE_FORM')} />
+                                </CollapsibleCategory>
                             </>
                         )}
                         
@@ -1741,6 +1748,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'CELEBRATIONS' && <CelebrationsSection staffList={staffList} loading={loading} onRefresh={fetchData} smileScriptUrl={smileScriptUrl} />}
                         {activeTab === 'STAFF_REGISTER' && <StaffRegistrationForm onComplete={() => { fetchData(); if(!isPublic) handleNavClick('EMPLOYEE_ROSTER'); }} />}
                         {activeTab === 'LASIK_FORM' && <LasikSurvey isPublic={isPublic} />}
+                        {activeTab === 'LEAVE_FORM' && <LeaveRequestForm isPublic={isPublic} staffList={staffList} />}
                         {activeTab === 'LASIK_DATA' && (
                             <div className="space-y-10 pb-20">
                                 <div className="flex items-center justify-between px-1">
