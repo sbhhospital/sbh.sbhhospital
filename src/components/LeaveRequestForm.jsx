@@ -13,9 +13,7 @@ const LeaveRequestForm = ({ isPublic, staffList: propStaffList }) => {
     // Try to get staff list from props, or fetch if not available
     const [staffList, setStaffList] = useState(propStaffList || []);
     const [loadingStaff, setLoadingStaff] = useState(!propStaffList || propStaffList.length === 0);
-    const [scriptUrl, setScriptUrl] = useState(() => {
-        return localStorage.getItem('leave_script_url') || DEFAULT_LEAVE_SCRIPT_URL;
-    });
+    const scriptUrl = DEFAULT_LEAVE_SCRIPT_URL;
 
     const [formData, setFormData] = useState({
         personName: '',
@@ -203,24 +201,6 @@ const LeaveRequestForm = ({ isPublic, staffList: propStaffList }) => {
 
     return (
         <div className="max-w-3xl mx-auto px-4 py-6 mb-20 font-sans">
-            {/* Apps Script URL Config Panel for authorized users / setup */}
-            {isPublic && (
-                <div className="mb-6 p-4 bg-amber-50 rounded-2xl border border-amber-100 flex flex-col md:flex-row items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                        <AlertCircle size={16} className="text-amber-600 shrink-0" />
-                        <p className="text-[10px] text-amber-800 font-bold uppercase tracking-wider">
-                            Configure App Script URL for the Leave Automation:
-                        </p>
-                    </div>
-                    <input 
-                        type="text" 
-                        value={scriptUrl} 
-                        onChange={(e) => setScriptUrl(e.target.value)}
-                        placeholder="Paste script URL here..." 
-                        className="bg-white border border-amber-200 px-4 py-2 rounded-xl text-[10px] font-mono text-slate-700 w-full md:w-80 outline-none focus:border-orange-500"
-                    />
-                </div>
-            )}
 
             <motion.div 
                 initial={{ opacity: 0, y: 30 }} 

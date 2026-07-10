@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospital, QrCode, ExternalLink } from 'lucide-react';
+import { Shield, Lock, CheckCircle2, AlertCircle, ChevronDown, UserCircle, Hospital } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const LoginPanel = ({ onLogin }) => {
@@ -7,9 +7,8 @@ const LoginPanel = ({ onLogin }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
-  const [captchaVerified, setCaptchaVerified] = useState(false);
 
-  const [nums] = useState(() => ({ a: Math.floor(Math.random() * 10), b: Math.floor(Math.random() * 10) }));
+  const [nums, setNums] = useState(() => ({ a: Math.floor(Math.random() * 10), b: Math.floor(Math.random() * 10) }));
   const [captchaInput, setCaptchaInput] = useState('');
 
   const isCaptchaCorrect = parseInt(captchaInput) === (nums.a + nums.b);
@@ -21,18 +20,22 @@ const LoginPanel = ({ onLogin }) => {
     { name: 'Lab', password: 'L@B#123' }
   ];
 
-  const publicForms = [
-    { id: 'smile', label: 'Smile Award', sub: 'Staff Recognition', type: 'smile_award', color: 'border-emerald-100 hover:border-emerald-200 text-emerald-600', btnColor: 'bg-emerald-600 shadow-emerald-600/10 hover:bg-emerald-500' },
-    { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'border-orange-100 hover:border-orange-200 text-orange-600', btnColor: 'bg-orange-600 shadow-orange-600/10 hover:bg-orange-500' },
-    { id: 'staff', label: 'Staff Roster', sub: 'Roster Onboarding', type: 'register', color: 'border-slate-150 hover:border-slate-350 text-slate-900', btnColor: 'bg-slate-900 shadow-slate-900/10 hover:bg-slate-800' },
-    { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'border-amber-100 hover:border-amber-200 text-amber-600', btnColor: 'bg-amber-600 shadow-amber-600/10 hover:bg-amber-500' },
-    { id: 'visiting', label: 'Visiting Update', sub: 'Doctor Roster Portal', type: 'visiting_update', color: 'border-violet-100 hover:border-violet-200 text-violet-600', btnColor: 'bg-violet-600 shadow-violet-600/10 hover:bg-violet-500' },
-    { id: 'ppt', label: 'PPT Submit', sub: 'Presentation Upload', type: 'ppt_submit', color: 'border-rose-100 hover:border-rose-200 text-rose-600', btnColor: 'bg-rose-600 shadow-rose-600/10 hover:bg-rose-500' }
-  ];
-
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsVerifying(true);
+
+    // Retrieve login attempts from localStorage
+    const attemptsData = JSON.parse(localStorage.getItem('login_attempts') || '{}');
+    const userAttempts = attemptsData[username] || { count: 0, blockedUntil: 0 };
+
+    // Check if user is currently blocked
+    if (userAttempts.blockedUntil && Date.now() < userAttempts.blockedUntil) {
+      const remainingTime = Math.ceil((userAttempts.blockedUntil - Date.now()) / (1000 * 60 * 60));
+      setError(`Locked: Too many failed attempts. Please retry after ${remainingTime} hour(s).`);
+      setIsVerifying(false);
+      return;
+    }
+
     if (!isCaptchaCorrect) {
         setError('Security Captcha Incorrect');
         setIsVerifying(false);
@@ -40,32 +43,51 @@ const LoginPanel = ({ onLogin }) => {
     }
     setError('');
 
-    // Simulate ultra-fast check
+    // Simulate secure check latency
     await new Promise(resolve => setTimeout(resolve, 600));
 
     const user = users.find(u => u.name === username);
     if (user && password.trim() === user.password) {
+      // Reset attempts on successful login
+      attemptsData[username] = { count: 0, blockedUntil: 0 };
+      localStorage.setItem('login_attempts', JSON.stringify(attemptsData));
+
       localStorage.setItem('auth_user', username);
       onLogin(username);
     } else {
-      setError('Invalid Authentication Key');
+      // Increment failed attempts on incorrect password
+      const newCount = (userAttempts.count || 0) + 1;
+      let blockedUntil = 0;
+      let errorMsg = `Invalid Authentication Key. Attempt ${newCount} of 3.`;
+
+      if (newCount >= 3) {
+        blockedUntil = Date.now() + 24 * 60 * 60 * 1000; // Block for 24 hours
+        errorMsg = 'This account has been locked for 24 hours due to 3 failed attempts.';
+      }
+
+      attemptsData[username] = { count: newCount, blockedUntil };
+      localStorage.setItem('login_attempts', JSON.stringify(attemptsData));
+      setError(errorMsg);
+
+      // Generate a new captcha for security
+      setNums({ a: Math.floor(Math.random() * 10), b: Math.floor(Math.random() * 10) });
+      setCaptchaInput('');
     }
     setIsVerifying(false);
   };
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row items-center justify-center bg-[#050505] p-6 lg:p-12 overflow-x-hidden font-sans relative gap-8 lg:gap-12">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6 overflow-hidden font-sans relative">
       {/* Subtle Background Decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[10%] right-[10%] w-[40rem] h-[40rem] bg-emerald-500/5 blur-[120px] rounded-full" />
         <div className="absolute bottom-[10%] left-[10%] w-[40rem] h-[40rem] bg-orange-500/5 blur-[120px] rounded-full" />
       </div>
 
-      {/* Login Card Panel */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className="w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 shrink-0"
+        className="w-full max-w-md bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10"
       >
         <div className="flex flex-col items-center mb-8">
           <motion.div
@@ -167,81 +189,9 @@ const LoginPanel = ({ onLogin }) => {
           </button>
         </form>
 
-        <div className="mt-8 text-center pb-2">
+        <div className="mt-8 text-center pb-4">
           <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.4em]">
             SBH Hospital • Managed Terminal
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Public Forms Panel */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.15 }}
-        className="w-full max-w-4xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 flex flex-col"
-      >
-        <div className="mb-8 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-orange-600/10 flex items-center justify-center text-orange-600">
-            <QrCode className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-xs font-black tracking-widest text-slate-800 uppercase">
-              Public Access Portals
-            </h2>
-            <p className="text-slate-400 text-[8px] font-black tracking-[0.15em] uppercase mt-0.5">
-              Bina Login Kiye Bharein • Scan QR or Click to Fill
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {publicForms.map((form) => {
-            const finalUrl = `${window.location.origin}/?type=${form.type}`;
-            const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(finalUrl)}`;
-            
-            return (
-              <div 
-                key={form.id}
-                className="p-6 rounded-[2rem] border border-slate-100 bg-slate-50/35 flex items-center gap-5 transition-all hover:bg-white hover:shadow-xl group"
-              >
-                {/* QR Code Container */}
-                <div className="w-24 h-24 bg-white p-2 rounded-2xl shadow-inner border border-slate-100 shrink-0 flex items-center justify-center">
-                  <img 
-                    src={qrImageUrl} 
-                    alt={form.label} 
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-
-                {/* Form Details */}
-                <div className="flex-1 min-w-0 flex flex-col justify-between h-24 py-1">
-                  <div>
-                    <h3 className="text-xs font-black uppercase text-slate-800 leading-tight">
-                      {form.label}
-                    </h3>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1">
-                      {form.sub}
-                    </p>
-                  </div>
-                  
-                  <a
-                    href={finalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-full py-2.5 px-4 rounded-xl text-[9px] font-black uppercase tracking-wider text-white text-center flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] shadow-md ${form.btnColor}`}
-                  >
-                    <ExternalLink size={10} /> Fill Form
-                  </a>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="mt-8 text-center pt-2 border-t border-slate-50">
-          <p className="text-[8px] text-slate-300 font-black uppercase tracking-[0.4em]">
-            Developed By SBH Group Of Hospitals
           </p>
         </div>
       </motion.div>
