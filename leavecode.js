@@ -335,13 +335,14 @@ Dear Team,
 Please note that a senior staff member is on scheduled leave:
 
 👤 *Name:* ${leaveDetails.personName}
-📌 *Designation / Post:* ${leaveDetails.designation}
+🏢 *Department / Post:* ${leaveDetails.designation}
 📅 *Leave Type:* ${leaveDetails.leaveType}
 📅 *From:* ${formatDate_(leaveDetails.startDate)}
 📅 *To:* ${formatDate_(leaveDetails.endDate)}
 ⏳ *Total Days:* ${leaveDetails.totalDays} Day(s)
 📝 *Reason / Note:* ${leaveDetails.reason || '-'}
-🤝 *On Behalf:* ${leaveDetails.submittedBy || '-'} (${leaveDetails.submittedEmail || '-'})
+🤝 *Work On Behalf:* ${leaveDetails.submittedBy || '-'}
+📞 *Behalf Contact No:* ${leaveDetails.submittedEmail || '-'}
 
 ⚠️ _Please plan meetings, approvals, calls, and hospital operations accordingly._
 
