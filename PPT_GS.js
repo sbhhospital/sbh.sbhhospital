@@ -242,7 +242,7 @@ function sendPPTReminder(res) {
   let msg = "";
   let targetNo = staff.mobile;
 
-  const portalLink = `https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
+  const portalLink = `https://sbhhospital-seven.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
 
   if (type === 'Pending' || type === 'Manual') {
     msg = `📋 *DUE: ${pptType}*\n\n` +
@@ -292,7 +292,7 @@ function sendPPTEmail(staff, month, type, delayDays, subId) {
   if (!staff.email) return;
 
   const pptType = staff.ppt_type || 'Monthly PPT';
-  const portalLink = `https://lasik-feedback.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
+  const portalLink = `https://sbhhospital-seven.vercel.app/?type=ppt_submit&id=${staff.staff_id}&month=${encodeURIComponent(month)}`;
   
   let subject = "";
   let body = "";

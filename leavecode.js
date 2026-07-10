@@ -262,7 +262,7 @@ function buildEmailHtml_(leaveDetails, settings) {
         
         <!-- Header Panel with Amber/Orange Gradient -->
         <div style="background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
-          <img src="https://lasik-feedback.vercel.app/sbh_logo.png" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; filter: brightness(0) invert(1);" />
+          <img src="https://sbhhospital-seven.vercel.app/sbh_logo.png" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; filter: brightness(0) invert(1);" />
           <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.9; margin-bottom: 6px;">${safe(orgName)}</div>
           <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">Senior Leave Alert</h1>
         </div>
