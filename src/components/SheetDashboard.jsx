@@ -1195,7 +1195,9 @@ const PrintQRSection = () => {
         { id: 'smile', label: 'Smile Award', sub: 'Nomination Portal', type: 'smile_award', color: 'bg-emerald-600' },
         { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'bg-orange-600' },
         { id: 'staff', label: 'Staff Roster', sub: 'Onboarding Portal', type: 'register', color: 'bg-slate-900' },
-        { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'bg-orange-500' }
+        { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'bg-orange-500' },
+        { id: 'visiting', label: 'Visiting Update', sub: 'Doctor Roster Portal', type: 'visiting_update', color: 'bg-violet-600' },
+        { id: 'ppt', label: 'PPT Submit', sub: 'Presentation Upload', type: 'ppt_submit', color: 'bg-rose-600' }
     ];
 
     const downloadQR = (url, label) => {
@@ -1219,7 +1221,7 @@ const PrintQRSection = () => {
                 <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mt-1">Central Distribution Hub for Public Access</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {qrData.map(qr => {
                     const finalUrl = `${PUBLIC_URL}?type=${qr.type}`;
                     return (

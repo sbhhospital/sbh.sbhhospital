@@ -25,7 +25,9 @@ const LoginPanel = ({ onLogin }) => {
     { id: 'smile', label: 'Smile Award', sub: 'Staff Recognition', type: 'smile_award', color: 'border-emerald-100 hover:border-emerald-200 text-emerald-600', btnColor: 'bg-emerald-600 shadow-emerald-600/10 hover:bg-emerald-500' },
     { id: 'lasik', label: 'Lasik Feedback', sub: 'Patient Experience', type: 'lasik', color: 'border-orange-100 hover:border-orange-200 text-orange-600', btnColor: 'bg-orange-600 shadow-orange-600/10 hover:bg-orange-500' },
     { id: 'staff', label: 'Staff Roster', sub: 'Roster Onboarding', type: 'register', color: 'border-slate-150 hover:border-slate-350 text-slate-900', btnColor: 'bg-slate-900 shadow-slate-900/10 hover:bg-slate-800' },
-    { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'border-amber-100 hover:border-amber-200 text-amber-600', btnColor: 'bg-amber-600 shadow-amber-600/10 hover:bg-amber-500' }
+    { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'border-amber-100 hover:border-amber-200 text-amber-600', btnColor: 'bg-amber-600 shadow-amber-600/10 hover:bg-amber-500' },
+    { id: 'visiting', label: 'Visiting Update', sub: 'Doctor Roster Portal', type: 'visiting_update', color: 'border-violet-100 hover:border-violet-200 text-violet-600', btnColor: 'bg-violet-600 shadow-violet-600/10 hover:bg-violet-500' },
+    { id: 'ppt', label: 'PPT Submit', sub: 'Presentation Upload', type: 'ppt_submit', color: 'border-rose-100 hover:border-rose-200 text-rose-600', btnColor: 'bg-rose-600 shadow-rose-600/10 hover:bg-rose-500' }
   ];
 
   const handleLogin = async (e) => {
@@ -177,7 +179,7 @@ const LoginPanel = ({ onLogin }) => {
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.15 }}
-        className="w-full max-w-3xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 flex flex-col"
+        className="w-full max-w-4xl bg-white rounded-[2.5rem] p-8 md:p-10 shadow-[0_32px_80px_rgba(15,23,42,0.08)] border border-slate-100 relative z-10 flex flex-col"
       >
         <div className="mb-8 flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-orange-600/10 flex items-center justify-center text-orange-600">

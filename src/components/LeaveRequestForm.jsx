@@ -250,44 +250,14 @@ const LeaveRequestForm = ({ isPublic, staffList: propStaffList }) => {
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
                                 <User size={18} className="text-orange-500" /> Senior Officer Name <span className="text-orange-500">*</span>
                             </label>
-                            <div className="relative group">
-                                <input 
-                                    type="text"
-                                    required
-                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 pr-12 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
-                                    placeholder="Search or enter senior's name..."
-                                    value={showSeniorResults ? searchSenior : formData.personName}
-                                    onChange={e => { setSearchSenior(e.target.value); setFormData({...formData, personName: e.target.value}); setShowSeniorResults(true); }}
-                                    onFocus={() => setShowSeniorResults(true)}
-                                    onBlur={() => setTimeout(() => setShowSeniorResults(false), 200)}
-                                />
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors">
-                                    <Search size={18} />
-                                </div>
-                            </div>
-                            
-                            <AnimatePresence>
-                                {showSeniorResults && filteredSeniors.length > 0 && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }} 
-                                        animate={{ opacity: 1, y: 0 }} 
-                                        exit={{ opacity: 0, y: -10 }} 
-                                        className="absolute z-20 top-full left-0 right-0 mt-3 bg-white border border-slate-100 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] max-h-56 overflow-hidden overflow-y-auto custom-scrollbar"
-                                    >
-                                        {filteredSeniors.map((opt, i) => (
-                                            <button 
-                                                key={i} 
-                                                type="button" 
-                                                onClick={() => handleSelectSenior(opt)} 
-                                                className="w-full text-left px-7 py-4 hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0 group"
-                                            >
-                                                <p className="text-xs font-black text-slate-800 uppercase tracking-widest group-hover:text-orange-600">{getVal(opt, 'Name')}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{getVal(opt, 'Department')} • {getVal(opt, 'Role') || 'Staff'}</p>
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                            <input 
+                                type="text"
+                                required
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
+                                placeholder="Enter Senior Officer's Name"
+                                value={formData.personName}
+                                onChange={e => setFormData({...formData, personName: e.target.value})}
+                            />
                         </div>
 
                         <div className="space-y-3">
@@ -393,43 +363,13 @@ const LeaveRequestForm = ({ isPublic, staffList: propStaffList }) => {
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
                                 <User size={18} className="text-slate-400" /> Your Identity (Submitted By)
                             </label>
-                            <div className="relative group">
-                                <input 
-                                    type="text"
-                                    className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 pr-12 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
-                                    placeholder="Search your name or type it..."
-                                    value={showNominatorResults ? searchNominator : formData.submittedBy}
-                                    onChange={e => { setSearchNominator(e.target.value); setFormData({...formData, submittedBy: e.target.value}); setShowNominatorResults(true); }}
-                                    onFocus={() => setShowNominatorResults(true)}
-                                    onBlur={() => setTimeout(() => setShowNominatorResults(false), 200)}
-                                />
-                                <div className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-orange-500 transition-colors">
-                                    <Search size={18} />
-                                </div>
-                            </div>
-                            
-                            <AnimatePresence>
-                                {showNominatorResults && filteredNominators.length > 0 && (
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: -10 }} 
-                                        animate={{ opacity: 1, y: 0 }} 
-                                        exit={{ opacity: 0, y: -10 }} 
-                                        className="absolute z-20 top-full left-0 right-0 mt-3 bg-white border border-slate-100 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.15)] max-h-56 overflow-hidden overflow-y-auto custom-scrollbar"
-                                    >
-                                        {filteredNominators.map((opt, i) => (
-                                            <button 
-                                                key={i} 
-                                                type="button" 
-                                                onClick={() => handleSelectNominator(opt)} 
-                                                className="w-full text-left px-7 py-4 hover:bg-slate-50 transition-all border-b border-slate-50 last:border-0 group"
-                                            >
-                                                <p className="text-xs font-black text-slate-800 uppercase tracking-widest group-hover:text-orange-600">{getVal(opt, 'Name')}</p>
-                                                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">{getVal(opt, 'Department')}</p>
-                                            </button>
-                                        ))}
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
+                            <input 
+                                type="text"
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
+                                placeholder="Enter Your Name"
+                                value={formData.submittedBy}
+                                onChange={e => setFormData({...formData, submittedBy: e.target.value})}
+                            />
                         </div>
 
                         <div className="space-y-3">
