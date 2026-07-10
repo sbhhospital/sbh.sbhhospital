@@ -149,7 +149,9 @@ const LoginPanel = ({ onLogin }) => {
             </label>
             <div className="relative group">
               <input
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={captchaInput}
                 onChange={(e) => setCaptchaInput(e.target.value)}
                 placeholder="Answer"

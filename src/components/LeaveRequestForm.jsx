@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
     Calendar, CalendarRange, Send, User, Briefcase, Mail, FileText,
     CheckCircle2, Loader2, ChevronRight, Search, Sparkles, 
-    AlertCircle, ShieldCheck, Fingerprint, Clock, FileQuestion
+    AlertCircle, ShieldCheck, Fingerprint, Clock, FileQuestion, Phone
 } from 'lucide-react';
 
 // This URL should be replaced with the deployed web app URL from leavecode.js
@@ -337,31 +337,35 @@ const LeaveRequestForm = ({ isPublic, staffList: propStaffList }) => {
                         </div>
                     </div>
 
-                    {/* SUBMITTED BY (SENDER) */}
+                    {/* ON BEHALF COORDINATOR (SENDER) */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         <div className="space-y-3 relative">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
-                                <User size={18} className="text-slate-400" /> Your Identity (Submitted By)
+                                <User size={18} className="text-slate-400" /> On Behalf Coordinator (Name)
                             </label>
                             <input 
                                 type="text"
                                 className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
-                                placeholder="Enter Your Name"
+                                placeholder="Who will work on your behalf?"
                                 value={formData.submittedBy}
                                 onChange={e => setFormData({...formData, submittedBy: e.target.value})}
+                                required
                             />
                         </div>
 
-                        <div className="space-y-3">
+                        <div className="space-y-3 relative">
                             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-2 flex items-center gap-2">
-                                <Mail size={18} className="text-slate-400" /> Your Email
+                                <Phone size={18} className="text-slate-400" /> On Behalf Coordinator (Mobile No.)
                             </label>
                             <input 
-                                type="email"
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
+                                placeholder="Coordinator's Mobile Number"
                                 value={formData.submittedEmail}
                                 onChange={e => setFormData({...formData, submittedEmail: e.target.value})}
-                                placeholder="Enter your email address..."
-                                className="w-full bg-slate-50 border-2 border-slate-50 rounded-2xl py-5 px-6 text-slate-800 font-black text-sm outline-none focus:bg-white focus:border-orange-500/20 focus:ring-8 focus:ring-orange-500/5 transition-all"
+                                required
                             />
                         </div>
                     </div>
@@ -416,11 +420,13 @@ const MathCaptcha = ({ onVerify }) => {
                 </p>
             </div>
             <input 
-                type="number"
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 value={input}
                 onChange={(e) => check(e.target.value)}
-                placeholder="?"
-                className={`w-16 px-3 py-2 rounded-xl font-black text-xs outline-none transition-all border-2 ${
+                placeholder="Answer"
+                className={`w-32 px-4 py-2 rounded-xl font-black text-center text-xs outline-none transition-all border-2 ${
                     verified 
                     ? 'border-emerald-500 bg-emerald-50 text-emerald-700' 
                     : 'border-transparent bg-white text-slate-900 focus:border-orange-500/20'

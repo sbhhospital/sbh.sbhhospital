@@ -25,8 +25,8 @@ const LEAVE_HEADERS = [
   'End Date',
   'Total Days',
   'Reason / Note',
-  'Submitted By',
-  'Submitted Email',
+  'On Behalf Person Name',
+  'On Behalf Mobile',
   'Email Sent To',
   'WhatsApp Sent To',
   'Status'
@@ -194,9 +194,7 @@ function sendLeaveEmail_(leaveDetails, recipients, settings) {
       MailApp.sendEmail({
         to: person.email,
         subject: subject,
-        htmlBody: buildEmailHtml_(leaveDetails, settings),
-        name: settings.EMAIL_FROM_NAME || 'SBH Operations Manager',
-        replyTo: leaveDetails.submittedEmail || undefined
+        htmlBody: buildEmailHtml_(leaveDetails, settings)
       });
       sentCount++;
     } catch (error) {
@@ -270,20 +268,20 @@ function buildEmailHtml_(leaveDetails, settings) {
   const safe = (value) => escapeHtml_(value || '-');
 
   return `
-    <div style="margin: 0; padding: 40px 10px; background-color: #fafafa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b;">
-      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid #f1f5f9;">
+    <div style="margin: 0; padding: 20px 8px; background-color: #fafafa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b;">
+      <div style="max-width: 600px; width: 100%; margin: 0 auto; background: #ffffff; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.03); border: 1px solid #f1f5f9;">
         
-        <!-- Header Panel with Amber/Orange Gradient -->
-        <div style="background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
-          <img src="https://raw.githubusercontent.com/sbhhospital/sbh.sbhhospital/main/public/publiclogo.jpg" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; border-radius: 12px; object-fit: contain;" />
-          <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.9; margin-bottom: 6px;">${safe(orgName)}</div>
-          <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">Senior Leave Alert</h1>
+        <!-- Compact Header Panel with Amber/Orange Gradient -->
+        <div style="background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%); padding: 20px 24px; text-align: center; color: #ffffff;">
+          <img src="https://raw.githubusercontent.com/sbhhospital/sbh.sbhhospital/main/public/publiclogo.jpg" alt="SBH Logo" style="height: 48px; margin-bottom: 10px; border-radius: 8px; object-fit: contain;" />
+          <div style="font-size: 9px; font-weight: 800; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.9; margin-bottom: 4px;">${safe(orgName)}</div>
+          <h1 style="margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">Senior Leave Alert</h1>
         </div>
 
         <!-- Body content -->
-        <div style="padding: 35px 30px;">
+        <div style="padding: 24px 20px;">
           <p style="font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; color: #475569;">
-            This is to notify all departments that <strong>${safe(leaveDetails.designation)} ${safe(leaveDetails.personName)}</strong> will be on scheduled leave starting from <strong>${safe(formatDate_(leaveDetails.startDate))}</strong> to <strong>${safe(formatDate_(leaveDetails.endDate))}</strong>.
+            This is to notify all departments that <strong>${safe(leaveDetails.personName)}</strong> (${safe(leaveDetails.designation)}) will be on scheduled leave starting from <strong>${safe(formatDate_(leaveDetails.startDate))}</strong> to <strong>${safe(formatDate_(leaveDetails.endDate))}</strong>.
           </p>
 
           <!-- Duration highlight card -->
@@ -294,13 +292,13 @@ function buildEmailHtml_(leaveDetails, settings) {
 
           <!-- Parameter Roster Table -->
           <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 28px; border: 1px solid #f1f5f9; border-radius: 16px; overflow: hidden;">
-            ${emailTableRow_('Senior Officer', leaveDetails.personName)}
-            ${emailTableRow_('Designation', leaveDetails.designation)}
+            ${emailTableRow_('Officer Name', leaveDetails.personName)}
+            ${emailTableRow_('Designation / Post', leaveDetails.designation)}
             ${emailTableRow_('Leave Type', leaveDetails.leaveType)}
             ${emailTableRow_('Start Date', formatDate_(leaveDetails.startDate))}
             ${emailTableRow_('End Date', formatDate_(leaveDetails.endDate))}
             ${emailTableRow_('Reason / Note', leaveDetails.reason || '-')}
-            ${emailTableRow_('Submitted By', leaveDetails.submittedBy || '-')}
+            ${emailTableRow_('On Behalf Coordinator', `${leaveDetails.submittedBy || '-'} (${leaveDetails.submittedEmail || '-'})`)}
           </table>
 
           <!-- Warning text -->
@@ -336,20 +334,19 @@ Dear Team,
 
 Please note that a senior staff member is on scheduled leave:
 
-👤 *Senior:* ${leaveDetails.designation} ${leaveDetails.personName}
-📌 *Leave Type:* ${leaveDetails.leaveType}
+👤 *Name:* ${leaveDetails.personName}
+📌 *Designation / Post:* ${leaveDetails.designation}
+📅 *Leave Type:* ${leaveDetails.leaveType}
 📅 *From:* ${formatDate_(leaveDetails.startDate)}
 📅 *To:* ${formatDate_(leaveDetails.endDate)}
 ⏳ *Total Days:* ${leaveDetails.totalDays} Day(s)
 📝 *Reason / Note:* ${leaveDetails.reason || '-'}
-✅ *Submitted By:* ${leaveDetails.submittedBy || '-'}
+🤝 *On Behalf:* ${leaveDetails.submittedBy || '-'} (${leaveDetails.submittedEmail || '-'})
 
 ⚠️ _Please plan meetings, approvals, calls, and hospital operations accordingly._
 
 Regards,
-*SBH Group Of Hospitals*
-
-_Developed By Naman Mishra_`;
+*SBH Group Of Hospitals*`;
 }
 
 function getStaffContacts_(sheet) {
