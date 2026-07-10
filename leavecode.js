@@ -191,16 +191,13 @@ function sendLeaveEmail_(leaveDetails, recipients, settings) {
 
   recipients.forEach((person) => {
     try {
-      GmailApp.sendEmail(
-        person.email,
-        subject,
-        "", // plain text body placeholder
-        {
-          htmlBody: buildEmailHtml_(leaveDetails, settings),
-          name: settings.EMAIL_FROM_NAME || 'SBH Operations Manager',
-          replyTo: leaveDetails.submittedEmail || undefined
-        }
-      );
+      MailApp.sendEmail({
+        to: person.email,
+        subject: subject,
+        htmlBody: buildEmailHtml_(leaveDetails, settings),
+        name: settings.EMAIL_FROM_NAME || 'SBH Operations Manager',
+        replyTo: leaveDetails.submittedEmail || undefined
+      });
       sentCount++;
     } catch (error) {
       failedRecipients.push(`${person.email} (${error.message})`);
