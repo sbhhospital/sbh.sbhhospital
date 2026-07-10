@@ -253,45 +253,52 @@ function buildMessageAutoSenderUrl_(settings, receiverMobileNo, receiverName, me
 }
 
 function buildEmailHtml_(leaveDetails, settings) {
-  const orgName = settings.ORGANIZATION_NAME || 'Organization';
+  const orgName = settings.ORGANIZATION_NAME || 'SBH Group of Hospitals';
   const safe = (value) => escapeHtml_(value || '-');
 
   return `
-    <div style="margin:0;padding:0;background:#fff7ed;font-family:Arial,Helvetica,sans-serif;color:#182033;">
-      <div style="max-width:740px;margin:0 auto;padding:30px 14px;">
-        <div style="background:#ffffff;border:1px solid #f0d9c5;border-radius:20px;overflow:hidden;box-shadow:0 18px 48px rgba(88,39,16,0.16);">
-          <div style="background:linear-gradient(135deg,#0f8b4c,#075a33 48%,#d92d20);color:#ffffff;padding:24px 28px;border-bottom:7px solid #f97316;">
-            <div style="display:inline-block;border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:7px 12px;background:rgba(255,255,255,.15);font-size:12px;font-weight:bold;letter-spacing:.08em;text-transform:uppercase;">${safe(orgName)}</div>
-            <h1 style="margin:14px 0 0;font-size:26px;line-height:1.25;">Senior Leave Notification</h1>
-            <p style="margin:8px 0 0;color:rgba(255,255,255,.88);font-size:14px;line-height:1.55;">Premium operational alert for approvals, meetings, and department planning.</p>
+    <div style="margin: 0; padding: 40px 10px; background-color: #fafafa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1e293b;">
+      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.04); border: 1px solid #f1f5f9;">
+        
+        <!-- Header Panel with Amber/Orange Gradient -->
+        <div style="background: linear-gradient(135deg, #f97316 0%, #f59e0b 100%); padding: 35px 30px; text-align: center; color: #ffffff;">
+          <img src="https://lasik-feedback.vercel.app/sbh_logo.png" alt="SBH Logo" style="height: 64px; margin-bottom: 16px; filter: brightness(0) invert(1);" />
+          <div style="font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.9; margin-bottom: 6px;">${safe(orgName)}</div>
+          <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.02em; text-transform: uppercase;">Senior Leave Alert</h1>
+        </div>
+
+        <!-- Body content -->
+        <div style="padding: 35px 30px;">
+          <p style="font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; color: #475569;">
+            This is to notify all departments that <strong>${safe(leaveDetails.designation)} ${safe(leaveDetails.personName)}</strong> will be on scheduled leave starting from <strong>${safe(formatDate_(leaveDetails.startDate))}</strong> to <strong>${safe(formatDate_(leaveDetails.endDate))}</strong>.
+          </p>
+
+          <!-- Duration highlight card -->
+          <div style="background: #fff7ed; border: 1px dashed #fed7aa; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 28px;">
+            <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: #c2410c; letter-spacing: 0.1em; display: block; margin-bottom: 4px;">Total Leave Duration</span>
+            <span style="font-size: 26px; font-weight: 900; color: #ea580c;">${safe(leaveDetails.totalDays)} Day(s)</span>
           </div>
-          <div style="padding:24px 26px;">
-            <p style="font-size:16px;line-height:1.65;margin:0 0 18px;color:#26324a;">
-              This is to inform everyone that <strong>${safe(leaveDetails.designation)} ${safe(leaveDetails.personName)}</strong>
-              will be on leave from <strong>${safe(formatDate_(leaveDetails.startDate))}</strong> to
-              <strong>${safe(formatDate_(leaveDetails.endDate))}</strong>.
-            </p>
-            <div style="display:block;background:linear-gradient(135deg,#ecfdf3,#fff7ed,#fff1f2);border:1px solid #f0c7a4;border-radius:14px;padding:14px 16px;margin:0 0 18px;">
-              <div style="font-size:12px;color:#667085;text-transform:uppercase;letter-spacing:.06em;font-weight:bold;">Total Leave Duration</div>
-              <div style="font-size:24px;color:#075a33;font-weight:bold;margin-top:4px;">${safe(leaveDetails.totalDays)} day(s)</div>
-            </div>
-            <table role="presentation" style="width:100%;border-collapse:collapse;margin:18px 0;border:1px solid #f0d9c5;border-radius:12px;overflow:hidden;">
-              ${emailTableRow_('Person Name', leaveDetails.personName)}
-              ${emailTableRow_('Designation', leaveDetails.designation)}
-              ${emailTableRow_('Leave Type', leaveDetails.leaveType)}
-              ${emailTableRow_('Start Date', formatDate_(leaveDetails.startDate))}
-              ${emailTableRow_('End Date', formatDate_(leaveDetails.endDate))}
-              ${emailTableRow_('Total Days', `${leaveDetails.totalDays} day(s)`)}
-              ${emailTableRow_('Reason / Note', leaveDetails.reason || '-')}
-              ${emailTableRow_('Submitted By', leaveDetails.submittedBy || '-')}
-            </table>
-            <div style="background:#fff7ed;border-left:5px solid #f97316;border-radius:10px;padding:14px 16px;font-size:14px;line-height:1.55;color:#7c2d12;">
-              Kindly plan approvals, meetings, calls, and operational dependencies accordingly.
-            </div>
+
+          <!-- Parameter Roster Table -->
+          <table role="presentation" style="width: 100%; border-collapse: collapse; margin-bottom: 28px; border: 1px solid #f1f5f9; border-radius: 16px; overflow: hidden;">
+            ${emailTableRow_('Senior Officer', leaveDetails.personName)}
+            ${emailTableRow_('Designation', leaveDetails.designation)}
+            ${emailTableRow_('Leave Type', leaveDetails.leaveType)}
+            ${emailTableRow_('Start Date', formatDate_(leaveDetails.startDate))}
+            ${emailTableRow_('End Date', formatDate_(leaveDetails.endDate))}
+            ${emailTableRow_('Reason / Note', leaveDetails.reason || '-')}
+            ${emailTableRow_('Submitted By', leaveDetails.submittedBy || '-')}
+          </table>
+
+          <!-- Warning text -->
+          <div style="background: #f8fafc; border-left: 4px solid #ea580c; border-radius: 8px; padding: 16px; font-size: 12px; line-height: 1.5; color: #64748b;">
+            ⚠️ <strong>Operational Dependency Note:</strong> Please coordinate approvals, clinical rosters, meetings, and emergency contacts accordingly during this leave period.
           </div>
-          <div style="padding:14px 26px;background:linear-gradient(90deg,#ecfdf3,#fff7ed,#fff1f2);color:#667085;font-size:12px;text-align:center;font-weight:bold;">
-            Developed By Naman Mishra
-          </div>
+        </div>
+
+        <!-- Footer Bar matching Smile Award / Dashboard style -->
+        <div style="background: linear-gradient(to right, #f59e0b, #10b981, #2e7d32); padding: 18px 24px; text-align: center; color: #ffffff;">
+          <span style="font-size: 10px; font-weight: 900; letter-spacing: 0.25em; text-transform: uppercase;">Developed By SBH Group Of Hospitals</span>
         </div>
       </div>
     </div>
@@ -300,34 +307,36 @@ function buildEmailHtml_(leaveDetails, settings) {
 
 function emailTableRow_(label, value) {
   return `
-    <tr>
-      <td style="width:34%;padding:12px 14px;background:#ecfdf3;border-bottom:1px solid #f0d9c5;font-weight:bold;color:#075a33;">${escapeHtml_(label)}</td>
-      <td style="padding:12px 14px;border-bottom:1px solid #f0d9c5;color:#182033;background:#ffffff;">${escapeHtml_(value || '-')}</td>
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="width: 38%; padding: 14px 16px; background-color: #fef3c7; font-weight: 800; font-size: 11px; text-transform: uppercase; color: #b45309; letter-spacing: 0.05em;">${escapeHtml_(label)}</td>
+      <td style="padding: 14px 16px; font-size: 13px; font-weight: 600; color: #1e293b; background-color: #ffffff;">${escapeHtml_(value || '-')}</td>
     </tr>
   `;
 }
 
 function buildWhatsAppMessage_(leaveDetails, settings) {
   const orgName = settings.ORGANIZATION_NAME || 'SBH Group Of Hospital';
-  return `🏥 ${orgName}
-✨ Senior Leave Notification
+  return `🏥 *${orgName.toUpperCase()}*
+✨ *Senior Leave Notification*
 
 Dear Team,
 
-👤 Senior: ${leaveDetails.designation} ${leaveDetails.personName}
-📌 Leave Type: ${leaveDetails.leaveType}
-📅 From: ${formatDate_(leaveDetails.startDate)}
-📅 To: ${formatDate_(leaveDetails.endDate)}
-⏳ Total Days: ${leaveDetails.totalDays}
-📝 Reason / Note: ${leaveDetails.reason || '-'}
-✅ Submitted By: ${leaveDetails.submittedBy || '-'}
+Please note that a senior staff member is on scheduled leave:
 
-⚠️ Please plan meetings, approvals, calls, and hospital operations accordingly.
+👤 *Senior:* ${leaveDetails.designation} ${leaveDetails.personName}
+📌 *Leave Type:* ${leaveDetails.leaveType}
+📅 *From:* ${formatDate_(leaveDetails.startDate)}
+📅 *To:* ${formatDate_(leaveDetails.endDate)}
+⏳ *Total Days:* ${leaveDetails.totalDays} Day(s)
+📝 *Reason / Note:* ${leaveDetails.reason || '-'}
+✅ *Submitted By:* ${leaveDetails.submittedBy || '-'}
+
+⚠️ _Please plan meetings, approvals, calls, and hospital operations accordingly._
 
 Regards,
-SBH Group Of Hospital
+*SBH Group Of Hospitals*
 
-Developed By Naman Mishra`;
+_Developed By Naman Mishra_`;
 }
 
 function getStaffContacts_(sheet) {
