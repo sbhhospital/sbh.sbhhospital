@@ -334,26 +334,17 @@ const VendorRegistrationForm = ({ isPublic }) => {
                     </p>
                 </div>
 
-                {/* Navigation Tabs */}
-                <div className="relative z-10 flex border-b border-slate-200 mb-8">
-                    {['New', 'Pre-Approved'].map(tab => (
-                        <button
-                            key={tab}
-                            type="button"
-                            onClick={() => setVendorStatus(tab)}
-                            className={`flex-1 py-4 text-center text-xs font-black uppercase tracking-widest relative transition-all ${
-                                vendorStatus === tab ? 'text-orange-600' : 'text-slate-400 hover:text-slate-600'
-                            }`}
-                        >
-                            {tab} Vendor
-                            {vendorStatus === tab && (
-                                <motion.div 
-                                    layoutId="activeTabUnderline" 
-                                    className="absolute bottom-0 inset-x-0 h-0.5 bg-orange-600" 
-                                />
-                            )}
-                        </button>
-                    ))}
+                {/* Registration Category Selector */}
+                <div className="relative z-10 bg-slate-50 p-5 rounded-2xl border border-slate-100 mb-8 max-w-md mx-auto">
+                    <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1 block mb-2">Registration Category *</label>
+                    <select
+                        value={vendorStatus}
+                        onChange={e => setVendorStatus(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold text-xs outline-none focus:border-orange-500 transition-all cursor-pointer"
+                    >
+                        <option value="New">New Vendor Onboarding</option>
+                        <option value="Pre-Approved">Pre-Approved Vendor Update</option>
+                    </select>
                 </div>
 
                 {/* Pre-Approved Search Engine */}
