@@ -1198,7 +1198,8 @@ const PrintQRSection = () => {
         { id: 'staff', label: 'Staff Roster', sub: 'Onboarding Portal', type: 'register', color: 'bg-slate-900' },
         { id: 'leave', label: 'Senior Leave', sub: 'Leave Notification', type: 'leave', color: 'bg-orange-500' },
         { id: 'visiting', label: 'Visiting Update', sub: 'Doctor Roster Portal', type: 'visiting_update', color: 'bg-violet-600' },
-        { id: 'ppt', label: 'PPT Submit', sub: 'Presentation Upload', type: 'ppt_submit', color: 'bg-rose-600' }
+        { id: 'ppt', label: 'PPT Submit', sub: 'Presentation Upload', type: 'ppt_submit', color: 'bg-rose-600' },
+        { id: 'vendor', label: 'Vendor Portal', sub: 'Vendor Registration', type: 'vendor', color: 'bg-amber-600' }
     ];
 
     const downloadQR = (url, label) => {
