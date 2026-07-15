@@ -29,7 +29,12 @@ const HEADERS = [
   'GST Registration Status',
   'GSTIN',
   'Drive Folder Link',
-  'Hospital Unit'
+  'Hospital Unit',
+  'Vendor Status',
+  'Products Supplied',
+  'Contact Person',
+  'Contact Mobile',
+  'Contact Email'
 ];
 
 const UNIT_PREFIX_MAP = {
@@ -60,6 +65,16 @@ function setupVendorSystem() {
 
 // GET handler
 function doGet(e) {
+  const params = e && e.parameter ? e.parameter : {};
+  const action = params.action;
+  
+  if (action === 'get_vendors') {
+    return getVendorsList();
+  }
+  if (action === 'get_last_id') {
+    return getLastVendorId(params.company);
+  }
+  
   return ContentService.createTextOutput(JSON.stringify({
     success: true,
     message: 'SBH Vendor Management System Apps Script API is active.'
@@ -68,10 +83,8 @@ function doGet(e) {
 
 // POST handler
 function doPost(e) {
-  // Use script lock to prevent race conditions during Vendor ID generation
   const lock = LockService.getScriptLock();
   try {
-    // Wait for up to 30 seconds for lock
     lock.waitLock(30000);
   } catch (err) {
     return createJsonResponse({ success: false, message: 'Server busy, please try again.' });
@@ -88,8 +101,106 @@ function doPost(e) {
   }
 }
 
-// Main logic to register vendor
+// Fetch all vendors from Google Sheet
+function getVendorsList() {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) return createJsonResponse({ success: true, vendors: [] });
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return createJsonResponse({ success: true, vendors: [] });
+    
+    const headers = data[0].map(h => h.toString().trim().replace(/\s+/g, ''));
+    const vendors = data.slice(1).map(row => {
+      let obj = {};
+      headers.forEach((h, i) => {
+        let val = row[i];
+        if (val instanceof Date) {
+          val = Utilities.formatDate(val, "GMT+5:30", "yyyy-MM-dd HH:mm:ss");
+        }
+        obj[h] = val;
+      });
+      return obj;
+    });
+    
+    return createJsonResponse({ success: true, vendors: vendors });
+  } catch (e) {
+    return createJsonResponse({ success: false, message: e.toString() });
+  }
+}
+
+// Fetch last vendor ID by company name for fallback sync
+function getLastVendorId(companyName) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheet = ss.getSheetByName(SHEET_NAME);
+    if (!sheet) return createJsonResponse({ success: false });
+    const data = sheet.getDataRange().getValues();
+    for (let i = data.length - 1; i >= 1; i--) {
+      if (String(data[i][2]).toLowerCase().indexOf(String(companyName || '').toLowerCase()) > -1) {
+        return createJsonResponse({ success: true, vendorId: data[i][1], folderUrl: data[i][14] });
+      }
+    }
+    return createJsonResponse({ success: false });
+  } catch(e) {
+    return createJsonResponse({ success: false });
+  }
+}
+
+// Main logic to register / update vendor
 function processVendorRegistration(data) {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  let sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet) {
+    setupVendorSystem();
+    sheet = ss.getSheetByName(SHEET_NAME);
+  }
+
+  const vendorStatus = String(data.vendorStatus || 'New').trim();
+  const productsSupplied = String(data.productsSupplied || '').trim();
+  const contactPerson = String(data.contactPerson || '').trim();
+  const contactMobile = String(data.contactMobile || '').trim();
+  const contactEmail = String(data.contactEmail || '').trim();
+
+  // If Pre-Approved, search and update products & contacts
+  if (vendorStatus === 'Pre-Approved') {
+    const vendorId = String(data.vendorId || '').trim();
+    if (!vendorId) {
+      return { success: false, message: 'Vendor ID is required for Pre-Approved Vendor update.' };
+    }
+
+    const rowIndex = findVendorRowIndex(sheet, vendorId);
+    if (rowIndex > -1) {
+      // Products Supplied = Column 18 (index 17 in array, 18 in range)
+      // Contact Person = Column 19
+      // Contact Mobile = Column 20
+      // Contact Email = Column 21
+      const currentProducts = String(sheet.getRange(rowIndex, 18).getValue() || '').trim();
+      let mergedProducts = currentProducts;
+      if (productsSupplied) {
+        mergedProducts = currentProducts ? (currentProducts + ', ' + productsSupplied) : productsSupplied;
+      }
+
+      sheet.getRange(rowIndex, 18).setValue(mergedProducts);
+      if (contactPerson) sheet.getRange(rowIndex, 19).setValue(contactPerson);
+      if (contactMobile) sheet.getRange(rowIndex, 20).setValue(contactMobile);
+      if (contactEmail) sheet.getRange(rowIndex, 21).setValue(contactEmail);
+
+      const folderUrl = sheet.getRange(rowIndex, 15).getValue();
+
+      return {
+        success: true,
+        vendorId: vendorId,
+        folderUrl: folderUrl,
+        message: 'Pre-Approved Vendor record updated successfully!'
+      };
+    } else {
+      return { success: false, message: `Vendor with ID ${vendorId} not found in database.` };
+    }
+  }
+
+  // Otherwise, register as a New Vendor
   const companyName = String(data.companyName || '').trim();
   const constitution = String(data.constitution || '').trim();
   const commAddress = String(data.commAddress || '').trim();
@@ -152,14 +263,6 @@ function processVendorRegistration(data) {
     });
   }
   
-  // 5. Append to Spreadsheet
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  let sheet = ss.getSheetByName(SHEET_NAME);
-  if (!sheet) {
-    setupVendorSystem();
-    sheet = ss.getSheetByName(SHEET_NAME);
-  }
-  
   const timestamp = new Date();
   
   sheet.appendRow([
@@ -178,7 +281,12 @@ function processVendorRegistration(data) {
     gstStatus,
     gstin,
     folderUrl,
-    hospitalUnit
+    hospitalUnit,
+    vendorStatus,
+    productsSupplied,
+    contactPerson,
+    contactMobile,
+    contactEmail
   ]);
   
   // Auto fit columns
@@ -192,6 +300,17 @@ function processVendorRegistration(data) {
     folderUrl: folderUrl,
     message: 'Vendor registered successfully!'
   };
+}
+
+// Find vendor row index by ID
+function findVendorRowIndex(sheet, vendorId) {
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]).trim() === String(vendorId).trim()) {
+      return i + 1; // 1-indexed row number
+    }
+  }
+  return -1;
 }
 
 // Helper to generate unique incrementing Vendor ID
@@ -228,7 +347,6 @@ function generateVendorId(unitName) {
 // Helper to decode Base64 file and save in folder
 function uploadFileToFolder(folder, base64Data, fileName) {
   try {
-    // Strip header metadata if exists (e.g. data:application/pdf;base64,)
     let rawBase64 = base64Data;
     let mimeType = 'application/octet-stream';
     
