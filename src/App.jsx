@@ -28,7 +28,7 @@ function App() {
       fetchRecord(id);
     }
 
-    if (type === 'survey' || type === 'smile_award' || type === 'smile' || type === 'lasik' || type === 'visiting_update' || type === 'register' || type === 'ppt_submit' || type === 'leave' || type === 'senior_leave') {
+    if (type === 'survey' || type === 'smile_award' || type === 'smile' || type === 'lasik' || type === 'visiting_update' || type === 'register' || type === 'ppt_submit' || type === 'leave' || type === 'senior_leave' || type === 'vendor') {
       setIsPublicMode(type === 'smile' ? 'smile_award' : type); 
     }
 

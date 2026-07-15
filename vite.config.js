@@ -9,7 +9,7 @@ export default defineConfig({
     cssTarget: 'chrome61',
   },
   server: {
-    port: 8899,
+    port: 5454,
     host: true,
   },
 })

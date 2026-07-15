@@ -18,6 +18,7 @@ import PPTSubmissionForm from './PPTSubmissionForm';
 import Footer from './Footer';
 import LabReportManager from './LabReportManager';
 import LeaveRequestForm from './LeaveRequestForm';
+import VendorRegistrationForm from './VendorRegistrationForm';
 
 // --- UTILITIES ---
 const getVal = (obj, key) => {
@@ -1541,6 +1542,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
             if (publicType === 'visiting_update') return 'VISITING_UPDATE';
             if (publicType === 'ppt_submit') return 'PPT_SUBMIT';
             if (publicType === 'leave' || publicType === 'senior_leave') return 'LEAVE_FORM';
+            if (publicType === 'vendor') return 'VENDOR_FORM';
             return 'SMILE_FORM';
         }
         if (user === 'ACCOUNT') return 'SBH_FAMILY_DASHBOARD';
@@ -1563,12 +1565,13 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
         accounting: user === 'ACCOUNT',
         system: false,
         lab: user === 'Lab',
-        leave: false
+        leave: false,
+        vendor: false
     });
 
     const toggleCategory = (cat) => {
         setOpenCategories(prev => {
-            const newState = { smile: false, employees: false, lasik: false, accounting: false, system: false, lab: false, leave: false };
+            const newState = { smile: false, employees: false, lasik: false, accounting: false, system: false, lab: false, leave: false, vendor: false };
             newState[cat] = !prev[cat];
             return newState;
         });
@@ -1685,6 +1688,9 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                                 </CollapsibleCategory>
                                 <CollapsibleCategory icon={<Calendar />} label="Leave System" isOpen={openCategories.leave} onToggle={() => toggleCategory('leave')}>
                                     <NavItem icon={<Plus />} label="Request Leave" active={activeTab === 'LEAVE_FORM'} onClick={() => handleNavClick('LEAVE_FORM')} />
+                                </CollapsibleCategory>
+                                <CollapsibleCategory icon={<Building2 />} label="Vendor System" isOpen={openCategories.vendor} onToggle={() => toggleCategory('vendor')}>
+                                    <NavItem icon={<Plus />} label="Register Vendor" active={activeTab === 'VENDOR_FORM'} onClick={() => handleNavClick('VENDOR_FORM')} />
                                 </CollapsibleCategory>
                             </>
                         )}
@@ -1811,6 +1817,7 @@ const SheetDashboard = ({ user, onLogout, isPublic, publicType }) => {
                         {activeTab === 'PPT_DASHBOARD' && <PPTDashboard scriptUrl={pptScriptUrl} loading={loading} onRefresh={fetchData} />}
                         {activeTab === 'PPT_SUBMIT' && <PPTSubmissionForm scriptUrl={pptScriptUrl} prefillData={{ id: new URLSearchParams(window.location.search).get('id'), month: new URLSearchParams(window.location.search).get('month') }} />}
                         {activeTab === 'LAB_REPORTS' && <LabReportManager />}
+                        {activeTab === 'VENDOR_FORM' && <VendorRegistrationForm isPublic={isPublic} />}
                     </div>
                 </main>
                 <Footer />
