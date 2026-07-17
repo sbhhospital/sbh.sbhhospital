@@ -133,7 +133,7 @@ function handleSendReport(data) {
   
   // Save PDF inside MRD folder
   const decoded = Utilities.base64Decode(fileData);
-  const blob = Utilities.newBlob(decoded, "application/pdf", mrdNo + "_" + dateStr + "_" + timeStr + ".pdf");
+  const blob = Utilities.newBlob(decoded, "application/pdf", patientName + " (" + mrdNo + ").pdf");
   const file = mrdFolder.createFile(blob);
   
   // Allow anyone with the link to view the file so the Meta API can access it
@@ -159,7 +159,7 @@ function handleSendReport(data) {
         "source": "new-landing-page form",
         "media": {
           "url": directDownloadUrl,
-          "filename": mrdNo + "_" + dateStr + ".pdf"
+          "filename": patientName + " (" + mrdNo + ").pdf"
         },
         "buttons": [],
         "carouselCards": [],

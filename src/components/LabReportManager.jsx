@@ -130,6 +130,7 @@ export default function LabReportManager() {
     
     // Send form state
     const [formMobile, setFormMobile] = useState('');
+    const [formSalutation, setFormSalutation] = useState('');
     const [formName, setFormName] = useState('');
     const [formMrd, setFormMrd] = useState('');
     const [selectedFiles, setSelectedFiles] = useState([]);
@@ -263,10 +264,27 @@ export default function LabReportManager() {
         const chat = chatsList.find(c => c.mobile === mobile);
         if (chat && chat.lastLog) {
             setFormMrd(chat.lastLog.MRD_No || '');
-            setFormName(chat.lastLog.Patient_Name || '');
+            const fullName = chat.lastLog.Patient_Name || '';
+            let salutation = '';
+            let nameVal = fullName;
+            const prefixes = ['Mr.', 'Ms.', 'Mrs.', 'Dr.'];
+            for (const p of prefixes) {
+                if (fullName.startsWith(p + ' ')) {
+                    salutation = p;
+                    nameVal = fullName.slice(p.length + 1).trim();
+                    break;
+                } else if (fullName.startsWith(p)) {
+                    salutation = p;
+                    nameVal = fullName.slice(p.length).trim();
+                    break;
+                }
+            }
+            setFormSalutation(salutation);
+            setFormName(nameVal);
         } else {
             setFormMrd('');
             setFormName('');
+            setFormSalutation('');
         }
         setSelectedFiles([]);
         setFileError('');
@@ -278,6 +296,7 @@ export default function LabReportManager() {
         setActiveMobile('');
         setIsNewChat(true);
         setFormMobile('');
+        setFormSalutation('');
         setFormName('');
         setFormMrd('');
         setSelectedFiles([]);
@@ -310,8 +329,8 @@ export default function LabReportManager() {
 
     // Send logic (accepts channel param: 'WhatsApp' or 'SMS')
     const handleSendReport = async (channel) => {
-        if (!formMobile || !formName || !formMrd || selectedFiles.length === 0) {
-            alert('Please fill out all fields and select at least one PDF file.');
+        if (!formMobile || !formSalutation || !formName || !formMrd || selectedFiles.length === 0) {
+            alert('Please fill out all fields, select Mr./Ms., and select at least one PDF file.');
             return;
         }
 
@@ -323,10 +342,12 @@ export default function LabReportManager() {
         const dateStr = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${today.getFullYear()}`;
         const timeStr = `${String(today.getHours()).padStart(2, '0')}:${String(today.getMinutes()).padStart(2, '0')}:${String(today.getSeconds()).padStart(2, '0')}`;
 
+        const combinedPatientName = `${formSalutation} ${formName}`.trim();
+
         const tempLog = {
             Timestamp: `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')} ${timeStr}`,
             Date: dateStr,
-            Patient_Name: formName,
+            Patient_Name: combinedPatientName,
             MRD_No: formMrd,
             Mobile_No: fullMobile,
             PDF_Link: '#',
@@ -340,7 +361,7 @@ export default function LabReportManager() {
 
         // Copy files for async background thread execution
         const currentFiles = [...selectedFiles];
-        const currentName = formName;
+        const currentName = combinedPatientName;
         const currentMrd = formMrd;
 
         // Clear files and MRD immediately to free UI for next send (keep Mobile/Name populated for consecutive sends)
@@ -633,15 +654,30 @@ export default function LabReportManager() {
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Patient Name</label>
-                                    <input 
-                                        type="text"
-                                        required
-                                        disabled={!isNewChat}
-                                        value={formName}
-                                        onChange={(e) => setFormName(e.target.value)}
-                                        placeholder="Enter Patient Name"
-                                        className="w-full bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400 disabled:opacity-50"
-                                    />
+                                    <div className="flex gap-2">
+                                        <select
+                                            required
+                                            disabled={!isNewChat}
+                                            value={formSalutation}
+                                            onChange={(e) => setFormSalutation(e.target.value)}
+                                            className="bg-slate-50 border-none rounded-2xl px-3 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all disabled:opacity-50"
+                                        >
+                                            <option value="">Mr/Ms</option>
+                                            <option value="Mr.">Mr.</option>
+                                            <option value="Ms.">Ms.</option>
+                                            <option value="Mrs.">Mrs.</option>
+                                            <option value="Dr.">Dr.</option>
+                                        </select>
+                                        <input 
+                                            type="text"
+                                            required
+                                            disabled={!isNewChat}
+                                            value={formName}
+                                            onChange={(e) => setFormName(e.target.value)}
+                                            placeholder="Enter Patient Name"
+                                            className="flex-1 bg-slate-50 border-none rounded-2xl px-5 py-3.5 text-xs font-bold text-slate-700 outline-none focus:bg-white focus:ring-4 focus:ring-orange-500/5 transition-all placeholder:text-slate-400 disabled:opacity-50"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">MRD Reference No</label>
